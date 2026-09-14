@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::sizing::{form_control_height, form_control_size};
 use gpui::{
     AnyElement, App, AppContext, Context, Entity, EventEmitter, FocusHandle, Focusable,
-    IntoElement, ParentElement as _, Render, RenderOnce, SharedString, Styled as _, Subscription,
-    Window, div, prelude::FluentBuilder as _, px,
+    InteractiveElement as _, IntoElement, MouseButton, ParentElement as _, Render, RenderOnce,
+    SharedString, Styled as _, Subscription, Window, div, prelude::FluentBuilder as _, px,
 };
 use gpui_component::{
     Disableable, IndexPath, Sizable,
@@ -16,6 +16,7 @@ use gpui_component::{
 
 type NyaToggleHandler = Box<dyn Fn(&bool, &mut Window, &mut App)>;
 type NyaIndexSelectHandler = Box<dyn Fn(&usize, &mut Window, &mut App)>;
+type NyaSelectOpenHandler = Box<dyn Fn(&mut Window, &mut App)>;
 
 #[derive(IntoElement)]
 pub struct NyaSwitch {
@@ -564,6 +565,7 @@ pub struct NyaSelect {
     state: Entity<NyaSelectState>,
     appearance: bool,
     placeholder_content: Option<AnyElement>,
+    on_open: Option<NyaSelectOpenHandler>,
 }
 
 impl NyaSelect {
@@ -572,6 +574,7 @@ impl NyaSelect {
             state: state.clone(),
             appearance: true,
             placeholder_content: None,
+            on_open: None,
         }
     }
 
@@ -584,6 +587,12 @@ impl NyaSelect {
         self.placeholder_content = Some(content.into_any_element());
         self
     }
+
+    /// Runs immediately before pointer activation opens the menu.
+    pub fn on_open(mut self, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_open = Some(Box::new(handler));
+        self
+    }
 }
 
 impl RenderOnce for NyaSelect {
@@ -592,6 +601,7 @@ impl RenderOnce for NyaSelect {
             state,
             appearance,
             placeholder_content,
+            on_open,
         } = self;
         let (state, placeholder, search_placeholder, disabled) = state.update(cx, |state, cx| {
             let component = state.ensure_component(window, cx);
@@ -619,7 +629,7 @@ impl RenderOnce for NyaSelect {
         // GPUI's select fixes placeholder text to the muted theme color. Overlay only the
         // opt-in placeholder content so saved values can use distinct status styling without
         // changing menu data.
-        if let Some(content) = placeholder_content {
+        let content = if let Some(content) = placeholder_content {
             div()
                 .relative()
                 .size_full()
@@ -641,7 +651,16 @@ impl RenderOnce for NyaSelect {
                 .into_any_element()
         } else {
             select.into_any_element()
-        }
+        };
+        div()
+            .relative()
+            .size_full()
+            .when_some(on_open, |this, handler| {
+                this.on_mouse_down(MouseButton::Left, move |_, window, cx| {
+                    handler(window, cx);
+                })
+            })
+            .child(content)
     }
 }
 

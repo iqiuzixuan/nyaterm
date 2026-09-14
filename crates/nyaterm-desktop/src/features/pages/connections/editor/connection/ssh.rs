@@ -16,17 +16,17 @@ use nyaterm_ui::{NyaCheckbox, NyaScrollable, NyaSelect, NyaTabItem, NyaTabs, Nya
 
 use crate::features::{NyaTermApp, connections::ConnectionEditorToggle};
 use crate::models::{
-    ConnectionEditorAdvancedTab, ConnectionEditorField, ConnectionEditorPasswordSource,
-    ConnectionEditorSelect, ConnectionEditorSshAlgorithmTab,
+    ConnectionEditorAdvancedTab, ConnectionEditorCredentialOverlay, ConnectionEditorField,
+    ConnectionEditorPasswordSource, ConnectionEditorSelect, ConnectionEditorSshAlgorithmTab,
 };
 
 use super::super::super::list::{
     ConnectionEditorChoice, ConnectionEditorRenderContext, EDITOR_CONTROL_HEIGHT_PX,
-    connection_editor_select, editor_field, editor_stepper_field, forwarding_endpoint_editor_field,
-    required, toggle_chip,
+    EditorSecretFieldOptions, connection_editor_select, editor_field, editor_secret_field,
+    editor_stepper_field, forwarding_endpoint_editor_field, required, toggle_chip,
 };
 
-use super::ConnectionEditorSectionContext;
+use super::{ConnectionEditorSectionContext, recording::connection_editor_recording_section};
 
 pub(super) struct SshConnectionSectionLabels {
     pub(super) otp: String,
@@ -270,6 +270,7 @@ pub(super) fn connection_editor_ssh_section(
         palette,
         editor,
         fields,
+        baud_popover_open: _,
     } = section;
     let SshConnectionSectionLabels {
         otp: otp_label,
@@ -310,23 +311,20 @@ pub(super) fn connection_editor_ssh_section(
 
     let advanced_tabs = NyaTabs::new("connection-advanced-network-tabs")
         .items([
-            NyaTabItem::new(t!("dialog.proxySelect")),
-            NyaTabItem::new(t!("dialog.proxyJump")),
+            NyaTabItem::new(t!("panel.network")),
             NyaTabItem::new(t!("dialog.twoFactorAuth")),
             NyaTabItem::new(t!("dialog.sshAgentForwardingTab")),
         ])
         .selected_index(match editor.advanced_network_tab {
-            ConnectionEditorAdvancedTab::Proxy => 0,
-            ConnectionEditorAdvancedTab::JumpHost => 1,
-            ConnectionEditorAdvancedTab::TwoFactor => 2,
-            ConnectionEditorAdvancedTab::AgentForwarding => 3,
+            ConnectionEditorAdvancedTab::Network => 0,
+            ConnectionEditorAdvancedTab::TwoFactor => 1,
+            ConnectionEditorAdvancedTab::AgentForwarding => 2,
             _ => 0,
         })
         .on_select(cx.listener(|this, index, _, cx| {
             let tab = match *index {
-                0 => ConnectionEditorAdvancedTab::Proxy,
-                1 => ConnectionEditorAdvancedTab::JumpHost,
-                2 => ConnectionEditorAdvancedTab::TwoFactor,
+                0 => ConnectionEditorAdvancedTab::Network,
+                1 => ConnectionEditorAdvancedTab::TwoFactor,
                 _ => ConnectionEditorAdvancedTab::AgentForwarding,
             };
             this.set_connection_editor_advanced_tab(tab, cx);
@@ -380,23 +378,31 @@ pub(super) fn connection_editor_ssh_section(
         }));
 
     div()
+        .debug_selector(|| "connection-editor-ssh-section".to_string())
         .flex()
         .flex_col()
         .gap_3()
-        .child(editor_field(
-            palette,
-            required(t!("dialog.host")),
-            ConnectionEditorField::Host,
-            fields,
-            cx,
-        ))
-        .child(editor_stepper_field(
-            palette,
-            required(t!("dialog.port")),
-            ConnectionEditorField::Port,
-            fields,
-            cx,
-        ))
+        .child(
+            div()
+                .flex()
+                .flex_wrap()
+                .items_end()
+                .gap_3()
+                .child(div().min_w(px(180.)).flex_1().child(editor_field(
+                    palette,
+                    required(t!("dialog.host")),
+                    ConnectionEditorField::Host,
+                    fields,
+                    cx,
+                )))
+                .child(div().w(px(132.)).flex_none().child(editor_stepper_field(
+                    palette,
+                    required(t!("dialog.port")),
+                    ConnectionEditorField::Port,
+                    fields,
+                    cx,
+                ))),
+        )
         .child(editor_field(
             palette,
             required(t!("dialog.username")),
@@ -460,11 +466,22 @@ pub(super) fn connection_editor_ssh_section(
                     .when(
                         editor.password_source == ConnectionEditorPasswordSource::Direct,
                         |this| {
-                            this.child(editor_field(
+                            this.child(editor_secret_field(
                                 palette,
                                 t!("dialog.password"),
                                 ConnectionEditorField::Password,
                                 fields,
+                                EditorSecretFieldOptions::new(
+                                    false,
+                                    t!("passwordManager.showPassword"),
+                                    t!("dialog.clearPassword"),
+                                    cx.listener(|this, _, _, cx| {
+                                        this.toggle_connection_editor_password_visibility(cx);
+                                    }),
+                                    cx.listener(|this, _, _, cx| {
+                                        this.clear_connection_editor_password(cx);
+                                    }),
+                                ),
                                 cx,
                             ))
                         },
@@ -472,16 +489,37 @@ pub(super) fn connection_editor_ssh_section(
                     .when(
                         editor.password_source == ConnectionEditorPasswordSource::Saved,
                         |this| {
-                            this.child(connection_editor_select(
-                                ConnectionEditorRenderContext {
-                                    palette,
-                                    fields,
-                                    cx,
-                                },
-                                "connection-editor-saved-password",
-                                t!("dialog.savedPassword"),
-                                ConnectionEditorSelect::SavedPassword,
-                            ))
+                            this.child(
+                                div()
+                                    .flex()
+                                    .flex_wrap()
+                                    .items_end()
+                                    .gap_2()
+                                    .child(div().min_w(px(180.)).flex_1().child(
+                                        connection_editor_select(
+                                            ConnectionEditorRenderContext {
+                                                palette,
+                                                fields,
+                                                cx,
+                                            },
+                                            "connection-editor-saved-password",
+                                            t!("dialog.savedPassword"),
+                                            ConnectionEditorSelect::SavedPassword,
+                                        ),
+                                    ))
+                                    .child(
+                                        nyaterm_ui::NyaButton::new(
+                                            "connection-editor-manage-passwords",
+                                            t!("dialog.managePasswords"),
+                                        )
+                                        .on_click(cx.listener(|this, _, _, cx| {
+                                            this.set_connection_editor_credential_overlay(
+                                                Some(ConnectionEditorCredentialOverlay::Passwords),
+                                                cx,
+                                            );
+                                        })),
+                                    ),
+                            )
                         },
                     ),
             )
@@ -569,16 +607,37 @@ pub(super) fn connection_editor_ssh_section(
         .when(
             editor.auth_mode == "key" || editor.auth_mode == "certificate",
             |this| {
-                this.child(connection_editor_select(
-                    ConnectionEditorRenderContext {
-                        palette,
-                        fields,
-                        cx,
-                    },
-                    "connection-editor-key",
-                    t!("dialog.privateKey"),
-                    ConnectionEditorSelect::SshKey,
-                ))
+                this.child(
+                    div()
+                        .flex()
+                        .flex_wrap()
+                        .items_end()
+                        .gap_2()
+                        .child(div().min_w(px(180.)).flex_1().child(
+                            connection_editor_select(
+                                ConnectionEditorRenderContext {
+                                    palette,
+                                    fields,
+                                    cx,
+                                },
+                                "connection-editor-key",
+                                t!("dialog.privateKey"),
+                                ConnectionEditorSelect::SshKey,
+                            ),
+                        ))
+                        .child(
+                            nyaterm_ui::NyaButton::new(
+                                "connection-editor-manage-keys",
+                                t!("dialog.manageKeys"),
+                            )
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.set_connection_editor_credential_overlay(
+                                    Some(ConnectionEditorCredentialOverlay::Keys),
+                                    cx,
+                                );
+                            })),
+                        ),
+                )
             },
         )
         .child(
@@ -596,7 +655,7 @@ pub(super) fn connection_editor_ssh_section(
                     svg()
                         .size(px(14.))
                         .flex_none()
-                        .path(if editor.advanced_open {
+                        .path(if editor.advanced.ssh {
                             "icons/chevron-down.svg"
                         } else {
                             "icons/fe/forward.svg"
@@ -608,50 +667,54 @@ pub(super) fn connection_editor_ssh_section(
                     this.toggle_connection_editor_flag(ConnectionEditorToggle::Advanced, cx);
                 })),
         )
-        .when(editor.advanced_open, |this| {
+        .when(editor.advanced.ssh, |this| {
             this.child(
                 div()
+                    .id("connection-editor-ssh-advanced")
+                    .debug_selector(|| "connection-editor-ssh-advanced".to_string())
                     .flex()
                     .flex_col()
                     .gap_3()
                     .child(advanced_tabs)
                     .when(
-                        editor.advanced_network_tab == ConnectionEditorAdvancedTab::Proxy,
+                        editor.advanced_network_tab == ConnectionEditorAdvancedTab::Network,
                         |this| {
                             this.child(ssh_advanced_content(
                                 palette,
-                                t!("dialog.proxySelect"),
-                                truncate_preview(&proxy_label, 48),
-                                connection_editor_select(
-                                    ConnectionEditorRenderContext {
-                                        palette,
-                                        fields,
-                                        cx,
-                                    },
-                                    "connection-editor-proxy",
-                                    t!("dialog.proxySelect"),
-                                    ConnectionEditorSelect::Proxy,
+                                t!("panel.network"),
+                                format!(
+                                    "{} · {}",
+                                    truncate_preview(&proxy_label, 28),
+                                    truncate_preview(&jump_label, 28)
                                 ),
-                            ))
-                        },
-                    )
-                    .when(
-                        editor.advanced_network_tab == ConnectionEditorAdvancedTab::JumpHost,
-                        |this| {
-                            this.child(ssh_advanced_content(
-                                palette,
-                                t!("dialog.proxyJump"),
-                                truncate_preview(&jump_label, 48),
-                                connection_editor_select(
-                                    ConnectionEditorRenderContext {
-                                        palette,
-                                        fields,
-                                        cx,
-                                    },
-                                    "connection-editor-jump",
-                                    t!("dialog.selectProxyJump"),
-                                    ConnectionEditorSelect::ProxyJump,
-                                ),
+                                div()
+                                    .flex()
+                                    .flex_wrap()
+                                    .gap_3()
+                                    .child(div().min_w(px(180.)).flex_1().child(
+                                        connection_editor_select(
+                                            ConnectionEditorRenderContext {
+                                                palette,
+                                                fields,
+                                                cx,
+                                            },
+                                            "connection-editor-proxy",
+                                            t!("dialog.proxySelect"),
+                                            ConnectionEditorSelect::Proxy,
+                                        ),
+                                    ))
+                                    .child(div().min_w(px(180.)).flex_1().child(
+                                        connection_editor_select(
+                                            ConnectionEditorRenderContext {
+                                                palette,
+                                                fields,
+                                                cx,
+                                            },
+                                            "connection-editor-jump",
+                                            t!("dialog.selectProxyJump"),
+                                            ConnectionEditorSelect::ProxyJump,
+                                        ),
+                                    )),
                             ))
                         },
                     )
@@ -1164,26 +1227,36 @@ pub(super) fn connection_editor_ssh_section(
                                     .flex()
                                     .flex_col()
                                     .gap_3()
-                                    .child(connection_editor_select(
-                                        ConnectionEditorRenderContext {
-                                            palette,
-                                            fields,
-                                            cx,
-                                        },
-                                        "connection-editor-ssh-profile",
-                                        t!("dialog.sshProfile"),
-                                        ConnectionEditorSelect::SshProfile,
-                                    ))
-                                    .child(connection_editor_select(
-                                        ConnectionEditorRenderContext {
-                                            palette,
-                                            fields,
-                                            cx,
-                                        },
-                                        "connection-editor-ssh-terminal-type",
-                                        t!("dialog.sshTerminalType"),
-                                        ConnectionEditorSelect::SshTerminalType,
-                                    ))
+                                    .child(
+                                        div()
+                                            .flex()
+                                            .flex_wrap()
+                                            .gap_3()
+                                            .child(div().min_w(px(180.)).flex_1().child(
+                                                connection_editor_select(
+                                                    ConnectionEditorRenderContext {
+                                                        palette,
+                                                        fields,
+                                                        cx,
+                                                    },
+                                                    "connection-editor-ssh-profile",
+                                                    t!("dialog.sshProfile"),
+                                                    ConnectionEditorSelect::SshProfile,
+                                                ),
+                                            ))
+                                            .child(div().min_w(px(180.)).flex_1().child(
+                                                connection_editor_select(
+                                                    ConnectionEditorRenderContext {
+                                                        palette,
+                                                        fields,
+                                                        cx,
+                                                    },
+                                                    "connection-editor-ssh-terminal-type",
+                                                    t!("dialog.sshTerminalType"),
+                                                    ConnectionEditorSelect::SshTerminalType,
+                                                ),
+                                            )),
+                                    )
                                     .child(connection_editor_select(
                                         ConnectionEditorRenderContext {
                                             palette,
@@ -1212,7 +1285,19 @@ pub(super) fn connection_editor_ssh_section(
                                                     )),
                                             )
                                         },
-                                    ),
+                                    )
+                                    .child(toggle_chip(
+                                        palette,
+                                        t!("dialog.dynamicTabTitle"),
+                                        editor.dynamic_tab_title,
+                                        cx.listener(|this, _, _, cx| {
+                                            this.toggle_connection_editor_flag(
+                                                ConnectionEditorToggle::DynamicTabTitle,
+                                                cx,
+                                            );
+                                        }),
+                                    ))
+                                    .child(connection_editor_recording_section(section, cx)),
                             ))
                         },
                     )
@@ -1315,17 +1400,6 @@ pub(super) fn connection_editor_ssh_section(
                             ))
                         },
                     )
-                    .child(toggle_chip(
-                        palette,
-                        t!("dialog.dynamicTabTitle"),
-                        editor.dynamic_tab_title,
-                        cx.listener(|this, _, _, cx| {
-                            this.toggle_connection_editor_flag(
-                                ConnectionEditorToggle::DynamicTabTitle,
-                                cx,
-                            );
-                        }),
-                    ))
                     .child({
                         let supported = nyaterm_transport::supported_ssh_algorithms();
                         let algorithm_tabs = NyaTabs::new("connection-ssh-algorithm-tabs")
