@@ -433,22 +433,38 @@ impl NyaTermApp {
                 job.status = TransferJobStatus::Completed;
                 job.detail = format!("Synced cwd {remote_path}");
                 remote_path_to_set = Some(remote_path.clone());
-                self.transfer.browser.list_scroll = gpui::UniformListScrollHandle::new();
-                self.transfer.browser.horizontal_scroll = gpui::ScrollHandle::new();
-                self.transfer.browser.path = remote_path;
-                self.transfer.browser.entries = Arc::new(entries.clone());
-                self.transfer.browser.loading = false;
-                self.transfer.browser.error = None;
-                self.transfer.browser.status =
-                    format!("remote exec cwd · {} item(s)", entries.len());
-                self.transfer.browser.selected_remote_path = None;
-                self.transfer.browser.selected_remote_paths.clear();
+                let path_changed = self.transfer.browser.path != remote_path;
+                let entries_changed = self.transfer.browser.entries.as_ref() != &entries;
+                let was_loading = self.transfer.browser.loading;
+                if path_changed {
+                    self.transfer.browser.list_scroll = gpui::UniformListScrollHandle::new();
+                    self.transfer.browser.horizontal_scroll = gpui::ScrollHandle::new();
+                    self.transfer.browser.path = remote_path;
+                    self.transfer.browser.selected_remote_path = None;
+                    self.transfer.browser.selected_remote_paths.clear();
+                }
+                if entries_changed {
+                    self.transfer.browser.entries = Arc::new(entries.clone());
+                }
+                if was_loading || path_changed || entries_changed {
+                    self.transfer.browser.loading = false;
+                    self.transfer.browser.error = None;
+                    self.transfer.browser.status =
+                        format!("remote exec cwd · {} item(s)", entries.len());
+                } else {
+                    // SyncCwd jobs are internal and not shown in the transfer queue.
+                    // Avoid invalidating the browser when a periodic check found no
+                    // directory or listing change.
+                    dirty = false;
+                }
                 job.entries = entries;
                 job.summary = None;
                 job.progress = None;
                 job.control = None;
-                self.shell
-                    .set_status("remote cwd sync completed".to_string());
+                if was_loading || path_changed || entries_changed {
+                    self.shell
+                        .set_status("remote cwd sync completed".to_string());
+                }
             }
             TransferJobEvent::Finished(Ok(TransferJobOutput::Renamed {
                 old_path,

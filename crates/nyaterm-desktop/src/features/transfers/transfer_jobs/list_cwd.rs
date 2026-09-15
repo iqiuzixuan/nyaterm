@@ -232,8 +232,17 @@ impl NyaTermApp {
             progress: None,
             control: None,
         });
-        self.transfer.browser.status = "Resolving remote cwd...".to_string();
-        self.transfer.browser.loading = true;
+        // A CWD poll also refreshes the listing, but it must not make an unchanged
+        // directory look as though it is navigating again.  In shell-integration
+        // mode we already know the target, so retain the current listing while the
+        // background check runs when it is the same directory.
+        let should_show_loading = shell_cwd.as_deref().is_none_or(|cwd| {
+            self.transfer.browser.path != cwd || self.transfer.browser.entries.is_empty()
+        });
+        if should_show_loading {
+            self.transfer.browser.status = "Resolving remote cwd...".to_string();
+            self.transfer.browser.loading = true;
+        }
         self.transfer.browser.error = None;
         self.shell.set_status("remote cwd sync started".to_string());
         let service = match self.active_file_browser_service() {
@@ -410,7 +419,10 @@ impl NyaTermApp {
             progress: None,
             control: None,
         });
-        self.transfer.browser.loading = true;
+        // Local sessions always expose their CWD.  Keep a populated current
+        // directory visible while its periodic listing check is in flight.
+        self.transfer.browser.loading =
+            self.transfer.browser.path != cwd || self.transfer.browser.entries.is_empty();
         self.transfer.browser.error = None;
         let transfer_tx = self.transfer.transfer_event_sender();
         submit_transfer_blocking_job(
