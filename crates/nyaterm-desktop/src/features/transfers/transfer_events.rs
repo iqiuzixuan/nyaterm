@@ -443,6 +443,11 @@ impl NyaTermApp {
                     self.transfer.browser.selected_remote_path = None;
                     self.transfer.browser.selected_remote_paths.clear();
                 }
+                if entries_changed && !path_changed {
+                    self.transfer.retain_browser_selection(|selected| {
+                        entries.iter().any(|entry| entry.matches_identity(selected))
+                    });
+                }
                 if entries_changed {
                     self.transfer.browser.entries = Arc::new(entries.clone());
                 }
@@ -1254,7 +1259,7 @@ fn transfer_navigation_job_is_stale(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::path::{Path, PathBuf};
     use std::time::Duration;
 
@@ -1364,6 +1369,22 @@ mod tests {
         }
     }
 
+    fn sync_cwd_job(id: &str) -> TransferJobState {
+        TransferJobState {
+            id: id.to_string(),
+            session_id: None,
+            kind: TransferJobKind::SyncCwd,
+            status: TransferJobStatus::Running,
+            detail: "Resolving cwd".to_string(),
+            created_at_ms: 0,
+            display_name: String::new(),
+            entries: Vec::new(),
+            summary: None,
+            progress: None,
+            control: None,
+        }
+    }
+
     fn progress(id: &str, bytes: u64) -> TransferJobResult {
         TransferJobResult {
             id: id.to_string(),
@@ -1376,6 +1397,164 @@ mod tests {
                 item_count_total: None,
             }),
         }
+    }
+
+    #[test]
+    fn unchanged_cwd_sync_keeps_browser_state_and_shell_status() {
+        let test_dir = TestConfigDir::new("nyaterm-cwd-sync-unchanged");
+        let mut cx = TestAppContext::single();
+        let (app, vcx) = hosted(&mut cx, test_dir.path());
+        let entries = vec![browser_entry("alpha")];
+        let result_entries = entries.clone();
+        let sender = vcx.update(|_, cx| {
+            app.update(cx, |app, cx| {
+                app.transfer.browser.path = "/remote".to_string();
+                app.transfer.browser.status = "ready".to_string();
+                app.transfer.browser.loading = false;
+                app.transfer.browser.error = None;
+                app.transfer.replace_browser_entries_for_test(entries);
+                app.transfer
+                    .select_browser_entry("/remote/alpha".to_string());
+                app.shell.set_status("steady".to_string());
+                app.transfer
+                    .browser
+                    .navigation_jobs
+                    .insert(String::new(), "sync-cwd".to_string());
+                app.transfer.enqueue_transfer_job(sync_cwd_job("sync-cwd"));
+                app.start_transfer_event_drain(cx);
+                app.transfer.transfer_event_sender()
+            })
+        });
+        vcx.run_until_parked();
+
+        sender
+            .unbounded_send(TransferJobResult {
+                id: "sync-cwd".to_string(),
+                event: TransferJobEvent::Finished(Ok(TransferJobOutput::CwdSynced {
+                    remote_path: "/remote".to_string(),
+                    entries: result_entries,
+                })),
+            })
+            .expect("send cwd sync result");
+        vcx.run_until_parked();
+
+        vcx.update(|_, cx| {
+            let app = app.read(cx);
+            assert_eq!(app.transfer.browser.path, "/remote");
+            assert_eq!(app.transfer.browser.status, "ready");
+            assert!(!app.transfer.browser.loading);
+            assert_eq!(app.shell.status(), "steady");
+            assert_eq!(
+                app.transfer.browser.selected_remote_path.as_deref(),
+                Some("/remote/alpha")
+            );
+            assert_eq!(
+                app.transfer.browser.selected_remote_paths,
+                HashSet::from(["/remote/alpha".to_string()])
+            );
+        });
+    }
+
+    #[test]
+    fn changed_cwd_listing_drops_only_selections_that_disappeared() {
+        let test_dir = TestConfigDir::new("nyaterm-cwd-sync-selection");
+        let mut cx = TestAppContext::single();
+        let (app, vcx) = hosted(&mut cx, test_dir.path());
+        let sender = vcx.update(|_, cx| {
+            app.update(cx, |app, cx| {
+                app.transfer.browser.path = "/remote".to_string();
+                app.transfer.replace_browser_entries_for_test(vec![
+                    browser_entry("alpha"),
+                    browser_entry("beta"),
+                ]);
+                app.transfer.replace_browser_selection(
+                    HashSet::from(["/remote/alpha".to_string(), "/remote/beta".to_string()]),
+                    Some("/remote/beta".to_string()),
+                );
+                app.transfer
+                    .browser
+                    .navigation_jobs
+                    .insert(String::new(), "sync-cwd".to_string());
+                app.transfer.enqueue_transfer_job(sync_cwd_job("sync-cwd"));
+                app.start_transfer_event_drain(cx);
+                app.transfer.transfer_event_sender()
+            })
+        });
+        vcx.run_until_parked();
+
+        sender
+            .unbounded_send(TransferJobResult {
+                id: "sync-cwd".to_string(),
+                event: TransferJobEvent::Finished(Ok(TransferJobOutput::CwdSynced {
+                    remote_path: "/remote".to_string(),
+                    entries: vec![browser_entry("beta"), browser_entry("gamma")],
+                })),
+            })
+            .expect("send cwd sync result");
+        vcx.run_until_parked();
+
+        vcx.update(|_, cx| {
+            let app = app.read(cx);
+            assert_eq!(
+                app.transfer.browser.selected_remote_path.as_deref(),
+                Some("/remote/beta")
+            );
+            assert_eq!(
+                app.transfer.browser.selected_remote_paths,
+                HashSet::from(["/remote/beta".to_string()])
+            );
+            assert_eq!(
+                app.transfer
+                    .browser
+                    .entries
+                    .iter()
+                    .map(|entry| entry.name.as_str())
+                    .collect::<Vec<_>>(),
+                vec!["beta", "gamma"]
+            );
+        });
+    }
+
+    #[test]
+    fn changed_cwd_path_clears_selection() {
+        let test_dir = TestConfigDir::new("nyaterm-cwd-sync-path-change");
+        let mut cx = TestAppContext::single();
+        let (app, vcx) = hosted(&mut cx, test_dir.path());
+        let sender = vcx.update(|_, cx| {
+            app.update(cx, |app, cx| {
+                app.transfer.browser.path = "/remote".to_string();
+                app.transfer
+                    .replace_browser_entries_for_test(vec![browser_entry("alpha")]);
+                app.transfer
+                    .select_browser_entry("/remote/alpha".to_string());
+                app.transfer
+                    .browser
+                    .navigation_jobs
+                    .insert(String::new(), "sync-cwd".to_string());
+                app.transfer.enqueue_transfer_job(sync_cwd_job("sync-cwd"));
+                app.start_transfer_event_drain(cx);
+                app.transfer.transfer_event_sender()
+            })
+        });
+        vcx.run_until_parked();
+
+        sender
+            .unbounded_send(TransferJobResult {
+                id: "sync-cwd".to_string(),
+                event: TransferJobEvent::Finished(Ok(TransferJobOutput::CwdSynced {
+                    remote_path: "/other".to_string(),
+                    entries: Vec::new(),
+                })),
+            })
+            .expect("send cwd sync result");
+        vcx.run_until_parked();
+
+        vcx.update(|_, cx| {
+            let app = app.read(cx);
+            assert_eq!(app.transfer.browser.path, "/other");
+            assert!(app.transfer.browser.selected_remote_path.is_none());
+            assert!(app.transfer.browser.selected_remote_paths.is_empty());
+        });
     }
 
     /// The span every case is simulated over. Ten coalescing windows.
