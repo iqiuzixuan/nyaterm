@@ -147,7 +147,7 @@ impl NyaTermApp {
     ///
     /// Both used to happen in render, each with a full deep copy of every job --
     /// including the directory listing a navigation job carries. Rows keep only the
-    /// eight fields drawn, so this is cheap enough to redo per progress batch.
+    /// presentation fields drawn, so this is cheap enough to redo per progress batch.
     fn build_transfer_queue_presentation(
         &self,
         active_session_id: Option<&str>,

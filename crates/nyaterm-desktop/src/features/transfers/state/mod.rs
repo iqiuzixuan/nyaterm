@@ -368,6 +368,9 @@ impl TransferFeatureState {
 
     pub(in crate::features) fn enqueue_transfer_job(&mut self, mut job: TransferJobState) {
         job.ensure_presentation_fields();
+        if let Some(progress) = &job.progress {
+            job.speed.record(progress.bytes_transferred, Instant::now());
+        }
         self.queue.enqueue(job);
     }
 
@@ -1510,6 +1513,7 @@ impl TransferQueueState {
             {
                 control.pause();
                 job.status = TransferJobStatus::Paused;
+                job.speed.reset();
                 job.detail = "Paused".to_string();
                 changed += 1;
             }
@@ -1526,6 +1530,7 @@ impl TransferQueueState {
             {
                 control.resume();
                 job.status = TransferJobStatus::Running;
+                job.speed.reset();
                 job.detail = "Resuming".to_string();
                 changed += 1;
             }

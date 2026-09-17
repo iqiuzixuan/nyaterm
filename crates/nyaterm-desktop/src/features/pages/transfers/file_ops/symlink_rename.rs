@@ -143,6 +143,7 @@ impl NyaTermApp {
             summary: None,
             progress: None,
             control: None,
+            speed: Default::default(),
         });
         self.shell
             .set_status(format!("remote symlink creation started: {link_path}"));
@@ -391,6 +392,7 @@ impl NyaTermApp {
             summary: None,
             progress: None,
             control: None,
+            speed: Default::default(),
         });
         self.shell.set_status(format!(
             "remote rename started: {old_display_path} -> {new_path}"

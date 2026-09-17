@@ -86,6 +86,7 @@ impl NyaTermApp {
             summary: None,
             progress: None,
             control: Some(control.clone()),
+            speed: Default::default(),
         });
         let path_options = self
             .transfer
@@ -148,6 +149,7 @@ impl NyaTermApp {
             summary: None,
             progress: None,
             control: Some(control.clone()),
+            speed: Default::default(),
         });
         let path_options = self
             .transfer
@@ -232,6 +234,7 @@ impl NyaTermApp {
             job.status = TransferJobStatus::Cancelled;
             job.detail = "Cancelled".to_string();
             job.progress = None;
+            job.speed.reset();
             self.cancel_zmodem_transfer(&session_id, cx);
             self.shell
                 .set_status(format!("ZMODEM transfer cancelled: {id}"));
@@ -277,6 +280,7 @@ impl NyaTermApp {
 
         control.pause();
         job.status = TransferJobStatus::Paused;
+        job.speed.reset();
         job.detail = "Paused".to_string();
         self.shell
             .set_status(format!("remote transfer paused: {}", job.id));
@@ -310,6 +314,7 @@ impl NyaTermApp {
 
         control.resume();
         job.status = TransferJobStatus::Running;
+        job.speed.reset();
         job.detail = "Resuming".to_string();
         self.shell
             .set_status(format!("remote transfer resumed: {}", job.id));
@@ -387,6 +392,7 @@ impl NyaTermApp {
                 job.entries.clear();
                 job.summary = None;
                 job.progress = None;
+                job.speed.reset();
                 job.control = Some(control.clone());
                 self.shell
                     .set_status(format!("retrying remote download for {remote_path}"));
@@ -447,6 +453,7 @@ impl NyaTermApp {
                 job.entries.clear();
                 job.summary = None;
                 job.progress = None;
+                job.speed.reset();
                 job.control = Some(control.clone());
                 self.shell.set_status(format!(
                     "retrying remote upload for {}",

@@ -6,11 +6,13 @@ use gpui::{
 use nyaterm_core::truncate_preview;
 use nyaterm_ui::NyaTooltip;
 
+use crate::features::formatting::format_rate;
+use crate::features::shell::gpui_code_font_family;
 use crate::features::transfers::format_file_size;
 use crate::models::{TransferJobKind, TransferJobRowSnapshot, TransferJobStatus};
 use crate::theme::ThemePalette;
 
-use super::{transfer_progress_percent_label, transfer_progress_ratio};
+use super::transfer_progress_ratio;
 use crate::features::pages::transfers::panel::TransferPanel;
 
 #[derive(Clone)]
@@ -21,7 +23,6 @@ pub(in crate::features::pages::transfers) struct TransferJobRowLabels {
     pub(in crate::features::pages::transfers) cancelled: String,
     pub(in crate::features::pages::transfers) completed: String,
     pub(in crate::features::pages::transfers) failed: String,
-    pub(in crate::features::pages::transfers) streaming: String,
     pub(in crate::features::pages::transfers) unknown_size: String,
 }
 
@@ -47,14 +48,7 @@ pub(in crate::features::pages::transfers) fn transfer_job_row(
     let icon_path = transfer_job_icon_path(&job.kind, &job);
     let direction_color = transfer_job_direction_color(&job.kind);
     let detail = transfer_job_detail(&job, directory_progress, &labels);
-    let progress_label = if job.status == TransferJobStatus::Running {
-        job.progress
-            .as_ref()
-            .map(|progress| transfer_progress_percent_label(progress, &labels.streaming))
-            .unwrap_or_else(|| labels.transferring.clone())
-    } else {
-        transfer_job_status_label(job.status, &labels).to_string()
-    };
+    let progress_label = transfer_job_right_label(&job, &labels);
     let progress_percent = transfer_job_progress_percent(&job);
     let context_job_id = job.id.clone();
 
@@ -148,8 +142,11 @@ pub(in crate::features::pages::transfers) fn transfer_job_row(
                     div()
                         .debug_selector(|| format!("transfer-job-status-{}", job.id))
                         .flex_none()
-                        .min_w(px(52.))
+                        .min_w(px(68.))
                         .whitespace_nowrap()
+                        .when(job.status == TransferJobStatus::Running, |this| {
+                            this.font_family(gpui_code_font_family())
+                        })
                         .text_align(gpui::TextAlign::Right)
                         .text_size(px(10.))
                         .font_weight(FontWeight(700.))
@@ -174,6 +171,14 @@ pub(in crate::features::pages::transfers) fn transfer_job_row(
                     ),
             )
         })
+}
+
+fn transfer_job_right_label(job: &TransferJobRowSnapshot, labels: &TransferJobRowLabels) -> String {
+    if job.status == TransferJobStatus::Running {
+        format_rate(job.speed_bytes_per_sec)
+    } else {
+        transfer_job_status_label(job.status, labels).to_string()
+    }
 }
 
 fn transfer_job_file_name(job: &TransferJobRowSnapshot) -> String {
@@ -332,7 +337,8 @@ mod tests {
 
     use super::{
         TransferJobRowLabels, format_transfer_row_time, transfer_job_file_name,
-        transfer_job_icon_path, transfer_job_progress_percent, transfer_job_status_label,
+        transfer_job_icon_path, transfer_job_progress_percent, transfer_job_right_label,
+        transfer_job_status_label,
     };
 
     fn labels() -> TransferJobRowLabels {
@@ -343,7 +349,6 @@ mod tests {
             cancelled: "cancelled-i18n".to_string(),
             completed: "completed-i18n".to_string(),
             failed: "failed-i18n".to_string(),
-            streaming: "streaming-i18n".to_string(),
             unknown_size: "unknown-size-i18n".to_string(),
         }
     }
@@ -383,8 +388,43 @@ mod tests {
             summary: None,
             progress: Some(progress("/remote/file.bin", 25, Some(100), None, None)),
             control: None,
+            speed: Default::default(),
         }
         .row_snapshot()
+    }
+
+    #[test]
+    fn running_transfers_show_speed_instead_of_percentage_even_without_known_size() {
+        let labels = labels();
+        let mut job = job(TransferJobStatus::Running);
+        assert_eq!(transfer_job_right_label(&job, &labels), "0 B/s");
+        job.speed_bytes_per_sec = 1024. * 1024. * 2.5;
+        assert_eq!(transfer_job_right_label(&job, &labels), "2.5 MiB/s");
+        job.progress.as_mut().expect("progress").total_bytes = None;
+        job.speed_bytes_per_sec = 2048.;
+        assert_eq!(transfer_job_right_label(&job, &labels), "2.0 KiB/s");
+        job.progress = None;
+        job.speed_bytes_per_sec = 128.;
+        assert_eq!(transfer_job_right_label(&job, &labels), "128 B/s");
+    }
+
+    #[test]
+    fn non_running_transfers_show_status_instead_of_last_speed() {
+        let labels = labels();
+        for status in [
+            TransferJobStatus::Paused,
+            TransferJobStatus::Cancelling,
+            TransferJobStatus::Cancelled,
+            TransferJobStatus::Completed,
+            TransferJobStatus::Failed,
+        ] {
+            let mut job = job(status);
+            job.speed_bytes_per_sec = 2048.;
+            assert_eq!(
+                transfer_job_right_label(&job, &labels),
+                transfer_job_status_label(status, &labels)
+            );
+        }
     }
 
     #[test]
@@ -431,6 +471,7 @@ mod tests {
                 Some(4),
             )),
             control: None,
+            speed: Default::default(),
         }
         .row_snapshot();
 

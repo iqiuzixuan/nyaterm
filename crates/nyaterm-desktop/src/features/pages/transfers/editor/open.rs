@@ -108,6 +108,7 @@ impl NyaTermApp {
             summary: None,
             progress: None,
             control: None,
+            speed: Default::default(),
         });
         self.transfer
             .set_browser_status(format!("loading {remote_path} for AI"));
@@ -434,6 +435,7 @@ impl NyaTermApp {
             summary: None,
             progress: None,
             control: Some(control.clone()),
+            speed: Default::default(),
         });
         self.shell
             .set_status(format!("downloading {remote_path} for external open"));

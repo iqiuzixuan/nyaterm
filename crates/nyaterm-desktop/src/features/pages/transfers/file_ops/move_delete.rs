@@ -262,6 +262,7 @@ impl NyaTermApp {
             summary: None,
             progress: None,
             control: None,
+            speed: Default::default(),
         });
         self.shell.set_status(
             t!(
@@ -407,6 +408,7 @@ impl NyaTermApp {
             summary: None,
             progress: None,
             control: None,
+            speed: Default::default(),
         });
         self.shell.set_status(
             t!(

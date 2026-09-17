@@ -45,6 +45,7 @@ impl NyaTermApp {
                 summary: None,
                 progress: None,
                 control: Some(control.clone()),
+                speed: Default::default(),
             });
         }
         let progress_tx = self.transfer.transfer_event_sender();

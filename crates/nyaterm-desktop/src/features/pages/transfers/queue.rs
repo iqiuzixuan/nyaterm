@@ -67,7 +67,6 @@ pub(in crate::features::pages::transfers) fn transfer_queue_view(
                 cancelled: t!("fileTransfer.cancelled").to_string(),
                 completed: t!("fileTransfer.completed").to_string(),
                 failed: t!("fileTransfer.failed").to_string(),
-                streaming: t!("fileTransfer.streaming").to_string(),
                 unknown_size: t!("fileTransfer.unknownSize").to_string(),
             };
             for job in queue.rows.iter().cloned() {

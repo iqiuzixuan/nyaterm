@@ -412,6 +412,7 @@ mod tests {
                         created_at_ms: 1_785_555_123_000,
                         progress: None,
                         summary: None,
+                        speed_bytes_per_sec: 1024. * 1024. * 128.,
                     }]);
                     cx.notify();
                 });

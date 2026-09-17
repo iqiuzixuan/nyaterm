@@ -283,6 +283,7 @@ impl NyaTermApp {
                 job.status = TransferJobStatus::Running;
                 job.detail = detail;
                 job.progress = None;
+                job.speed.reset();
                 job.summary = None;
             }
             TransferJobEvent::ExternalModified {
@@ -321,7 +322,7 @@ impl NyaTermApp {
                 if job.status == TransferJobStatus::Running {
                     job.detail = format_transfer_progress(&progress);
                 }
-                job.progress = Some(progress);
+                job.update_progress(progress);
             }
             TransferJobEvent::Finished(Ok(TransferJobOutput::Entries(entries))) => {
                 browser_listing_completed = true;
@@ -1120,6 +1121,9 @@ impl NyaTermApp {
                 job.control = None;
             }
         }
+        if event_finished {
+            job.speed.reset();
+        }
         if !cleanup_internal_job {
             self.transfer
                 .restore_transfer_job_after_event((job_index, job));
@@ -1366,6 +1370,7 @@ mod tests {
             summary: None,
             progress: None,
             control: None,
+            speed: Default::default(),
         }
     }
 
@@ -1382,6 +1387,7 @@ mod tests {
             summary: None,
             progress: None,
             control: None,
+            speed: Default::default(),
         }
     }
 
