@@ -24,7 +24,14 @@
     "invalidRegex": "Invalid regular expression"
 },
   "about": {
-    "copySupportInfo": "Copy support information",
+    "copySupportInfo": "Copy all",
+    "supportInfo": "Support information",
+    "version": "Version",
+    "operatingSystem": "Operating system",
+    "architecture": "Application architecture",
+    "runtime": "Runtime",
+    "portable": "Portable",
+    "installed": "Installed",
     "supportInfoCopied": "Support information copied",
     "close": "Close",
     "description": "A desktop client for SSH-centric operations and mixed terminal workflows.",

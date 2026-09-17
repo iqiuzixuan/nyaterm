@@ -24,7 +24,14 @@
     "invalidRegex": "正規表示式無效"
 },
   "about": {
-    "copySupportInfo": "複製支援資訊",
+    "copySupportInfo": "複製全部",
+    "supportInfo": "支援資訊",
+    "version": "軟體版本",
+    "operatingSystem": "作業系統",
+    "architecture": "應用程式架構",
+    "runtime": "執行環境",
+    "portable": "可攜版",
+    "installed": "安裝版",
     "supportInfoCopied": "已複製支援資訊",
     "close": "關閉",
     "description": "用於 SSH、序列埠和本機命令列工作的桌面終端客戶端。",

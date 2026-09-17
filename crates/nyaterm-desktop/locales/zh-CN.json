@@ -24,7 +24,14 @@
     "invalidRegex": "正则表达式无效"
 },
   "about": {
-    "copySupportInfo": "复制支持信息",
+    "copySupportInfo": "复制全部",
+    "supportInfo": "支持信息",
+    "version": "软件版本",
+    "operatingSystem": "操作系统",
+    "architecture": "应用架构",
+    "runtime": "运行环境",
+    "portable": "便携版",
+    "installed": "安装版",
     "supportInfoCopied": "已复制支持信息",
     "close": "关闭",
     "description": "用于 SSH、串口和本地命令行工作的桌面终端客户端。",

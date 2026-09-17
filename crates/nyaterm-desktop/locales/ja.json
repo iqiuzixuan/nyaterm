@@ -24,7 +24,14 @@
     "invalidRegex": "無効な正規表現"
 },
   "about": {
-    "copySupportInfo": "サポート情報をコピー",
+    "copySupportInfo": "すべてコピー",
+    "supportInfo": "サポート情報",
+    "version": "バージョン",
+    "operatingSystem": "OS",
+    "architecture": "アプリのアーキテクチャ",
+    "runtime": "実行環境",
+    "portable": "ポータブル版",
+    "installed": "インストール版",
     "supportInfoCopied": "サポート情報をコピーしました",
     "close": "閉じる",
     "description": "SSH 中心の操作とターミナルワークフローを統合したデスクトップクライアント。",

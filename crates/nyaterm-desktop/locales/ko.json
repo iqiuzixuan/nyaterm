@@ -24,7 +24,14 @@
     "invalidRegex": "잘못된 정규식"
 },
   "about": {
-    "copySupportInfo": "지원 정보 복사",
+    "copySupportInfo": "모두 복사",
+    "supportInfo": "지원 정보",
+    "version": "버전",
+    "operatingSystem": "운영 체제",
+    "architecture": "앱 아키텍처",
+    "runtime": "실행 환경",
+    "portable": "포터블 버전",
+    "installed": "설치 버전",
     "supportInfoCopied": "지원 정보를 복사했습니다",
     "close": "닫기",
     "description": "SSH 중심 작업과 다양한 터미널 워크플로를 위한 데스크톱 클라이언트입니다.",

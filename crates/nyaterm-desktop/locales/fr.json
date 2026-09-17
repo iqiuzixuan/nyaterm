@@ -24,7 +24,14 @@
     "invalidRegex": "Expression régulière invalide"
 },
   "about": {
-    "copySupportInfo": "Copier les informations de support",
+    "copySupportInfo": "Tout copier",
+    "supportInfo": "Informations de support",
+    "version": "Version",
+    "operatingSystem": "Système d'exploitation",
+    "architecture": "Architecture de l'application",
+    "runtime": "Environnement",
+    "portable": "Portable",
+    "installed": "Installé",
     "supportInfoCopied": "Informations de support copiées",
     "close": "Fermer",
     "description": "Un client de bureau pour les opérations centrées sur SSH et les flux de travail de terminal mixtes.",
