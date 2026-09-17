@@ -468,6 +468,27 @@ fn connection_list_model_cache_misses_when_search_changes() {
 }
 
 #[test]
+fn connection_search_overlay_only_collapses_after_the_query_is_cleared() {
+    let mut cx = TestAppContext::single();
+    let app = cache_test_app(&mut cx);
+
+    cx.update_entity(&app, |app, _| {
+        assert!(!app.connection_state.list_search_is_expanded());
+        assert!(app.connection_state.expand_list_search());
+        assert!(app.connection_state.list_search_is_expanded());
+
+        app.connection_state
+            .set_list_search_text("prod".to_string());
+        assert!(!app.connection_state.collapse_list_search());
+        assert!(app.connection_state.list_search_is_expanded());
+
+        app.connection_state.set_list_search_text(String::new());
+        assert!(app.connection_state.collapse_list_search());
+        assert!(!app.connection_state.list_search_is_expanded());
+    });
+}
+
+#[test]
 fn connection_list_model_cache_misses_when_expansion_changes() {
     let mut cx = TestAppContext::single();
     let app = cache_test_app(&mut cx);

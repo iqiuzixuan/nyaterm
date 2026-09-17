@@ -21,6 +21,13 @@ impl NyaTermApp {
             return;
         }
 
+        // Once the search field owns focus, editing keys must not fall through to
+        // the browser shortcuts below. In particular, printable keys would
+        // otherwise recreate the field from a one-character seed on every press.
+        if self.transfer.browser_view().search_expanded {
+            return;
+        }
+
         if !self.transfer.rename_dialog_is_open()
             && let Some(text) = transfer_browser_search_text_for_key(event)
         {

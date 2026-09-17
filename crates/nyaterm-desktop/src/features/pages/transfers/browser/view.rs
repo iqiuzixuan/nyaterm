@@ -166,6 +166,7 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
                             .text_color(rgb(palette.text_muted)),
                     )
                     .on_click(cx.listener(|panel, _, window, cx| {
+                        cx.stop_propagation();
                         panel.with_app(cx, |this, cx| {
                             this.clear_or_close_transfer_browser_search(window, cx);
                         })
@@ -178,6 +179,8 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
                     .items_center()
                     .child(
                         NyaSearchInput::new("transfer-browser-search", &field)
+                            .compact()
+                            .bare()
                             .trailing(close)
                             .on_key_down(cx.listener(|panel, event: &KeyDownEvent, window, cx| {
                                 panel.with_app(cx, |this, cx| {
@@ -479,12 +482,19 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
                                 div()
                                     .id(SharedString::from("transfer-browser-search-overlay"))
                                     .absolute()
-                                    .top(px(2.))
-                                    .bottom(px(2.))
-                                    .left(px(4.))
-                                    .right(px(4.))
+                                    .top(px(4.))
+                                    .bottom(px(4.))
+                                    .left(px(6.))
+                                    .right(px(6.))
+                                    .rounded_md()
+                                    .border_1()
+                                    .border_color(rgb(palette.primary))
+                                    .bg(rgb(palette.surface))
+                                    .shadow_lg()
+                                    .occlude()
                                     .flex()
                                     .items_center()
+                                    .on_click(|_, _, cx| cx.stop_propagation())
                                     .children(search_input),
                             )
                         }),
