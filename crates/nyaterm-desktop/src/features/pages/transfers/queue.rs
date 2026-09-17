@@ -33,7 +33,7 @@ pub(in crate::features::pages::transfers) fn transfer_queue_view(
     let selected_job_id = queue.selected_job_id.clone();
 
     {
-        let mut list = div().flex().flex_col();
+        let mut list = div().w_full().min_w_0().flex().flex_col();
         if !snapshot.has_session {
             list = list.child(
                 div()
@@ -191,8 +191,9 @@ pub(in crate::features::pages::transfers) fn transfer_queue_view(
                 div()
                     .id(SharedString::from("transfer-queue-scroll"))
                     .flex_1()
+                    .min_w_0()
                     .min_h_0()
-                    .overflow_scrollbar()
+                    .overflow_y_scrollbar()
                     .child(list),
             )
             .child(
@@ -208,8 +209,10 @@ pub(in crate::features::pages::transfers) fn transfer_queue_view(
                     .child(
                         div()
                             .id(SharedString::from("transfer-download-path-footer"))
+                            .debug_selector(|| "transfer-download-path-footer".to_string())
                             .min_w_0()
                             .flex_1()
+                            .truncate()
                             .font_family(gpui_code_font_family())
                             .text_size(px(11.))
                             .text_color(rgb(palette.text_muted))

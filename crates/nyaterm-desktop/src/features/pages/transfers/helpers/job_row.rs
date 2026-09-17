@@ -4,6 +4,7 @@ use gpui::{
     prelude::FluentBuilder as _, px, relative, rgb, svg,
 };
 use nyaterm_core::truncate_preview;
+use nyaterm_ui::NyaTooltip;
 
 use crate::features::transfers::format_file_size;
 use crate::models::{TransferJobKind, TransferJobRowSnapshot, TransferJobStatus};
@@ -59,6 +60,9 @@ pub(in crate::features::pages::transfers) fn transfer_job_row(
 
     div()
         .id(SharedString::from(format!("transfer-job-row-{}", job.id)))
+        .debug_selector(|| format!("transfer-job-row-{}", job.id))
+        .w_full()
+        .min_w_0()
         .rounded_sm()
         .bg(if job_selected {
             rgb(palette.hover)
@@ -94,6 +98,8 @@ pub(in crate::features::pages::transfers) fn transfer_job_row(
         )
         .child(
             div()
+                .w_full()
+                .min_w_0()
                 .flex()
                 .items_center()
                 .gap_2()
@@ -108,31 +114,42 @@ pub(in crate::features::pages::transfers) fn transfer_job_row(
                     div()
                         .min_w_0()
                         .flex_1()
+                        .overflow_hidden()
                         .flex()
                         .flex_col()
                         .gap(px(2.))
                         .child(
                             div()
+                                .id(SharedString::from(format!("transfer-job-name-{}", job.id)))
+                                .debug_selector(|| format!("transfer-job-name-{}", job.id))
                                 .min_w_0()
+                                .truncate()
                                 .text_size(px(12.))
                                 .text_color(rgb(palette.text))
-                                .child(truncate_preview(&file_name, 48)),
+                                .tooltip({
+                                    let file_name = file_name.clone();
+                                    move |window, cx| {
+                                        NyaTooltip::new(file_name.clone()).build(window, cx)
+                                    }
+                                })
+                                .child(file_name),
                         )
                         .child(
                             div()
-                                .flex()
-                                .items_center()
-                                .gap_1()
-                                .overflow_hidden()
+                                .debug_selector(|| format!("transfer-job-detail-{}", job.id))
+                                .min_w_0()
+                                .truncate()
                                 .text_size(px(10.))
                                 .text_color(rgb(palette.text_muted))
-                                .child(truncate_preview(&detail, 58)),
+                                .child(detail),
                         ),
                 )
                 .child(
                     div()
+                        .debug_selector(|| format!("transfer-job-status-{}", job.id))
                         .flex_none()
                         .min_w(px(52.))
+                        .whitespace_nowrap()
                         .text_align(gpui::TextAlign::Right)
                         .text_size(px(10.))
                         .font_weight(FontWeight(700.))
