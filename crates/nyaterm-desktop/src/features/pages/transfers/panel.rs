@@ -5,6 +5,7 @@ use gpui::{
     Context, Entity, FocusHandle, IntoElement, Render, Rgba, ScrollHandle, UniformListScrollHandle,
     WeakEntity, Window,
 };
+use nyaterm_core::TransferBrowserViewMode;
 use nyaterm_transport::SftpFileEntry;
 use nyaterm_ui::NyaInputState;
 
@@ -37,6 +38,7 @@ pub(in crate::features) struct TransferChrome {
 /// it. The costly field -- the listing -- is shared rather than copied; the rest are
 /// short paths and small sets.
 pub(in crate::features) struct TransferBrowserPresentation {
+    pub view_mode: TransferBrowserViewMode,
     pub tree: crate::features::transfers::TransferTreePresentation,
     pub tree_focus: FocusHandle,
     pub local_backend: bool,

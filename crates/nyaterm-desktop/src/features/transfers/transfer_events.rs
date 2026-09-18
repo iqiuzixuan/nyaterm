@@ -1207,9 +1207,15 @@ impl NyaTermApp {
         {
             self.open_transfer_default(entry, window, cx);
         }
-        if browser_listing_completed && let Some(session_id) = job_session_id.as_deref() {
+        if browser_listing_completed
+            && let Some(session_id) = job_session_id.as_deref()
+            && let Some(backend) = self
+                .session
+                .file_browser_backend_support_for_session(session_id)
+        {
             self.transfer.seed_tree_listing(
                 session_id,
+                backend,
                 self.transfer.browser_remote_file_path(),
                 self.transfer.browser.entries.clone(),
             );

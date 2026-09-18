@@ -6,7 +6,7 @@ use std::sync::Arc;
 use gpui::FocusHandle;
 use nyaterm_core::{
     AppSettingsSummary, ExistingFileBehavior, KeywordHighlightConfig, KeywordHighlightRule,
-    RecordingMode, RecordingRotationPolicy, SearchEngineConfig,
+    RecordingMode, RecordingRotationPolicy, SearchEngineConfig, TransferBrowserViewMode,
 };
 
 use crate::models::{
@@ -1027,6 +1027,16 @@ impl SettingsFeatureState {
         self.summary.ui_file_explorer_show_hidden_files =
             !self.summary.ui_file_explorer_show_hidden_files;
         self.summary.ui_file_explorer_show_hidden_files
+    }
+
+    pub(in crate::features) fn toggle_file_explorer_view_mode(
+        &mut self,
+    ) -> TransferBrowserViewMode {
+        self.summary.ui_file_explorer_view_mode = match self.summary.ui_file_explorer_view_mode {
+            TransferBrowserViewMode::List => TransferBrowserViewMode::Tree,
+            TransferBrowserViewMode::Tree => TransferBrowserViewMode::List,
+        };
+        self.summary.ui_file_explorer_view_mode
     }
 
     pub(in crate::features) fn set_file_explorer_favorites(

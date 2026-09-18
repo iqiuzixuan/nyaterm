@@ -9,6 +9,20 @@ use crate::models::{TransferBrowserNavigationSnapshot, TransferBrowserSessionCac
 use super::{normalized_transfer_browser_path, remote_file_name, remote_parent_path};
 
 impl NyaTermApp {
+    pub(in crate::features::pages::transfers) fn toggle_transfer_browser_view_mode(
+        &mut self,
+        cx: &mut Context<Self>,
+    ) {
+        let mode = self.settings.toggle_file_explorer_view_mode();
+        self.transfer.reset_browser_auto_sync_cwd();
+        self.persist_transfer_browser_ui_settings(cx);
+        if mode == nyaterm_core::TransferBrowserViewMode::Tree {
+            self.reveal_transfer_tree_current_path(cx);
+        }
+        self.defer_transfer_panel_snapshot_flush(cx);
+        cx.notify();
+    }
+
     pub(in crate::features::pages::transfers) fn valid_transfer_browser_child_name(
         &self,
         name: &str,

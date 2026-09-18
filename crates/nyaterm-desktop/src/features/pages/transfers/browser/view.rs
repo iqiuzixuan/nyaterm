@@ -10,7 +10,7 @@ use nyaterm_ui::{NyaContextMenu, NyaHorizontalScrollbar, NyaSearchInput, NyaUnif
 use crate::features::transfers::format_file_size;
 use crate::models::TransferBrowserSortColumn;
 
-use super::super::browser_filter::transfer_browser_footer_stats;
+use super::super::browser_filter::{TransferBrowserFooterStats, transfer_browser_footer_stats};
 use super::super::panel::TransferPanel;
 use super::super::{
     FILE_BROWSER_HEADER_HEIGHT_PX, TransferBrowserAvailability,
@@ -103,6 +103,7 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
 
         let can_transfer = availability == TransferBrowserAvailability::Browsable;
         let local_backend = browser.local_backend;
+        let tree_mode = browser.view_mode == nyaterm_core::TransferBrowserViewMode::Tree;
         let _selected = browser
             .selected_remote_path
             .as_deref()
@@ -119,13 +120,41 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
             resizing_column,
         };
         let show_hidden_files = browser.show_hidden_files;
-        let footer_stats = transfer_browser_footer_stats(
-            &browser.all_entries,
-            &visible_entries,
-            browser.selected_remote_path.as_deref(),
-            &browser.selected_remote_paths,
-            browser.show_hidden_files,
-        );
+        let footer_stats = if tree_mode {
+            let mut stats = TransferBrowserFooterStats {
+                selected_file_size: 0,
+                selected_item_count: 0,
+                total_file_size: 0,
+                total_item_count: 0,
+            };
+            for row in browser.tree.rows.iter().filter(|row| !row.root) {
+                stats.total_item_count += 1;
+                if let Some(entry) = row.entry.as_ref()
+                    && entry.file_type != nyaterm_transport::SftpFileType::Directory
+                {
+                    stats.total_file_size = stats
+                        .total_file_size
+                        .saturating_add(entry.size.unwrap_or(0));
+                    if browser.tree.selected.contains(&row.key) {
+                        stats.selected_file_size = stats
+                            .selected_file_size
+                            .saturating_add(entry.size.unwrap_or(0));
+                    }
+                }
+                if browser.tree.selected.contains(&row.key) {
+                    stats.selected_item_count += 1;
+                }
+            }
+            stats
+        } else {
+            transfer_browser_footer_stats(
+                &browser.all_entries,
+                &visible_entries,
+                browser.selected_remote_path.as_deref(),
+                &browser.selected_remote_paths,
+                browser.show_hidden_files,
+            )
+        };
         let footer_size_text =
             if footer_stats.selected_item_count > 0 && footer_stats.selected_file_size > 0 {
                 format!(
@@ -386,12 +415,6 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
                         .flex()
                         .items_center()
                         .gap(px(2.))
-                        .when(!local_backend, |toolbar| toolbar.child(
-                            nyaterm_ui::NyaButton::new("transfer-browser-toggle-tree", "")
-                                .icon("icons/conn/folder.svg").compact().variant(nyaterm_ui::NyaButtonVariant::Ghost)
-                                .selected(browser.tree.visible).tooltip(t!("fileExplorer.toggleTree"))
-                                .on_click(cx.listener(|panel, _, _, cx| panel.with_app(cx, |app, cx| app.toggle_transfer_tree(cx)))),
-                        ))
                         .child(compact_transfer_toolbar_button(
                             palette,
                             "transfer-browser-new-file",
@@ -440,15 +463,17 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
                             })),
                         ))
                         .child(transfer_toolbar_divider(palette))
-                        .child(compact_transfer_toolbar_button(
-                            palette,
-                            "transfer-browser-go-up",
-                            "icons/fe/up.svg",
-                            t!("fileExplorer.goUp"),
-                            cx.listener(|panel, _, window, cx| panel.with_app(cx, |this, cx| {
-                                this.open_transfer_parent_directory(window, cx);
-                            })),
-                        ))
+                        .when(!tree_mode, |toolbar| {
+                            toolbar.child(compact_transfer_toolbar_button(
+                                palette,
+                                "transfer-browser-go-up",
+                                "icons/fe/up.svg",
+                                t!("fileExplorer.goUp"),
+                                cx.listener(|panel, _, window, cx| panel.with_app(cx, |this, cx| {
+                                    this.open_transfer_parent_directory(window, cx);
+                                })),
+                            ))
+                        })
                         .child(compact_transfer_toolbar_button(
                             palette,
                             "transfer-browser-refresh",
@@ -459,31 +484,66 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
                             })),
                         ))
                         .child(div().flex_1())
-                        .child(compact_transfer_toolbar_button_active(
-                            palette,
-                            "transfer-browser-expand-search",
-                            "icons/fe/search.svg",
-                            t!("fileExplorer.search"),
-                            search_active || search_expanded,
-                            cx.listener(|panel, _, window, cx| panel.with_app(cx, |this, cx| {
-                                this.focus_transfer_browser_search(None, window, cx);
-                            })),
-                        ))
-                        .child(compact_transfer_toolbar_button_active(
-                            palette,
-                            "transfer-browser-toggle-hidden-files",
-                            "icons/eye.svg",
-                            if show_hidden_files {
-                                t!("fileExplorer.hideHiddenFiles")
-                            } else {
-                                t!("fileExplorer.showHiddenFiles")
-                            },
-                            show_hidden_files,
-                            cx.listener(|panel, _, _, cx| panel.with_app(cx, |this, cx| {
-                                this.toggle_transfer_browser_hidden_files(cx);
-                            })),
-                        ))
-                        .when(search_expanded, |toolbar| {
+                        .when(!tree_mode, |toolbar| {
+                            toolbar
+                                .child(compact_transfer_toolbar_button_active(
+                                    palette,
+                                    "transfer-browser-expand-search",
+                                    "icons/fe/search.svg",
+                                    t!("fileExplorer.search"),
+                                    search_active || search_expanded,
+                                    cx.listener(|panel, _, window, cx| panel.with_app(cx, |this, cx| {
+                                        this.focus_transfer_browser_search(None, window, cx);
+                                    })),
+                                ))
+                                .child(compact_transfer_toolbar_button_active(
+                                    palette,
+                                    "transfer-browser-toggle-hidden-files",
+                                    "icons/eye.svg",
+                                    if show_hidden_files {
+                                        t!("fileExplorer.hideHiddenFiles")
+                                    } else {
+                                        t!("fileExplorer.showHiddenFiles")
+                                    },
+                                    show_hidden_files,
+                                    cx.listener(|panel, _, _, cx| panel.with_app(cx, |this, cx| {
+                                        this.toggle_transfer_browser_hidden_files(cx);
+                                    })),
+                                ))
+                                .child(compact_transfer_toolbar_button(
+                                    palette,
+                                    "transfer-browser-toggle-view-mode",
+                                    "icons/conn/folder.svg",
+                                    t!("fileExplorer.toggleTree"),
+                                    cx.listener(|panel, _, _, cx| panel.with_app(cx, |this, cx| {
+                                        this.toggle_transfer_browser_view_mode(cx);
+                                    })),
+                                ))
+                        })
+                        .when(tree_mode, |toolbar| {
+                            toolbar
+                                .child(transfer_toolbar_divider(palette))
+                                .child(compact_transfer_toolbar_button(
+                                    palette,
+                                    "transfer-browser-reveal-tree-path",
+                                    "icons/fe/locate.svg",
+                                    t!("fileExplorer.revealCurrentPath"),
+                                    cx.listener(|panel, _, _, cx| panel.with_app(cx, |this, cx| {
+                                        this.reveal_transfer_tree_current_path(cx);
+                                    })),
+                                ))
+                                .child(transfer_toolbar_divider(palette))
+                                .child(compact_transfer_toolbar_button(
+                                    palette,
+                                    "transfer-browser-toggle-view-mode",
+                                    "icons/view-list.svg",
+                                    t!("fileExplorer.toggleTree"),
+                                    cx.listener(|panel, _, _, cx| panel.with_app(cx, |this, cx| {
+                                        this.toggle_transfer_browser_view_mode(cx);
+                                    })),
+                                ))
+                        })
+                        .when(search_expanded && !tree_mode, |toolbar| {
                             toolbar.child(
                                 div()
                                     .id(SharedString::from("transfer-browser-search-overlay"))
@@ -505,10 +565,18 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
                             )
                         }),
                 )
-                .child(super::super::path_bar::transfer_browser_path_row(panel, current_browser_path.clone(), cx))
+                .when(!tree_mode, |this| {
+                    this.child(super::super::path_bar::transfer_browser_path_row(
+                        panel,
+                        current_browser_path.clone(),
+                        cx,
+                    ))
+                })
             })
-            .child(div().flex().flex_1().min_h_0().min_w_0()
-            .when(!local_backend && browser.tree.visible, |this| this.child(super::super::tree::transfer_tree_view(panel, cx)))
+            .child(if tree_mode {
+                super::super::tree::transfer_tree_view(panel, cx).into_any_element()
+            } else {
+                div().flex().flex_1().min_h_0().min_w_0()
             .child(NyaContextMenu::new_dynamic(
                 div()
                     .id(SharedString::from("transfer-browser-table-viewport"))
@@ -643,7 +711,9 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
             // Match the Tauri file-explorer menu width (w-52 / min-w-[200px]);
             // 208px is the 13rem (w-52) equivalent so labels and shortcuts do not
             // reflow between items when the menu opens.
-            .min_width(px(208.))))
+            .min_width(px(208.)))
+            .into_any_element()
+            })
             // Tauri FileExplorer footer: totals left, cwd sync / send icons right.
             .child(
                 div()
@@ -698,21 +768,23 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
                                     this.start_transfer_sync_cwd_job(cx);
                                 })),
                             ))
-                            .child(compact_transfer_footer_button_active(
-                                palette,
-                                "transfer-browser-footer-auto-sync",
-                                "icons/fe/sync.svg",
-                                if cwd_tracking_available {
-                                    t!("fileExplorer.autoSyncTerminalPath")
-                                } else {
-                                    t!("fileExplorer.cwdTrackingUnavailable")
-                                },
-                                auto_sync_cwd,
-                                cwd_tracking_available,
-                                cx.listener(|panel, _, _window, cx| panel.with_app(cx, |this, cx| {
-                                    this.toggle_transfer_browser_auto_sync_cwd(cx);
-                                })),
-                            ))
+                            .when(!tree_mode, |footer| {
+                                footer.child(compact_transfer_footer_button_active(
+                                    palette,
+                                    "transfer-browser-footer-auto-sync",
+                                    "icons/fe/sync.svg",
+                                    if cwd_tracking_available {
+                                        t!("fileExplorer.autoSyncTerminalPath")
+                                    } else {
+                                        t!("fileExplorer.cwdTrackingUnavailable")
+                                    },
+                                    auto_sync_cwd,
+                                    cwd_tracking_available,
+                                    cx.listener(|panel, _, _window, cx| panel.with_app(cx, |this, cx| {
+                                        this.toggle_transfer_browser_auto_sync_cwd(cx);
+                                    })),
+                                ))
+                            })
                             .child(compact_transfer_footer_button(
                                 palette,
                                 "transfer-browser-footer-send-path",

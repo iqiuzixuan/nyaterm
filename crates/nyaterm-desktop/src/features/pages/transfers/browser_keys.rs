@@ -11,6 +11,12 @@ impl NyaTermApp {
         cx: &mut Context<Self>,
     ) {
         self.mark_user_activity();
+        if self.settings.summary().ui_file_explorer_view_mode
+            == nyaterm_core::TransferBrowserViewMode::Tree
+        {
+            self.handle_transfer_tree_key_down(event, window, cx);
+            return;
+        }
         let keystroke = &event.keystroke;
         let modified_for_location = (keystroke.modifiers.platform || keystroke.modifiers.control)
             && !keystroke.modifiers.alt

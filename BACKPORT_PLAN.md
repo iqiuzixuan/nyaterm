@@ -25,7 +25,7 @@ check is complete.
 | 7 | SFTP compatibility mode and diagnostics | Implemented and automation-validated with session-scoped cache/gate, persistent executors, serial directory transfers and redacted diagnostics; real-server acceptance pending |
 | 8 | Reusable accounts | Implemented with typed sources, metadata-only connection-source loads, SSH/Telnet runtime integration, six locales and portable compatibility tests |
 | 9 | First-class connection tags | Implemented and automation-validated with legacy fallback, authoritative dual write, editor controls, dynamic asset filters and portable-snapshot coverage |
-| 10 | SFTP tree beside the existing file list | Implemented with session-local cache, generations, precise invalidation, virtualized keyboard UI and path reveal |
+| 10 | Switchable full-width list/tree file explorer | Implemented and automation-validated with persisted mode, local/SFTP roots, multi-selection, operation routing, precise invalidation and virtualized keyboard UI; Windows real-window acceptance pending |
 | 11 | Serial XMODEM/YMODEM uploads | Implemented with transport state machines, worker integration, progress/cancel flow, context menu and drop protocol selection |
 | 12 | Session-local terminal search wrap toggle | Implemented as a default-on, non-persisted search option with boundary tests |
 | 13 | Optional bold default foreground | Implemented as a default-off sparse appearance setting with explicit-color preservation tests |
@@ -52,9 +52,11 @@ check is complete.
 
 ## Stage-Three And Four Boundaries
 
-- The SFTP tree supplements the existing flat browser. It reuses the current
-  remote-file service and stale-result policy; row tooltips read only cached
-  listing metadata.
+- The file explorer presents mutually exclusive full-width list and tree modes.
+  The persisted Tauri-compatible mode applies to local and SFTP backends; the
+  tree reuses the current file-browser service and stale-result policy, and row
+  tooltips read only cached listing metadata. Windows drive/UNC and remote POSIX
+  roots retain backend-specific ancestry and identity rules.
 - X/YMODEM protocol parsing and retry state live in `nyaterm-transport`.
   Desktop workers own blocking file reads and translate deterministic actions
   into the existing transfer-job and serial-output paths.
@@ -79,7 +81,7 @@ check is complete.
   automated lifecycle test.
 - Windows real-window smoke tests: pending (tab overflow/focus, clipboard lock
   races, destructive confirmations, directory picker, export status feedback,
-  SFTP tree navigation and search/appearance controls).
+  local/SFTP list-tree switching, multi-selection and search/appearance controls).
 - Real-server/device acceptance remains pending for SFTP compatibility/tree
   behavior and serial X/YMODEM interoperability/reopen behavior.
 

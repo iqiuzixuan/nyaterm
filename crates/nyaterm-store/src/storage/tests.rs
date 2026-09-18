@@ -2124,6 +2124,7 @@ fn app_settings_summary_reads_and_updates_host_key_policy() {
             "docker_manager_interval": 13,
             "quick_cmd_view_mode": "compact",
             "quick_cmd_sort_mode": "useCount",
+            "file_explorer_view_mode": "tree",
             "file_explorer_show_hidden_files": false,
             "file_explorer_auto_sync_cwd_connection_ids": ["conn-1", "conn-1", " ", "conn-2"],
             "file_explorer_favorite_dirs_by_connection_id": {
@@ -2195,6 +2196,10 @@ fn app_settings_summary_reads_and_updates_host_key_policy() {
     assert_eq!(summary.ui_docker_manager_interval, 13);
     assert_eq!(summary.ui_quick_cmd_view_mode, "compact");
     assert_eq!(summary.ui_quick_cmd_sort_mode, "useCount");
+    assert_eq!(
+        summary.ui_file_explorer_view_mode,
+        nyaterm_core::TransferBrowserViewMode::Tree
+    );
     assert!(!summary.ui_file_explorer_show_hidden_files);
     assert_eq!(
         summary.ui_file_explorer_auto_sync_cwd_connection_ids,
@@ -2424,6 +2429,7 @@ fn app_settings_summary_reads_and_updates_host_key_policy() {
     );
 
     let mut favorite_update = summary.clone();
+    favorite_update.ui_file_explorer_view_mode = nyaterm_core::TransferBrowserViewMode::List;
     favorite_update.ui_file_explorer_show_hidden_files = true;
     favorite_update.ui_file_explorer_auto_sync_cwd_connection_ids = vec![
         "conn-3".to_string(),
@@ -2451,6 +2457,10 @@ fn app_settings_summary_reads_and_updates_host_key_policy() {
     );
     assert!(updated.ui_file_explorer_show_hidden_files);
     assert_eq!(
+        updated.ui_file_explorer_view_mode,
+        nyaterm_core::TransferBrowserViewMode::List
+    );
+    assert_eq!(
         updated
             .ui_file_explorer_favorite_dirs_by_connection_id
             .get("conn-2"),
@@ -2461,6 +2471,10 @@ fn app_settings_summary_reads_and_updates_host_key_policy() {
         json_path(&stored, &["ui", "file_explorer_show_hidden_files"])
             .and_then(|value| value.as_bool()),
         Some(true)
+    );
+    assert_eq!(
+        json_path(&stored, &["ui", "file_explorer_view_mode"]).and_then(|value| value.as_str()),
+        Some("list")
     );
     assert_eq!(
         json_path(

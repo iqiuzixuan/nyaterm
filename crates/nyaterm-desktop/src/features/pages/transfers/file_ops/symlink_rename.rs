@@ -6,12 +6,12 @@ use crate::models::{
     TransferJobStatus, TransferNewSymlinkState, TransferRenameState, TransferSymlinkField,
 };
 use gpui::{Context, KeyDownEvent, Window};
-use nyaterm_transport::RemoteFilePath;
-
-use super::super::helpers::{
-    remote_child_path, remote_file_name, remote_parent_path, remote_sibling_path,
-    valid_remote_child_name,
+use nyaterm_transport::{
+    FileBrowserBackendKind, RemoteFilePath, file_browser_join, file_browser_name,
+    file_browser_parent, file_browser_path_is_root,
 };
+
+use super::super::helpers::{remote_child_path, valid_remote_child_name};
 
 impl NyaTermApp {
     pub(in crate::features) fn open_transfer_new_symlink_dialog(
@@ -19,11 +19,7 @@ impl NyaTermApp {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let parent_path = if self.transfer.browser_view().path.trim().is_empty() {
-            self.transfer.normalized_remote_path()
-        } else {
-            self.transfer.browser_view().path.clone()
-        };
+        let parent_path = self.transfer_browser_operation_target_directory();
         self.transfer
             .open_new_symlink_dialog(TransferNewSymlinkState {
                 parent_path,
@@ -179,13 +175,14 @@ impl NyaTermApp {
     ) {
         self.forget_text_inputs("transfer.rename.");
         self.ensure_panel_open(crate::models::NavItem::Transfers);
-        let Some(entry) = self.selected_transfer_entry() else {
+        let entries = self.selected_transfer_entries();
+        let [entry] = entries.as_slice() else {
             self.shell
-                .set_status("select a remote file entry before renaming".to_string());
+                .set_status("select exactly one file entry before renaming".to_string());
             cx.notify();
             return;
         };
-        if !self.open_transfer_rename_for_entry(entry, cx) {
+        if !self.open_transfer_rename_for_entry(entry.clone(), cx) {
             return;
         }
         self.transfer.schedule_rename_focus();
@@ -211,19 +208,34 @@ impl NyaTermApp {
         cx: &mut Context<Self>,
     ) -> bool {
         self.forget_text_inputs("transfer.rename.");
-        let entry = self
-            .transfer
-            .browser_view()
-            .entries
-            .iter()
-            .find(|entry| entry.matches_identity(&identity))
-            .cloned();
+        let backend = self
+            .session
+            .active_file_browser_backend()
+            .unwrap_or(FileBrowserBackendKind::Remote);
+        let entry = if self.settings.summary().ui_file_explorer_view_mode
+            == nyaterm_core::TransferBrowserViewMode::Tree
+        {
+            self.selected_transfer_entries()
+                .into_iter()
+                .find(|entry| entry.path == identity || entry.matches_identity(&identity))
+        } else {
+            self.transfer
+                .browser_view()
+                .entries
+                .iter()
+                .find(|entry| entry.matches_identity(&identity))
+                .cloned()
+        };
         let old_path = entry
             .as_ref()
             .map(|entry| entry.path.clone())
             .unwrap_or(identity);
-        let initial_name = remote_file_name(&old_path);
-        if initial_name.is_empty() || initial_name == "." || initial_name == ".." {
+        let initial_name = file_browser_name(backend, &old_path);
+        if initial_name.is_empty()
+            || file_browser_path_is_root(backend, &old_path)
+            || initial_name == "."
+            || initial_name == ".."
+        {
             self.shell.set_status(format!("cannot rename {old_path}"));
             cx.notify();
             return false;
@@ -305,7 +317,15 @@ impl NyaTermApp {
             cx.notify();
             return;
         }
-        let new_path = remote_sibling_path(&state.old_path, &new_name);
+        let backend = self
+            .session
+            .active_file_browser_backend()
+            .unwrap_or(FileBrowserBackendKind::Remote);
+        let new_path = file_browser_join(
+            backend,
+            &file_browser_parent(backend, &state.old_path),
+            &new_name,
+        );
         self.transfer.close_rename_dialog();
         self.start_sftp_rename_job(
             RemoteFilePath {
@@ -373,8 +393,9 @@ impl NyaTermApp {
                 return;
             }
         };
+        let backend = service.kind();
         let old_display_path = old_path.display_path.clone();
-        let parent_path = remote_parent_path(&old_display_path);
+        let parent_path = file_browser_parent(backend, &old_display_path);
         let id = self.transfer.next_transfer_job_id("sftp-rename");
         self.transfer.enqueue_transfer_job(TransferJobState {
             id: id.clone(),

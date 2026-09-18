@@ -15,8 +15,8 @@ use super::{
 use nyaterm_core::{
     AppSettingsSummary, CredentialCrypto, DEFAULT_RECORDING_PATH_TEMPLATE,
     DEFAULT_TERMINAL_TIMESTAMP_FORMAT, ExistingFileBehavior, RecordingMode,
-    RecordingRotationPolicy, SearchEngineConfig, default_panel_open_mode, default_search_engines,
-    normalize_panel_open_mode,
+    RecordingRotationPolicy, SearchEngineConfig, TransferBrowserViewMode, default_panel_open_mode,
+    default_search_engines, normalize_panel_open_mode,
 };
 
 impl ConnectionStore {
@@ -248,6 +248,11 @@ impl ConnectionStore {
                 &["ui", "file_explorer_show_hidden_files"],
                 true,
             ),
+            ui_file_explorer_view_mode: TransferBrowserViewMode::from_compat_value(&json_string(
+                &value,
+                &["ui", "file_explorer_view_mode"],
+                "list",
+            )),
             ui_file_explorer_auto_sync_cwd_connection_ids: json_string_vec(
                 &value,
                 &["ui", "file_explorer_auto_sync_cwd_connection_ids"],
@@ -725,6 +730,14 @@ impl ConnectionStore {
             &mut value,
             &["ui", "file_explorer_show_hidden_files"],
             serde_json::Value::Bool(settings.ui_file_explorer_show_hidden_files),
+        );
+        set_nested_json_string(
+            &mut value,
+            &["ui", "file_explorer_view_mode"],
+            settings
+                .ui_file_explorer_view_mode
+                .compat_value()
+                .to_string(),
         );
         set_nested_json_value(
             &mut value,
