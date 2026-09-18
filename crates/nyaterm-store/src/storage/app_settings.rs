@@ -115,6 +115,11 @@ impl ConnectionStore {
                     _ => 700,
                 }
             },
+            bold_default_foreground: json_bool(
+                &value,
+                &["appearance", "bold_default_foreground"],
+                false,
+            ),
             x11_display: json_string(&value, &["terminal", "x11_display"], ""),
             terminal_scrollback_lines: json_u32(&value, &["terminal", "scrollback_lines"], 5000)
                 .clamp(100, 100_000),
@@ -1058,6 +1063,11 @@ impl ConnectionStore {
             &["appearance", "font_weight_bold"],
             serde_json::Value::from(font_weight_bold),
         );
+        if settings.bold_default_foreground {
+            set_nested_json_bool(&mut value, &["appearance", "bold_default_foreground"], true);
+        } else {
+            remove_nested_json_value(&mut value, &["appearance", "bold_default_foreground"]);
+        }
         set_nested_json_string(
             &mut value,
             &["terminal", "x11_display"],
@@ -1949,6 +1959,25 @@ fn set_nested_json_string(value: &mut serde_json::Value, path: &[&str], new_valu
 
 fn set_nested_json_bool(value: &mut serde_json::Value, path: &[&str], new_value: bool) {
     set_nested_json_value(value, path, serde_json::Value::Bool(new_value));
+}
+
+fn remove_nested_json_value(value: &mut serde_json::Value, path: &[&str]) {
+    let Some((last, parents)) = path.split_last() else {
+        return;
+    };
+    let mut current = value;
+    for key in parents {
+        let Some(next) = current
+            .as_object_mut()
+            .and_then(|object| object.get_mut(*key))
+        else {
+            return;
+        };
+        current = next;
+    }
+    if let Some(object) = current.as_object_mut() {
+        object.remove(*last);
+    }
 }
 
 /// The title bar's centre reading, defaulting to the session it always showed.

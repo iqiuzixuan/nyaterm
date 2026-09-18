@@ -958,6 +958,7 @@ fn prepare_termius_passwords(
             }
             passwords.push(SavedPassword {
                 id,
+                username: String::new(),
                 name: format!(
                     "{} password",
                     normalize_optional_string(host.label.clone())
@@ -982,6 +983,7 @@ fn prepare_termius_passwords(
             }
             passwords.push(SavedPassword {
                 id,
+                username: identity.username.clone().unwrap_or_default(),
                 name: format!(
                     "{} password",
                     normalize_optional_string(identity.label.clone())
@@ -1087,6 +1089,8 @@ fn prepare_termius_auth(
         return ConnectionAuth {
             mode: "key".to_string(),
             password_id: None,
+            account_id: None,
+            password_source: None,
             password: None,
             key_id: Some(key_id.clone()),
             otp_id: None,
@@ -1104,6 +1108,8 @@ fn prepare_termius_auth(
         .or_else(|| identity_password_key.and_then(|key| password_ids.get(&key).cloned()));
 
     ConnectionAuth {
+        account_id: None,
+        password_source: None,
         mode: "password".to_string(),
         password_id,
         password: None,

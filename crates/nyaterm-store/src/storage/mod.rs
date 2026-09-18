@@ -41,7 +41,9 @@ use self::keyword_highlights::{
     merge_keyword_highlight_rules, normalize_keyword_highlight_rule, parse_keyword_highlight_import,
 };
 use self::known_hosts::replace_known_hosts_text_in_txn;
-pub use self::known_hosts::{KnownHostCheck, RdpCertificateMetadata, RdpKnownHostCheck};
+pub use self::known_hosts::{
+    KnownHostCheck, KnownHostEntry, RdpCertificateMetadata, RdpKnownHostCheck,
+};
 pub use self::remote_file_backend::{RemoteFileBackendCache, RemoteFileBackendCacheEntry};
 
 const DATABASE_FILE: &str = "nyaterm.redb";

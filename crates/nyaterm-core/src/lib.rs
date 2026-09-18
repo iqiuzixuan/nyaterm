@@ -14,11 +14,13 @@ pub mod document_edit;
 pub mod keyword_highlight_presets;
 pub mod models;
 pub mod natural_order;
+pub mod note_export;
 pub mod portable_snapshot;
 pub mod remote_preview;
 pub mod runtime;
 pub mod secret;
 pub mod session_import;
+pub mod ssh_keys;
 pub mod terminal;
 pub mod terminal_file_drop {
     pub use super::terminal::file_drop::*;
@@ -170,7 +172,7 @@ pub use runtime::{AppRuntime, RuntimeMode};
 pub use secret::{SecretBytes, SecretString};
 pub use session_import::{
     PreparedSessionConnection, PreparedSessionImport, SessionImportError, prepare_session_import,
-    prepare_termius_session_import,
+    prepare_ssh_config_import, prepare_termius_session_import,
 };
 pub use terminal::file_drop::{
     format_local_terminal_drop_input, quote_local_path, terminal_drop_overlay_copy,

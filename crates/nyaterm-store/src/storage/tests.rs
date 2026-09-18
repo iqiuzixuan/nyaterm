@@ -28,6 +28,209 @@ use super::{
 };
 
 #[test]
+fn accounts_preserve_masking_legacy_references_and_portable_snapshot_contracts() {
+    use nyaterm_core::models::credentials::{ConnectionPasswordSource, SavedPassword};
+    let source_dir = unique_temp_dir("account-portable-source");
+    let target_dir = unique_temp_dir("account-portable-target");
+    let source = ConnectionStore::open(&source_dir).unwrap();
+    source
+        .save_password(SavedPassword {
+            id: "account".into(),
+            name: "Shared account".into(),
+            username: "shared-user".into(),
+            password: Some("synthetic-secret".into()),
+            has_password: false,
+        })
+        .unwrap();
+    let connection: SavedConnection = serde_json::from_value(serde_json::json!({
+        "id":"account-connection", "name":"SSH", "type":"ssh", "host":"test.invalid",
+        "auth":{"mode":"password", "account_id":"account", "password_id":"legacy-id", "password_source":"account", "future_auth":true}
+    })).unwrap();
+    source.save_connection(&connection).unwrap();
+    let masked = source.list_passwords().unwrap();
+    assert_eq!(masked[0].username, "shared-user");
+    assert!(masked[0].password.is_none());
+    assert!(masked[0].has_password);
+    let mut snapshot = source
+        .build_raw_portable_snapshot(nyaterm_core::PortableSnapshotKind::Backup, "device", "test")
+        .unwrap();
+    snapshot.recalculate_hash().unwrap();
+    let encoded = crate::encode_raw_portable_snapshot(&snapshot).unwrap();
+    let decoded = crate::decode_raw_portable_snapshot(&encoded).unwrap();
+    let target = ConnectionStore::open(&target_dir).unwrap();
+    target.apply_raw_portable_snapshot(&decoded).unwrap();
+    let auth = target
+        .load_sessions()
+        .unwrap()
+        .connections
+        .remove(0)
+        .auth
+        .unwrap();
+    assert_eq!(auth.password_id.as_deref(), Some("legacy-id"));
+    assert_eq!(auth.account_id.as_deref(), Some("account"));
+    assert_eq!(
+        auth.password_source,
+        Some(ConnectionPasswordSource::Account)
+    );
+    let loaded = target.load_account_for_auth(&auth).unwrap().unwrap();
+    assert_eq!(loaded.username, "shared-user");
+    assert_eq!(loaded.password.as_deref(), Some("synthetic-secret"));
+    target.delete_password("account").unwrap();
+    assert!(target.load_account_for_auth(&auth).unwrap().is_none());
+    let retained = target
+        .load_sessions()
+        .unwrap()
+        .connections
+        .remove(0)
+        .auth
+        .unwrap();
+    assert_eq!(retained.account_id.as_deref(), Some("account"));
+    assert_eq!(retained.password_id.as_deref(), Some("legacy-id"));
+    drop(target);
+    drop(source);
+    std::fs::remove_dir_all(target_dir).unwrap();
+    std::fs::remove_dir_all(source_dir).unwrap();
+}
+
+#[test]
+fn connection_source_reads_account_username_without_decrypting_corrupt_password() {
+    use nyaterm_core::models::credentials::{ConnectionPasswordSource, SavedPassword};
+    let dir = unique_temp_dir("account-metadata-only");
+    let store = ConnectionStore::open(&dir).unwrap();
+    let txn = store.db.begin_write().unwrap();
+    write_json_in_txn(
+        &txn,
+        CREDENTIALS_TABLE,
+        &entity_key(super::PASSWORD_PREFIX, "metadata"),
+        &SavedPassword {
+            id: "metadata".into(),
+            name: "Metadata".into(),
+            username: "metadata-user".into(),
+            password: Some("unsupported-encrypted-payload".into()),
+            has_password: false,
+        },
+    )
+    .unwrap();
+    txn.commit().unwrap();
+    let auth = ConnectionAuth {
+        mode: "password".into(),
+        account_id: Some("metadata".into()),
+        password_source: Some(ConnectionPasswordSource::Connection),
+        ..ConnectionAuth::default()
+    };
+    let loaded = store.load_account_for_auth(&auth).unwrap().unwrap();
+    assert_eq!(loaded.username, "metadata-user");
+    assert!(loaded.password.is_none());
+    assert_eq!(
+        auth.resolve_account_auth("fallback", Some(&loaded))
+            .unwrap()
+            .1,
+        None
+    );
+    drop(store);
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn legacy_account_records_default_username_and_do_not_write_it_when_empty() {
+    let dir = unique_temp_dir("account-legacy-default");
+    let store = ConnectionStore::open(&dir).unwrap();
+    let txn = store.db.begin_write().unwrap();
+    write_json_in_txn(
+        &txn,
+        CREDENTIALS_TABLE,
+        &entity_key(super::PASSWORD_PREFIX, "legacy"),
+        &serde_json::json!({
+            "id":"legacy", "name":"Legacy", "password":null
+        }),
+    )
+    .unwrap();
+    txn.commit().unwrap();
+    let entry = store.load_password_by_id("legacy").unwrap().unwrap();
+    assert!(entry.username.is_empty());
+    store.save_password(entry).unwrap();
+    let entry = store.load_password_by_id("legacy").unwrap().unwrap();
+    assert!(
+        serde_json::to_value(entry)
+            .unwrap()
+            .get("username")
+            .is_none()
+    );
+    drop(store);
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn tags_dual_write_preserve_asset_facts_and_survive_portable_snapshot_and_clear() {
+    let source_dir = unique_temp_dir("tags-portable-source");
+    let target_dir = unique_temp_dir("tags-portable-target");
+    let source = ConnectionStore::open(&source_dir).unwrap();
+    let txn = source.db.begin_write().unwrap();
+    write_json_in_txn(
+        &txn,
+        CONNECTIONS_TABLE,
+        &entity_key("connections/", "tagged"),
+        &serde_json::json!({
+            "id":"tagged", "name":"Tagged", "type":"ssh", "host":"test.invalid",
+            "asset":{"tags":["legacy"], "os_name":"Linux", "future_asset":true}
+        }),
+    )
+    .unwrap();
+    txn.commit().unwrap();
+    let mut connection = source.get_connection("tagged").unwrap().unwrap();
+    assert_eq!(connection.tags, ["legacy"]);
+    connection.tags = vec!["production".into(), "gpu".into()];
+    source.save_connection(&connection).unwrap();
+    let raw: serde_json::Value = {
+        let txn = source.db.begin_read().unwrap();
+        let table = txn.open_table(CONNECTIONS_TABLE).unwrap();
+        let record = table
+            .get(entity_key("connections/", "tagged").as_str())
+            .unwrap()
+            .unwrap();
+        deserialize_json(record.value()).unwrap()
+    };
+    assert_eq!(raw["asset"]["tags"], raw["tags"]);
+    assert_eq!(raw["asset"]["future_asset"], true);
+    let mut snapshot = source
+        .build_raw_portable_snapshot(nyaterm_core::PortableSnapshotKind::Backup, "device", "test")
+        .unwrap();
+    snapshot.recalculate_hash().unwrap();
+    let target = ConnectionStore::open(&target_dir).unwrap();
+    target.apply_raw_portable_snapshot(&snapshot).unwrap();
+    let mut connection = target.get_connection("tagged").unwrap().unwrap();
+    assert_eq!(connection.tags, ["production", "gpu"]);
+    assert_eq!(
+        connection.asset.as_ref().unwrap().os_name.as_deref(),
+        Some("Linux")
+    );
+    connection.tags.clear();
+    target.save_connection(&connection).unwrap();
+    target.mark_connection_used("tagged").unwrap();
+    target
+        .merge_connection_asset_from_monitoring(
+            "tagged",
+            AssetMetadata {
+                hostname: Some("node".into()),
+                ..AssetMetadata::default()
+            },
+        )
+        .unwrap();
+    assert!(
+        target
+            .get_connection("tagged")
+            .unwrap()
+            .unwrap()
+            .tags
+            .is_empty()
+    );
+    drop(target);
+    drop(source);
+    std::fs::remove_dir_all(target_dir).unwrap();
+    std::fs::remove_dir_all(source_dir).unwrap();
+}
+
+#[test]
 fn mark_connection_used_persists_legacy_agent_forwarding_migration() {
     let dir = unique_temp_dir("mark-used-agent-migration");
     let store = ConnectionStore::open(&dir).expect("store");
@@ -90,6 +293,7 @@ fn round_trips_sessions_in_redb_compatible_tables() {
         }],
         connections: vec![SavedConnection {
             extensions: Default::default(),
+            tags: Vec::new(),
             id: "conn-1".to_string(),
             name: "Production".to_string(),
             config: ConnectionType::Ssh {
@@ -170,6 +374,7 @@ fn exports_and_imports_native_redb_backup() {
         }],
         connections: vec![SavedConnection {
             extensions: Default::default(),
+            tags: Vec::new(),
             id: "local-1".to_string(),
             name: "Shell".to_string(),
             config: ConnectionType::LocalTerminal {
@@ -255,6 +460,7 @@ fn exports_and_imports_portable_snapshot() {
             }],
             connections: vec![SavedConnection {
                 extensions: Default::default(),
+                tags: Vec::new(),
                 id: "conn-1".to_string(),
                 name: "Production".to_string(),
                 config: ConnectionType::Ssh {
@@ -473,6 +679,7 @@ fn encrypted_portable_snapshot_requires_master_password() {
             groups: Vec::new(),
             connections: vec![SavedConnection {
                 extensions: Default::default(),
+                tags: Vec::new(),
                 id: "conn-1".to_string(),
                 name: "Encrypted Snapshot".to_string(),
                 config: ConnectionType::LocalTerminal {
@@ -540,6 +747,7 @@ fn encrypted_portable_snapshot_requires_master_password() {
             groups: Vec::new(),
             connections: vec![SavedConnection {
                 extensions: Default::default(),
+                tags: Vec::new(),
                 id: "keep".to_string(),
                 name: "Keep".to_string(),
                 config: ConnectionType::LocalTerminal {
@@ -621,6 +829,7 @@ fn rejects_invalid_backup_without_replacing_current_database() {
             groups: Vec::new(),
             connections: vec![SavedConnection {
                 extensions: Default::default(),
+                tags: Vec::new(),
                 id: "keep".to_string(),
                 name: "Keep".to_string(),
                 config: ConnectionType::LocalTerminal {
@@ -698,6 +907,7 @@ fn save_and_delete_connection_updates_store() {
     let store = ConnectionStore::open(&dir).expect("store");
     let connection = SavedConnection {
         extensions: Default::default(),
+        tags: Vec::new(),
         id: "local-1".to_string(),
         name: "Local".to_string(),
         config: ConnectionType::LocalTerminal {
@@ -749,6 +959,7 @@ fn save_group_and_connection_persists_both_records() {
     };
     let connection = SavedConnection {
         extensions: Default::default(),
+        tags: Vec::new(),
         id: "local-grouped".to_string(),
         name: "Local".to_string(),
         config: ConnectionType::LocalTerminal {
@@ -826,6 +1037,7 @@ fn deleting_group_removes_descendants_and_grouped_connections() {
         store
             .save_connection(&SavedConnection {
                 extensions: Default::default(),
+                tags: Vec::new(),
                 id: id.to_string(),
                 name: id.to_string(),
                 config: ConnectionType::LocalTerminal {
@@ -870,6 +1082,7 @@ fn load_sessions_decrypts_legacy_connection_password_record() {
     let store = ConnectionStore::open(&dir).expect("store");
     let connection = SavedConnection {
         extensions: Default::default(),
+        tags: Vec::new(),
         id: "ssh-1".to_string(),
         name: "SSH".to_string(),
         config: ConnectionType::Ssh {
@@ -1216,6 +1429,75 @@ fn known_hosts_repository_preserves_structured_hashed_and_raw_lines() {
 }
 
 #[test]
+fn known_hosts_management_lists_deletes_and_clears_structured_entries() {
+    let dir = unique_temp_dir("known-hosts-management");
+    let store = ConnectionStore::open(&dir).expect("store");
+    let key = "AAAAC3NzaC1lZDI1NTE5AAAAILM+rvN+ot98qgEN796jTiQfZfG1KaT0PtFDJ/XFSqti";
+    store
+        .replace_known_hosts_export(&format!(
+            "# preserved raw line\n@cert-authority host-b,host-a ssh-ed25519 {key} comment\nhost-c ssh-ed25519 {key}\ninvalid ssh-ed25519 AQID\n",
+        ))
+        .expect("seed known hosts");
+
+    let entries = store.list_known_hosts().expect("list known hosts");
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0].host_identifier, "host-b");
+    assert_eq!(entries[0].host_patterns, ["host-b", "host-a"]);
+    assert_eq!(entries[0].marker.as_deref(), Some("@cert-authority"));
+    assert_eq!(
+        entries[0].fingerprint,
+        "SHA256:UCUiLr7Pjs9wFFJMDByLgc3NrtdU344OgUM45wZPcIQ"
+    );
+
+    store
+        .delete_known_host(&entries[0].id)
+        .expect("delete known host");
+    let rendered = store
+        .render_known_hosts_export()
+        .expect("render after delete");
+    assert!(rendered.contains("# preserved raw line"));
+    assert!(rendered.contains("invalid ssh-ed25519 AQID"));
+    assert!(!rendered.contains("host-b,host-a"));
+    assert!(rendered.contains("host-c"));
+
+    assert!(store.delete_known_host("known_hosts/raw/invalid").is_err());
+    assert!(store.delete_known_host("rdp_known_hosts/invalid").is_err());
+    let hashed = "|1|nNMSH1CuL4w6FneDFn3ONf5paeg=|q8MlMsHsBk6GOpNwYqhnCeXKlRk=";
+    store
+        .upsert_known_host(&format!("@revoked {hashed} ssh-ed25519 {key}"))
+        .expect("hashed revoked host");
+    let entries = store.list_known_hosts().expect("list hashed hosts");
+    let entry = entries
+        .iter()
+        .find(|entry| entry.host_identifier == hashed)
+        .expect("hashed entry");
+    assert_eq!(entry.host_patterns, [hashed]);
+    assert_eq!(entry.marker.as_deref(), Some("@revoked"));
+    store
+        .upsert_rdp_known_host(
+            "rdp.example",
+            3389,
+            "sha256:rdp",
+            super::RdpCertificateMetadata::default(),
+        )
+        .expect("rdp certificate");
+    store.clear_known_hosts().expect("clear known hosts");
+    assert!(store.list_known_hosts().expect("list cleared").is_empty());
+    assert_eq!(
+        store.render_known_hosts_export().expect("render cleared"),
+        ""
+    );
+    assert_eq!(
+        store
+            .check_rdp_known_host("rdp.example", 3389, "sha256:rdp")
+            .expect("rdp unchanged"),
+        RdpKnownHostCheck::Match
+    );
+
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
 fn known_hosts_check_distinguishes_match_changed_and_unknown() {
     let dir = unique_temp_dir("known-hosts-check");
     let store = ConnectionStore::open(&dir).expect("store");
@@ -1423,6 +1705,7 @@ fn save_appearance_theme_and_contrast_roundtrip() {
     summary.ui_font_size = 18;
     summary.terminal_font_weight = 500;
     summary.terminal_font_weight_bold = 800;
+    summary.bold_default_foreground = true;
     let saved = store.save_appearance_settings(&summary).expect("save");
     assert_eq!(saved.theme, "dracula");
     assert_eq!(saved.terminal_theme.as_deref(), Some("nord"));
@@ -1434,6 +1717,7 @@ fn save_appearance_theme_and_contrast_roundtrip() {
     assert_eq!(saved.ui_font_size, 18);
     assert_eq!(saved.terminal_font_weight, 500);
     assert_eq!(saved.terminal_font_weight_bold, 800);
+    assert!(saved.bold_default_foreground);
     let raw = store.load_settings_value().expect("raw");
     assert_eq!(
         raw["appearance"]["terminal_theme"],
@@ -1465,6 +1749,14 @@ fn save_appearance_theme_and_contrast_roundtrip() {
         raw["appearance"]["font_weight_bold"],
         serde_json::json!(800)
     );
+    assert_eq!(
+        raw["appearance"]["bold_default_foreground"],
+        serde_json::json!(true)
+    );
+    summary.bold_default_foreground = false;
+    store.save_appearance_settings(&summary).expect("clear");
+    let raw = store.load_settings_value().expect("raw cleared");
+    assert!(raw["appearance"].get("bold_default_foreground").is_none());
     std::fs::remove_dir_all(dir).ok();
 }
 
@@ -3368,6 +3660,7 @@ fn sync_snapshot_strips_device_local_ssh_agent_settings() {
         groups: Vec::new(),
         connections: vec![SavedConnection {
             extensions: Default::default(),
+            tags: Vec::new(),
             id: "agent-sync".to_string(),
             name: "Agent Sync".to_string(),
             config: ConnectionType::Ssh {
@@ -3831,6 +4124,7 @@ fn dedicated_rdp_records_win_conflicts_and_do_not_break_ssh_replacement() {
 fn ssh_connection_for_asset(id: &str) -> SavedConnection {
     SavedConnection {
         extensions: Default::default(),
+        tags: Vec::new(),
         id: id.to_string(),
         name: "Asset Host".to_string(),
         config: ConnectionType::Ssh {
@@ -3871,6 +4165,7 @@ fn merge_connection_asset_from_monitoring_creates_and_merges_atomically() {
     let dir = unique_temp_dir("asset-merge");
     let store = ConnectionStore::open(&dir).expect("store");
     let mut connection = ssh_connection_for_asset("asset-1");
+    connection.tags = vec!["production".to_string()];
     connection.asset = Some(AssetMetadata {
         device_type: Some(AssetDeviceType::Cloud),
         cpu_threads: Some(16),

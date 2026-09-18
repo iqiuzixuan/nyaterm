@@ -51,6 +51,7 @@ digest = "0.11.0-rc.5"
 dirs = "6"
 encoding_rs = "0.8"
 futures = "0.3"
+glob = "0.3.4"
 gpui = { version = "=0.2.2", git = "https://github.com/nyakang/zed", rev = "3b3066c872f29f5edacb7e68de167f7bcf550465" }
 gpui-base = { git = "https://github.com/nyakang/gpui-component", rev = "5d6f1b83418a971faa0a532fc5b41f6abcc240f7" }
 gpui-component = { git = "https://github.com/nyakang/gpui-component", rev = "5d6f1b83418a971faa0a532fc5b41f6abcc240f7" }
@@ -103,6 +104,7 @@ serde_json = { version = "1", features = ["raw_value"] }
 sha1 = { version = "0.11", features = ["oid"] }
 sha2 = { version = "0.11", features = ["oid"] }
 signature = "3.0.0-rc.10"
+ssh-key = "=0.7.0-rc.11"
 thiserror = "2"
 time = { version = "0.3.47", features = ["formatting", "local-offset", "macros"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "process", "io-util"] }

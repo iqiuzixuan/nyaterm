@@ -139,6 +139,9 @@ pub struct AppSettingsSummary {
     /// Terminal bold font weight (Tauri appearance.font_weight_bold).
     #[serde(default = "default_terminal_font_weight_bold")]
     pub terminal_font_weight_bold: u16,
+    /// Use the intense default foreground for bold cells without an explicit ANSI color.
+    #[serde(default)]
+    pub bold_default_foreground: bool,
     pub x11_display: String,
     pub terminal_scrollback_lines: u32,
     #[serde(default = "default_terminal_keep_alive_mode")]
@@ -403,6 +406,7 @@ impl Default for AppSettingsSummary {
             ui_font_size: default_ui_font_size(),
             terminal_font_weight: default_terminal_font_weight(),
             terminal_font_weight_bold: default_terminal_font_weight_bold(),
+            bold_default_foreground: false,
             x11_display: String::new(),
             terminal_scrollback_lines: 5000,
             terminal_keep_alive_mode: default_terminal_keep_alive_mode(),
