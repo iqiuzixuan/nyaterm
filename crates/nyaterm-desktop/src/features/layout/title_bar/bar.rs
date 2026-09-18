@@ -927,7 +927,9 @@ impl NyaTermApp {
         if let Some(failed) = self.shell.last_connect_failure_name() {
             return failed.to_string();
         }
-        "NyaTerm".to_string()
+        nyaterm_core::app_identity::AppFlavor::current()
+            .display_name()
+            .to_string()
     }
 
     fn title_context_icon(&self) -> Option<IconDef> {

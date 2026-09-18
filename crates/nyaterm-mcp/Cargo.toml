@@ -13,6 +13,7 @@ path = "src/main.rs"
 
 [dependencies]
 dirs.workspace = true
+nyaterm-core.workspace = true
 nyaterm-mcp-protocol.workspace = true
 rmcp = { workspace = true, features = ["server", "transport-io"] }
 schemars.workspace = true

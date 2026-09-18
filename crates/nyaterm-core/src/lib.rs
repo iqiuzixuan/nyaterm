@@ -1,6 +1,7 @@
 pub mod activation;
 pub mod agent_capture;
 pub mod ai;
+pub mod app_identity;
 pub mod assets;
 pub mod capabilities;
 pub mod cloud_sync;

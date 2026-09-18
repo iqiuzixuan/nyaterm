@@ -39,6 +39,9 @@ fn download_signed_update(
     mut progress: impl FnMut(u64, Option<u64>),
 ) -> Result<(PathBuf, PathBuf), String> {
     let version = parse_current_version(version).map_err(|error| error.to_string())?;
+    if !nyaterm_core::app_identity::AppFlavor::current().accepts_update(&version) {
+        return Err("update belongs to a different application flavor".into());
+    }
     let target = UpdateTarget::from_rust_target(std::env::consts::OS, std::env::consts::ARCH)
         .map_err(|error| error.to_string())?;
     let client = zed_reqwest::blocking::Client::builder()

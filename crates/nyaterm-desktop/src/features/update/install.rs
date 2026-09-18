@@ -31,6 +31,11 @@ pub(super) fn prepare_artifact(
         if target.extension().and_then(|value| value.to_str()) != Some("app") {
             return Err("not an application bundle".into());
         }
+        if target.file_name().and_then(|name| name.to_str())
+            != Some(nyaterm_core::app_identity::AppFlavor::current().macos_bundle_name())
+        {
+            return Err("application bundle belongs to a different identity".into());
+        }
         let stage = target
             .parent()
             .ok_or("application parent unavailable")?
@@ -47,17 +52,7 @@ pub(super) fn prepare_artifact(
                 return Err("invalid bundle archive path".into());
             }
         }
-        let bundle = stage.join("NyaTerm.app");
-        for binary in [
-            "NyaTerm",
-            "nyaterm-rdp-helper",
-            "nyaterm-vnc-helper",
-            "nyaterm-mcp",
-        ] {
-            if !bundle.join("Contents/MacOS").join(binary).is_file() {
-                return Err("update bundle is missing an application helper".into());
-            }
-        }
+        let bundle = staged_macos_bundle(&stage, nyaterm_core::app_identity::AppFlavor::current())?;
         Ok((bundle, target))
     }
     #[cfg(target_os = "linux")]
@@ -154,4 +149,48 @@ fi
             .map_err(|error| error.to_string())?;
     }
     Ok(())
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn staged_macos_bundle(
+    stage: &Path,
+    flavor: nyaterm_core::app_identity::AppFlavor,
+) -> Result<PathBuf, String> {
+    let bundle = stage.join(flavor.macos_bundle_name());
+    for binary in [
+        "NyaTerm",
+        "nyaterm-rdp-helper",
+        "nyaterm-vnc-helper",
+        "nyaterm-mcp",
+    ] {
+        if !bundle.join("Contents/MacOS").join(binary).is_file() {
+            return Err("update bundle is missing an application helper".into());
+        }
+    }
+    Ok(bundle)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::staged_macos_bundle;
+    use nyaterm_core::app_identity::AppFlavor;
+
+    #[test]
+    fn staged_updates_require_the_current_flavor_bundle_and_all_helpers() {
+        let stage =
+            std::env::temp_dir().join(format!("nyaterm-update-test-{}", nyaterm_core::uuid()));
+        for flavor in [AppFlavor::Stable, AppFlavor::Preview] {
+            assert!(staged_macos_bundle(&stage, flavor).is_err());
+            let bundle = stage.join(flavor.macos_bundle_name());
+            let binaries = bundle.join("Contents/MacOS");
+            std::fs::create_dir_all(&binaries).unwrap();
+            for name in ["NyaTerm", "nyaterm-rdp-helper", "nyaterm-vnc-helper"] {
+                std::fs::write(binaries.join(name), b"test").unwrap();
+            }
+            assert!(staged_macos_bundle(&stage, flavor).is_err());
+            std::fs::write(binaries.join("nyaterm-mcp"), b"test").unwrap();
+            assert_eq!(staged_macos_bundle(&stage, flavor).unwrap(), bundle);
+        }
+        std::fs::remove_dir_all(stage).unwrap();
+    }
 }

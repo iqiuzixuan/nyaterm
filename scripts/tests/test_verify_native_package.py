@@ -101,38 +101,52 @@ class VerifyNativePackageTests(unittest.TestCase):
                     path, "x86_64-pc-windows-msvc", "2.0.0"
                 )
 
-    def test_macos_archive_validates_bundle_metadata_and_architecture(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "NyaTerm.app.tar.gz"
-            entries = {
-                "NyaTerm.app/Contents/MacOS/NyaTerm": fake_macho(0x0100000C),
-                **{
-                    f"NyaTerm.app/Contents/MacOS/{name}": fake_macho(0x0100000C)
-                    for name in verify_native_package.helper_filenames(
-                        "aarch64-apple-darwin"
-                    )
-                },
-                "NyaTerm.app/Contents/Info.plist": plistlib.dumps(
-                    {
-                        "CFBundleIdentifier": "com.kang.nyaterm",
-                        "CFBundleShortVersionString": "2.0.0",
-                        "CFBundleURLTypes": [
-                            {"CFBundleURLSchemes": ["nyaterm"]}
-                        ],
-                    }
-                ),
-                "NyaTerm.app/Contents/Resources/VERSION": b"2.0.0\n",
-                "NyaTerm.app/Contents/Resources/LICENSE": b"license",
-                "NyaTerm.app/Contents/Resources/icon.icns": b"icon",
-            }
-            with tarfile.open(path, "w:gz") as archive:
-                for name, data in entries.items():
-                    item = tarfile.TarInfo(name)
-                    item.size = len(data)
-                    archive.addfile(item, io.BytesIO(data))
-            verify_native_package.verify_macos_archive(
-                path, "aarch64-apple-darwin", "2.0.0"
-            )
+    def test_macos_archive_validates_both_identities_and_rejects_mismatch(self) -> None:
+        for version in ("2.0.0", "2.0.0-preview.1"):
+            identity = verify_native_package.package_native.release_identity(version)
+            bundle = identity.macos_bundle_name
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "NyaTerm.app.tar.gz"
+                plist = {
+                    "CFBundleIdentifier": identity.macos_identifier,
+                    "CFBundleDisplayName": identity.display_name,
+                    "CFBundleName": identity.display_name,
+                    "CFBundleExecutable": "NyaTerm",
+                    "CFBundleShortVersionString": version,
+                    "CFBundleVersion": version,
+                    "CFBundleURLTypes": [{"CFBundleURLSchemes": [identity.desktop_id]}],
+                }
+                entries = {
+                    f"{bundle}/Contents/MacOS/NyaTerm": fake_macho(0x0100000C),
+                    **{f"{bundle}/Contents/MacOS/{name}": fake_macho(0x0100000C)
+                       for name in verify_native_package.helper_filenames("aarch64-apple-darwin")},
+                    f"{bundle}/Contents/Info.plist": plistlib.dumps(plist),
+                    f"{bundle}/Contents/Resources/VERSION": f"{version}\n".encode(),
+                    f"{bundle}/Contents/Resources/LICENSE": b"license",
+                    f"{bundle}/Contents/Resources/icon.icns": b"icon",
+                }
+
+                def write_archive():
+                    with tarfile.open(path, "w:gz") as archive:
+                        for name, data in entries.items():
+                            item = tarfile.TarInfo(name)
+                            item.size = len(data)
+                            archive.addfile(item, io.BytesIO(data))
+
+                write_archive()
+                verify_native_package.verify_macos_archive(path, "aarch64-apple-darwin", version)
+                other = "2.0.0-preview.1" if version == "2.0.0" else "2.0.0"
+                with self.assertRaisesRegex(RuntimeError, "is missing"):
+                    verify_native_package.verify_macos_archive(path, "aarch64-apple-darwin", other)
+                for field, wrong in [("CFBundleIdentifier", "wrong.id"), ("CFBundleDisplayName", "Wrong"),
+                                     ("CFBundleName", "Wrong"), ("CFBundleURLTypes", [{"CFBundleURLSchemes": ["ssh"]}])]:
+                    original = plist[field]
+                    plist[field] = wrong
+                    entries[f"{bundle}/Contents/Info.plist"] = plistlib.dumps(plist)
+                    write_archive()
+                    with self.assertRaises(RuntimeError):
+                        verify_native_package.verify_macos_archive(path, "aarch64-apple-darwin", version)
+                    plist[field] = original
 
     def test_macos_scheme_validation_rejects_extra_protocols(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "must register only"):
@@ -152,6 +166,9 @@ class VerifyNativePackageTests(unittest.TestCase):
             (
                 "[Desktop Entry]",
                 "Type=Application",
+                "Name=NyaTerm",
+                "Icon=nyaterm",
+                "StartupWMClass=nyaterm",
                 "Exec=/opt/nyaterm/nyaterm %U",
                 "MimeType=x-scheme-handler/nyaterm;",
             )
@@ -174,6 +191,28 @@ class VerifyNativePackageTests(unittest.TestCase):
                 "/opt/nyaterm/nyaterm",
                 "nyaterm.desktop",
             )
+
+    def test_preview_desktop_requires_preview_name_icon_wmclass_and_scheme(self) -> None:
+        identity = verify_native_package.package_native.PREVIEW_IDENTITY
+        desktop = "\n".join(("[Desktop Entry]", "Type=Application", "Name=NyaTerm Preview",
+                             "Icon=nyaterm-preview", "StartupWMClass=nyaterm-preview",
+                             "Exec=/opt/nyaterm-preview/nyaterm %U", "MimeType=x-scheme-handler/nyaterm-preview;"))
+        verify_native_package.verify_linux_desktop(desktop, "/opt/nyaterm-preview/nyaterm", "preview.desktop", identity)
+        for field in ("Name", "Icon", "StartupWMClass", "MimeType"):
+            broken = "\n".join(line if not line.startswith(f"{field}=") else f"{field}=stable" for line in desktop.splitlines())
+            with self.subTest(field=field), self.assertRaisesRegex(RuntimeError, field):
+                verify_native_package.verify_linux_desktop(broken, "/opt/nyaterm-preview/nyaterm", "preview.desktop", identity)
+
+    def test_deb_name_matching_is_exact_not_a_prefix(self) -> None:
+        with mock.patch.object(verify_native_package.subprocess, "check_output", return_value=
+                               "Package: nyaterm-preview\nVersion: 2.0.0\nArchitecture: amd64\n"):
+            with self.assertRaisesRegex(RuntimeError, "wrong Debian package name"):
+                verify_native_package.verify_deb(Path("test.deb"), "x86_64-unknown-linux-gnu", "2.0.0")
+
+    def test_rpm_rejects_the_other_flavor_package_metadata(self) -> None:
+        with mock.patch.object(verify_native_package.subprocess, "check_output", return_value="nyaterm|2.0.0|0.preview.1|x86_64"):
+            with self.assertRaisesRegex(RuntimeError, "RPM metadata"):
+                verify_native_package.verify_rpm(Path("test.rpm"), "x86_64-unknown-linux-gnu", "2.0.0-preview.1")
 
     def test_rpm_member_reader_extracts_desktop_from_newc_payload(self) -> None:
         desktop = b"MimeType=x-scheme-handler/nyaterm;\n"

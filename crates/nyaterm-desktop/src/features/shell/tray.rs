@@ -39,8 +39,8 @@ fn build_tray(
     let icon =
         tray_icon::Icon::from_rgba(pixels, width, height).map_err(|error| error.to_string())?;
     TrayIconBuilder::new()
-        .with_id("nyaterm")
-        .with_tooltip("NyaTerm")
+        .with_id(nyaterm_core::app_identity::AppFlavor::current().desktop_id())
+        .with_tooltip(nyaterm_core::app_identity::AppFlavor::current().display_name())
         .with_icon(icon)
         .with_menu(Box::new(menu(snapshot)?))
         .build()

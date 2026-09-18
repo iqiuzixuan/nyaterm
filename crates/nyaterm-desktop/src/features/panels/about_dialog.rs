@@ -66,7 +66,7 @@ impl NyaTermApp {
                             .text_size(px(18.))
                             .font_weight(FontWeight(700.))
                             .text_color(rgb(palette.text))
-                            .child("NyaTerm"),
+                            .child(nyaterm_core::app_identity::AppFlavor::current().display_name()),
                     )
                     .child(
                         div()

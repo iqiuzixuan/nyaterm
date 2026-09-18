@@ -104,6 +104,7 @@ pub fn parse_deep_link(text: &str) -> Result<ActivationAction, ActivationParseEr
         "ssh" if text.starts_with("ssh://") => parse_ssh_url(text, &url),
         "telnet" if text.starts_with("telnet://") => parse_telnet_url(text, &url),
         "nyaterm" if text.starts_with("nyaterm://") => parse_nyaterm_url(&url),
+        "nyaterm-preview" if text.starts_with("nyaterm-preview://") => parse_nyaterm_url(&url),
         _ => Err(ActivationParseError::UnsupportedScheme),
     }
 }
@@ -402,6 +403,42 @@ mod tests {
                 }
             ))
         );
+    }
+
+    #[test]
+    fn preview_scheme_reuses_connection_validation_without_relaxing_security() {
+        for suffix in [
+            "connect/ssh?host=example.com&port=2200&username=deploy",
+            "connect/telnet?host=example.com",
+        ] {
+            assert_eq!(
+                parse_deep_link(&format!("nyaterm-preview://{suffix}")),
+                parse_deep_link(&format!("nyaterm://{suffix}"))
+            );
+            assert!(parse_deep_link(&format!("nyaterm-preview://{suffix}")).is_ok());
+        }
+        for suffix in [
+            "user:password@connect/ssh?host=example.com",
+            "connect/ssh?host=a&host=b",
+            "connect/ssh?host=a&command=id",
+            "connect/ssh?host=a&password=secret",
+            "connect/ssh?host=%00example.com",
+            "connect/ssh?host=%GG",
+            "connect/ssh?host=example.com%2Fother",
+            "connect/ssh?host=a&port=0",
+            "connect/ssh?host=a&port=65536",
+            "connect/rdp?host=a",
+            "connect/telnet?host=a&username=user",
+            "connect/ssh?host=a#fragment",
+        ] {
+            let stable = parse_deep_link(&format!("nyaterm://{suffix}"));
+            assert!(stable.is_err());
+            assert_eq!(
+                parse_deep_link(&format!("nyaterm-preview://{suffix}")),
+                stable
+            );
+        }
+        assert!(parse_deep_link("NYATERM-PREVIEW://connect/ssh?host=a").is_err());
     }
 
     #[test]

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import plistlib
 import struct
+import tarfile
+from contextlib import contextmanager
 import sys
 import tempfile
 import unittest
@@ -12,9 +15,105 @@ RELEASE_SCRIPTS = Path(__file__).resolve().parents[1] / "release"
 sys.path.insert(0, str(RELEASE_SCRIPTS))
 
 import package_native  # noqa: E402
+import verify_native_package  # noqa: E402
+
+
+@contextmanager
+def staged_package(target: str):
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        binary = root / "build" / "nyaterm"
+        binary.parent.mkdir()
+        binary.write_bytes(b"application")
+        suffix = ".exe" if "windows" in target else ""
+        helpers = [binary.parent / f"{name}{suffix}" for name in package_native.HELPER_BINS]
+        for helper in helpers:
+            helper.write_bytes(b"helper")
+
+        def run(command, **kwargs):
+            if command[0] == "rpmbuild":
+                output = root / "work" / "rpm" / "rpmbuild" / "RPMS" / package_native.linux_rpm_arch(target)
+                output.mkdir(parents=True)
+                (output / "test.rpm").write_bytes(b"rpm")
+
+        with (
+            mock.patch.object(package_native, "WORK_DIR", root / "work"),
+            mock.patch.object(package_native, "DIST_DIR", root / "dist"),
+            mock.patch.object(package_native, "helper_binary_paths", return_value=helpers),
+            mock.patch.object(package_native, "require_tool", side_effect=lambda name: name),
+            mock.patch.object(package_native, "find_makensis", return_value="makensis"),
+            mock.patch.object(package_native, "run", side_effect=run),
+            mock.patch.object(package_native, "linux_deb_dependencies", return_value="libc6"),
+        ):
+            package_native.WORK_DIR.mkdir()
+            package_native.DIST_DIR.mkdir()
+            yield root, binary, package_native.target_info(target)
 
 
 class PackageNativeTests(unittest.TestCase):
+    def test_semver_resolves_application_identity(self) -> None:
+        for version in ("2.0.0", "2.0.1", "2.1.0", "2.0.0+build-with-hyphen"):
+            self.assertEqual(package_native.release_identity(version), package_native.STABLE_IDENTITY)
+        for version in ("2.0.0-preview.1", "2.0.0-preview.2", "2.0.0-beta.1", "2.0.0-rc.1"):
+            self.assertEqual(package_native.release_identity(version), package_native.PREVIEW_IDENTITY)
+        for version in ("02.0.0", "2.0.0-preview.01", "2.0.0-", "2.0.0+", "2.0.0-a..b"):
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                package_native.release_identity(version)
+
+    def test_windows_identity_isolation_in_generated_installer(self) -> None:
+        for version in ("2.0.0", "2.0.0-preview.1"):
+            with self.subTest(version=version), staged_package("x86_64-pc-windows-msvc") as (root, binary, info):
+                identity = package_native.release_identity(version)
+                package_native.create_windows_packages(binary, info, version, version)
+                script = (root / "work" / "nyaterm-installer.nsi").read_text()
+                verify_native_package.verify_windows_installer_script(script, version)
+                self.assertIn(f'InstallDir "$LOCALAPPDATA\\Programs\\{identity.display_name}"', script)
+                self.assertIn(f'DeleteRegKey HKCU "{identity.windows_registry_key}"', script)
+                other_version = "2.0.0-preview.1" if version == "2.0.0" else "2.0.0"
+                with self.assertRaises(RuntimeError):
+                    verify_native_package.verify_windows_installer_script(script, other_version)
+                other = package_native.release_identity(other_version)
+                with self.assertRaises(RuntimeError):
+                    verify_native_package.verify_windows_installer_script(
+                        script + f'\nDeleteRegKey HKCU "{other.windows_registry_key}"', version
+                    )
+
+    def test_macos_bundle_and_updater_archive_use_the_same_identity(self) -> None:
+        for version in ("2.0.0", "2.0.0-preview.1"):
+            with self.subTest(version=version), staged_package("aarch64-apple-darwin") as (root, binary, info):
+                identity = package_native.release_identity(version)
+                package_native.create_macos_packages(binary, info, version, version)
+                bundle = root / "work" / identity.macos_bundle_name
+                plist = plistlib.loads((bundle / "Contents" / "Info.plist").read_bytes())
+                self.assertEqual(plist["CFBundleDisplayName"], identity.display_name)
+                self.assertEqual(plist["CFBundleName"], identity.display_name)
+                self.assertEqual(plist["CFBundleIdentifier"], identity.macos_identifier)
+                self.assertEqual(plist["CFBundleURLTypes"][0]["CFBundleURLSchemes"], [identity.desktop_id])
+                self.assertTrue((root / "work" / "dmg" / identity.macos_bundle_name).is_dir())
+                self.assertEqual((root / "work" / "dmg" / "Applications").readlink().as_posix(), "/Applications")
+                archive = next((root / "dist").glob("*.tar.gz"))
+                with tarfile.open(archive) as handle:
+                    self.assertIn(f"{identity.macos_bundle_name}/Contents/MacOS/NyaTerm", handle.getnames())
+
+    def test_linux_formats_use_isolated_package_desktop_icons_and_install_paths(self) -> None:
+        for version in ("2.0.0", "2.0.0-preview.1"):
+            with self.subTest(version=version), staged_package("x86_64-unknown-linux-gnu") as (root, binary, info):
+                identity = package_native.release_identity(version)
+                package_native.create_linux_packages(binary, info, version, version)
+                control = (root / "work" / "deb" / "DEBIAN" / "control").read_text()
+                self.assertIn(f"Package: {identity.desktop_id}\n", control)
+                spec = (root / "work" / "rpm" / "rpmbuild" / "SPECS" / "nyaterm.spec").read_text()
+                self.assertIn(f"Name: {identity.desktop_id}\n", spec)
+                self.assertIn(f"/opt/{identity.desktop_id}\n", spec)
+                for payload in (root / "work" / "deb", root / "work" / "rpm" / "payload", root / "work" / "NyaTerm.AppDir"):
+                    desktop = payload / "usr" / "share" / "applications" / identity.linux_desktop_file
+                    executable = "nyaterm" if payload.name == "NyaTerm.AppDir" else f"/opt/{identity.desktop_id}/nyaterm"
+                    verify_native_package.verify_linux_desktop(desktop.read_text(), executable, str(desktop), identity)
+                    self.assertTrue((payload / "usr" / "share" / "icons" / "hicolor" / "128x128" / "apps" / f"{identity.desktop_id}.png").is_file())
+                    app_root = payload / "usr" / "bin" if payload.name == "NyaTerm.AppDir" else payload / "opt" / identity.desktop_id
+                    for name in ("nyaterm", *package_native.HELPER_BINS):
+                        self.assertTrue((app_root / name).is_file())
+
     def test_release_tag_is_normalized(self) -> None:
         self.assertEqual(package_native.validate_version("v2.0.0"), "2.0.0")
         self.assertEqual(
@@ -144,6 +243,7 @@ class PackageNativeTests(unittest.TestCase):
                 mock.patch.object(package_native, "WORK_DIR", root / "work"),
                 mock.patch.object(package_native, "DIST_DIR", root / "dist"),
                 mock.patch.object(package_native, "run"),
+                mock.patch.object(package_native, "helper_binary_paths", return_value=[root / "build" / f"{name}.exe" for name in package_native.HELPER_BINS]),
                 mock.patch.object(
                     package_native, "find_makensis", return_value="makensis"
                 ),

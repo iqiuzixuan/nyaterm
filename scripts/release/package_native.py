@@ -29,10 +29,56 @@ APP_BIN = "nyaterm"
 # in nyaterm-remote-desktop only looks beside the running executable, so each
 # of these must be packaged next to the application binary in every format.
 HELPER_BINS = ("nyaterm-rdp-helper", "nyaterm-vnc-helper", "nyaterm-mcp")
-MACOS_IDENTIFIER = "com.kang.nyaterm"
-LINUX_PACKAGE = "nyaterm"
-URL_SCHEME = "nyaterm"
 PORTABLE_MARKER = "nyaterm-portable"
+
+
+@dataclass(frozen=True)
+class PackageIdentity:
+    display_name: str
+    macos_identifier: str
+    windows_registry_name: str
+    desktop_id: str
+
+    @property
+    def macos_bundle_name(self) -> str:
+        return f"{self.display_name}.app"
+
+    @property
+    def windows_registry_key(self) -> str:
+        return rf"Software\{self.windows_registry_name}"
+
+    @property
+    def windows_uninstall_key(self) -> str:
+        return rf"Software\Microsoft\Windows\CurrentVersion\Uninstall\{self.display_name}"
+
+    @property
+    def linux_desktop_file(self) -> str:
+        return f"{self.desktop_id}.desktop"
+
+
+STABLE_IDENTITY = PackageIdentity("NyaTerm", "com.kang.nyaterm", "NyaTerm", "nyaterm")
+PREVIEW_IDENTITY = PackageIdentity(
+    "NyaTerm Preview", "com.kang.nyaterm.preview", "NyaTermPreview", "nyaterm-preview"
+)
+
+# SemVer 2.0: prerelease numeric identifiers cannot have leading zeroes.
+SEMVER = re.compile(
+    r"(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)\.(?P<patch>0|[1-9][0-9]*)"
+    r"(?:-(?P<pre>(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+    r"(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
+
+
+def parse_version(raw: str) -> re.Match[str]:
+    match = SEMVER.fullmatch(normalize_version(raw))
+    if match is None:
+        raise ValueError(f"invalid release version: {raw}")
+    return match
+
+
+def release_identity(version: str) -> PackageIdentity:
+    return PREVIEW_IDENTITY if parse_version(version).group("pre") else STABLE_IDENTITY
 
 
 @dataclass(frozen=True)
@@ -92,11 +138,7 @@ def normalize_version(raw: str) -> str:
 
 def validate_version(raw: str, expected: str | None = None) -> str:
     version = normalize_version(raw)
-    if not re.fullmatch(
-        r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?",
-        version,
-    ):
-        raise ValueError(f"invalid release version: {raw}")
+    parse_version(version)
     if expected is not None and version != expected:
         raise ValueError(
             f"release version {version} does not match Cargo workspace version {expected}"
@@ -214,10 +256,8 @@ def archive_zip(source: Path, destination: Path) -> None:
 
 
 def windows_numeric_version(version: str) -> str:
-    components = version.split("-", 1)[0].split(".")
-    if len(components) != 3 or any(not part.isdigit() for part in components):
-        raise ValueError(f"Windows package version is not SemVer: {version}")
-    numeric = [int(part) for part in components] + [0]
+    parsed = parse_version(version)
+    numeric = [int(parsed.group(key)) for key in ("major", "minor", "patch")] + [0]
     if any(part > 65535 for part in numeric):
         raise ValueError(f"Windows version component exceeds 65535: {version}")
     return ".".join(str(part) for part in numeric)
@@ -237,6 +277,7 @@ def find_makensis() -> str:
 def create_windows_packages(
     binary: Path, info: TargetInfo, version: str, artifact_version: str
 ) -> None:
+    identity = release_identity(version)
     portable_root = WORK_DIR / "NyaTerm-portable"
     portable_root.mkdir()
     shutil.copy2(binary, portable_root / "NyaTerm.exe")
@@ -278,14 +319,14 @@ def create_windows_packages(
             !define MUI_ICON "{nsis_path(ICON_DIR / 'icon.ico')}"
             !define MUI_UNICON "{nsis_path(ICON_DIR / 'icon.ico')}"
 
-            Name "NyaTerm"
+            Name "{identity.display_name}"
             OutFile "{nsis_path(output)}"
-            InstallDir "$LOCALAPPDATA\Programs\NyaTerm"
-            InstallDirRegKey HKCU "Software\NyaTerm" "InstallDir"
+            InstallDir "$LOCALAPPDATA\Programs\{identity.display_name}"
+            InstallDirRegKey HKCU "{identity.windows_registry_key}" "InstallDir"
             VIProductVersion "{windows_numeric_version(version)}"
-            VIAddVersionKey "ProductName" "NyaTerm"
+            VIAddVersionKey "ProductName" "{identity.display_name}"
             VIAddVersionKey "ProductVersion" "{version}"
-            VIAddVersionKey "FileDescription" "NyaTerm native GPUI terminal"
+            VIAddVersionKey "FileDescription" "{identity.display_name} native GPUI terminal"
             VIAddVersionKey "LegalCopyright" "Copyright Kang"
 
             !insertmacro MUI_PAGE_WELCOME
@@ -296,7 +337,7 @@ def create_windows_packages(
             !insertmacro MUI_UNPAGE_INSTFILES
             !insertmacro MUI_LANGUAGE "English"
 
-            Section "NyaTerm" SecMain
+            Section "{identity.display_name}" SecMain
               SetOutPath "$INSTDIR"
               File "{nsis_path(installer_root / 'NyaTerm.exe')}"
               {helper_install}
@@ -304,24 +345,24 @@ def create_windows_packages(
               File "{nsis_path(installer_root / 'VERSION')}"
               File "{nsis_path(installer_root / 'icon.ico')}"
               WriteUninstaller "$INSTDIR\Uninstall.exe"
-              WriteRegStr HKCU "Software\NyaTerm" "InstallDir" "$INSTDIR"
-              WriteRegStr HKCU "Software\Classes\{URL_SCHEME}" "" "URL:NyaTerm Protocol"
-              WriteRegStr HKCU "Software\Classes\{URL_SCHEME}" "URL Protocol" ""
-              WriteRegStr HKCU "Software\Classes\{URL_SCHEME}\DefaultIcon" "" "$INSTDIR\NyaTerm.exe,0"
-              WriteRegStr HKCU "Software\Classes\{URL_SCHEME}\shell\open\command" "" "$\"$INSTDIR\NyaTerm.exe$\" $\"%1$\""
-              WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\NyaTerm" "DisplayName" "NyaTerm"
-              WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\NyaTerm" "DisplayVersion" "{version}"
-              WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\NyaTerm" "DisplayIcon" "$INSTDIR\NyaTerm.exe"
-              WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\NyaTerm" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
-              CreateDirectory "$SMPROGRAMS\NyaTerm"
-              CreateShortcut "$SMPROGRAMS\NyaTerm\NyaTerm.lnk" "$INSTDIR\NyaTerm.exe" "" "$INSTDIR\icon.ico"
-              CreateShortcut "$DESKTOP\NyaTerm.lnk" "$INSTDIR\NyaTerm.exe" "" "$INSTDIR\icon.ico"
+              WriteRegStr HKCU "{identity.windows_registry_key}" "InstallDir" "$INSTDIR"
+              WriteRegStr HKCU "Software\Classes\{identity.desktop_id}" "" "URL:{identity.display_name} Protocol"
+              WriteRegStr HKCU "Software\Classes\{identity.desktop_id}" "URL Protocol" ""
+              WriteRegStr HKCU "Software\Classes\{identity.desktop_id}\DefaultIcon" "" "$INSTDIR\NyaTerm.exe,0"
+              WriteRegStr HKCU "Software\Classes\{identity.desktop_id}\shell\open\command" "" "$\"$INSTDIR\NyaTerm.exe$\" $\"%1$\""
+              WriteRegStr HKCU "{identity.windows_uninstall_key}" "DisplayName" "{identity.display_name}"
+              WriteRegStr HKCU "{identity.windows_uninstall_key}" "DisplayVersion" "{version}"
+              WriteRegStr HKCU "{identity.windows_uninstall_key}" "DisplayIcon" "$INSTDIR\NyaTerm.exe"
+              WriteRegStr HKCU "{identity.windows_uninstall_key}" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
+              CreateDirectory "$SMPROGRAMS\{identity.display_name}"
+              CreateShortcut "$SMPROGRAMS\{identity.display_name}\{identity.display_name}.lnk" "$INSTDIR\NyaTerm.exe" "" "$INSTDIR\icon.ico"
+              CreateShortcut "$DESKTOP\{identity.display_name}.lnk" "$INSTDIR\NyaTerm.exe" "" "$INSTDIR\icon.ico"
             SectionEnd
 
             Section "Uninstall"
-              Delete "$DESKTOP\NyaTerm.lnk"
-              Delete "$SMPROGRAMS\NyaTerm\NyaTerm.lnk"
-              RMDir "$SMPROGRAMS\NyaTerm"
+              Delete "$DESKTOP\{identity.display_name}.lnk"
+              Delete "$SMPROGRAMS\{identity.display_name}\{identity.display_name}.lnk"
+              RMDir "$SMPROGRAMS\{identity.display_name}"
               Delete "$INSTDIR\NyaTerm.exe"
               {helper_uninstall}
               Delete "$INSTDIR\LICENSE"
@@ -329,9 +370,9 @@ def create_windows_packages(
               Delete "$INSTDIR\icon.ico"
               Delete "$INSTDIR\Uninstall.exe"
               RMDir "$INSTDIR"
-              DeleteRegKey HKCU "Software\Classes\{URL_SCHEME}"
-              DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\NyaTerm"
-              DeleteRegKey HKCU "Software\NyaTerm"
+              DeleteRegKey HKCU "Software\Classes\{identity.desktop_id}"
+              DeleteRegKey HKCU "{identity.windows_uninstall_key}"
+              DeleteRegKey HKCU "{identity.windows_registry_key}"
             SectionEnd
             """
         ).lstrip(),
@@ -343,7 +384,8 @@ def create_windows_packages(
 def create_macos_packages(
     binary: Path, info: TargetInfo, version: str, artifact_version: str
 ) -> None:
-    bundle = WORK_DIR / "NyaTerm.app"
+    identity = release_identity(version)
+    bundle = WORK_DIR / identity.macos_bundle_name
     macos_dir = bundle / "Contents" / "MacOS"
     resources_dir = bundle / "Contents" / "Resources"
     macos_dir.mkdir(parents=True)
@@ -357,19 +399,19 @@ def create_macos_packages(
 
     plist = {
         "CFBundleDevelopmentRegion": "en",
-        "CFBundleDisplayName": APP_NAME,
+        "CFBundleDisplayName": identity.display_name,
         "CFBundleExecutable": "NyaTerm",
         "CFBundleIconFile": "icon.icns",
-        "CFBundleIdentifier": MACOS_IDENTIFIER,
+        "CFBundleIdentifier": identity.macos_identifier,
         "CFBundleInfoDictionaryVersion": "6.0",
-        "CFBundleName": APP_NAME,
+        "CFBundleName": identity.display_name,
         "CFBundlePackageType": "APPL",
         "CFBundleShortVersionString": version,
         "CFBundleURLTypes": [
             {
                 "CFBundleTypeRole": "Viewer",
-                "CFBundleURLName": MACOS_IDENTIFIER,
-                "CFBundleURLSchemes": [URL_SCHEME],
+                "CFBundleURLName": identity.macos_identifier,
+                "CFBundleURLSchemes": [identity.desktop_id],
             }
         ],
         "CFBundleVersion": version,
@@ -390,11 +432,11 @@ def create_macos_packages(
 
     tar_output = DIST_DIR / f"{APP_NAME}_{artifact_version}_{info.label}.app.tar.gz"
     with tarfile.open(tar_output, "w:gz", compresslevel=9) as archive:
-        archive.add(bundle, arcname="NyaTerm.app")
+        archive.add(bundle, arcname=identity.macos_bundle_name)
 
     dmg_root = WORK_DIR / "dmg"
     dmg_root.mkdir()
-    shutil.copytree(bundle, dmg_root / "NyaTerm.app", symlinks=True)
+    shutil.copytree(bundle, dmg_root / identity.macos_bundle_name, symlinks=True)
     (dmg_root / "Applications").symlink_to("/Applications")
     dmg_output = DIST_DIR / f"{APP_NAME}_{artifact_version}_{info.label}.dmg"
     run(
@@ -402,7 +444,7 @@ def create_macos_packages(
             require_tool("hdiutil"),
             "create",
             "-volname",
-            APP_NAME,
+            identity.display_name,
             "-srcfolder",
             str(dmg_root),
             "-ov",
@@ -435,27 +477,31 @@ def linux_appimage_arch(target: str) -> str:
 
 
 def linux_rpm_version(version: str) -> tuple[str, str]:
-    if "-" not in version:
-        return version, "1"
-    upstream, prerelease = version.split("-", 1)
+    parsed = parse_version(version)
+    upstream = ".".join(parsed.group(key) for key in ("major", "minor", "patch"))
+    prerelease = parsed.group("pre")
+    if prerelease is None:
+        return upstream, "1"
     normalized = re.sub(r"[^0-9A-Za-z]+", ".", prerelease).strip(".")
-    return upstream, f"0.{normalized or 'preview'}"
+    return upstream, f"0.{normalized}"
 
 
-def write_desktop_file(path: Path, executable: str) -> None:
+def write_desktop_file(
+    path: Path, executable: str, identity: PackageIdentity = STABLE_IDENTITY
+) -> None:
     path.write_text(
         textwrap.dedent(
             f"""
             [Desktop Entry]
             Type=Application
-            Name=NyaTerm
+            Name={identity.display_name}
             Comment=Native GPUI terminal and SSH client
             Exec={executable} %U
-            Icon=nyaterm
-            StartupWMClass=nyaterm
+            Icon={identity.desktop_id}
+            StartupWMClass={identity.desktop_id}
             Terminal=false
             Categories=Development;TerminalEmulator;Network;
-            MimeType=x-scheme-handler/{URL_SCHEME};
+            MimeType=x-scheme-handler/{identity.desktop_id};
             StartupNotify=true
             """
         ).lstrip(),
@@ -463,7 +509,7 @@ def write_desktop_file(path: Path, executable: str) -> None:
     )
 
 
-def copy_linux_icons(root: Path) -> None:
+def copy_linux_icons(root: Path, identity: PackageIdentity = STABLE_IDENTITY) -> None:
     icons = {
         "32x32": "32x32.png",
         "64x64": "64x64.png",
@@ -473,7 +519,7 @@ def copy_linux_icons(root: Path) -> None:
     for size, source in icons.items():
         destination = root / "usr" / "share" / "icons" / "hicolor" / size / "apps"
         destination.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(ICON_DIR / source, destination / "nyaterm.png")
+        shutil.copy2(ICON_DIR / source, destination / f"{identity.desktop_id}.png")
 
 
 def parse_dpkg_dependencies(output: str) -> str:
@@ -503,6 +549,7 @@ def linux_deb_dependencies(binaries: list[Path]) -> str:
 def create_linux_appimage(
     binary: Path, info: TargetInfo, version: str, artifact_version: str
 ) -> None:
+    identity = release_identity(version)
     appdir = WORK_DIR / "NyaTerm.AppDir"
     usr_bin = appdir / "usr" / "bin"
     usr_bin.mkdir(parents=True)
@@ -510,14 +557,14 @@ def create_linux_appimage(
     shutil.copy2(binary, app_binary)
     make_executable(app_binary)
     copy_helpers(usr_bin, info.target)
-    copy_release_documents(appdir / "usr" / "share" / "doc" / LINUX_PACKAGE, version)
+    copy_release_documents(appdir / "usr" / "share" / "doc" / identity.desktop_id, version)
 
     applications = appdir / "usr" / "share" / "applications"
     applications.mkdir(parents=True)
-    write_desktop_file(applications / "nyaterm.desktop", APP_BIN)
-    shutil.copy2(applications / "nyaterm.desktop", appdir / "nyaterm.desktop")
-    shutil.copy2(ICON_DIR / "128x128.png", appdir / "nyaterm.png")
-    copy_linux_icons(appdir)
+    write_desktop_file(applications / identity.linux_desktop_file, APP_BIN, identity)
+    shutil.copy2(applications / identity.linux_desktop_file, appdir / identity.linux_desktop_file)
+    shutil.copy2(ICON_DIR / "128x128.png", appdir / f"{identity.desktop_id}.png")
+    copy_linux_icons(appdir, identity)
 
     apprun = appdir / "AppRun"
     apprun.write_text(
@@ -537,20 +584,21 @@ def create_linux_appimage(
 def create_linux_deb(
     binary: Path, info: TargetInfo, version: str, artifact_version: str
 ) -> None:
+    identity = release_identity(version)
     root = WORK_DIR / "deb"
-    app_root = root / "opt" / LINUX_PACKAGE
+    app_root = root / "opt" / identity.desktop_id
     app_root.mkdir(parents=True)
     app_binary = app_root / APP_BIN
     shutil.copy2(binary, app_binary)
     make_executable(app_binary)
     helper_binaries = copy_helpers(app_root, info.target)
     copy_release_documents(app_root, version)
-    copy_release_documents(root / "usr" / "share" / "doc" / LINUX_PACKAGE, version)
+    copy_release_documents(root / "usr" / "share" / "doc" / identity.desktop_id, version)
 
     applications = root / "usr" / "share" / "applications"
     applications.mkdir(parents=True)
-    write_desktop_file(applications / "nyaterm.desktop", "/opt/nyaterm/nyaterm")
-    copy_linux_icons(root)
+    write_desktop_file(applications / identity.linux_desktop_file, f"/opt/{identity.desktop_id}/nyaterm", identity)
+    copy_linux_icons(root, identity)
 
     control_dir = root / "DEBIAN"
     control_dir.mkdir()
@@ -558,7 +606,7 @@ def create_linux_deb(
     (control_dir / "control").write_text(
         textwrap.dedent(
             f"""
-            Package: nyaterm
+            Package: {identity.desktop_id}
             Version: {version.replace('-', '~')}
             Section: utils
             Priority: optional
@@ -579,30 +627,31 @@ def create_linux_deb(
 def create_linux_rpm(
     binary: Path, info: TargetInfo, version: str, artifact_version: str
 ) -> None:
+    identity = release_identity(version)
     rpm_root = WORK_DIR / "rpm"
     top_dir = rpm_root / "rpmbuild"
     payload = rpm_root / "payload"
     for directory in ("BUILD", "BUILDROOT", "RPMS", "SOURCES", "SPECS", "SRPMS"):
         (top_dir / directory).mkdir(parents=True)
 
-    app_root = payload / "opt" / LINUX_PACKAGE
+    app_root = payload / "opt" / identity.desktop_id
     app_root.mkdir(parents=True)
     app_binary = app_root / APP_BIN
     shutil.copy2(binary, app_binary)
     make_executable(app_binary)
     copy_helpers(app_root, info.target)
     copy_release_documents(app_root, version)
-    copy_release_documents(payload / "usr" / "share" / "doc" / LINUX_PACKAGE, version)
+    copy_release_documents(payload / "usr" / "share" / "doc" / identity.desktop_id, version)
     applications = payload / "usr" / "share" / "applications"
     applications.mkdir(parents=True)
-    write_desktop_file(applications / "nyaterm.desktop", "/opt/nyaterm/nyaterm")
-    copy_linux_icons(payload)
+    write_desktop_file(applications / identity.linux_desktop_file, f"/opt/{identity.desktop_id}/nyaterm", identity)
+    copy_linux_icons(payload, identity)
 
     rpm_version, rpm_release = linux_rpm_version(version)
     payload_path = str(payload.resolve()).replace("%", "%%")
     spec = textwrap.dedent(
         f"""
-        Name: nyaterm
+        Name: {identity.desktop_id}
         Version: {rpm_version}
         Release: {rpm_release}
         Summary: NyaTerm native GPUI terminal and SSH client
@@ -619,10 +668,10 @@ def create_linux_rpm(
         cp -a "{payload_path}/." %{{buildroot}}/
 
         %files
-        /opt/nyaterm
-        /usr/share/applications/nyaterm.desktop
-        /usr/share/icons/hicolor/*/apps/nyaterm.png
-        /usr/share/doc/nyaterm
+        /opt/{identity.desktop_id}
+        /usr/share/applications/{identity.linux_desktop_file}
+        /usr/share/icons/hicolor/*/apps/{identity.desktop_id}.png
+        /usr/share/doc/{identity.desktop_id}
         """
     ).lstrip()
     spec_path = top_dir / "SPECS" / "nyaterm.spec"

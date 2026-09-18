@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import plistlib
 import shutil
@@ -79,7 +80,10 @@ def macho_cpu_type(data: bytes) -> int:
     return int.from_bytes(data[4:8], byte_order)
 
 
-def verify_macos_url_scheme(plist: dict[str, object], artifact: str) -> None:
+def verify_macos_url_scheme(
+    plist: dict[str, object], artifact: str,
+    identity: package_native.PackageIdentity = package_native.STABLE_IDENTITY,
+) -> None:
     url_types = plist.get("CFBundleURLTypes")
     if not isinstance(url_types, list) or len(url_types) != 1:
         raise RuntimeError(f"{artifact} must register exactly one macOS URL type")
@@ -87,14 +91,15 @@ def verify_macos_url_scheme(plist: dict[str, object], artifact: str) -> None:
     if not isinstance(url_type, dict):
         raise RuntimeError(f"{artifact} contains an invalid macOS URL type")
     schemes = url_type.get("CFBundleURLSchemes")
-    if schemes != [package_native.URL_SCHEME]:
+    if schemes != [identity.desktop_id]:
         raise RuntimeError(
-            f"{artifact} must register only the {package_native.URL_SCHEME} URL scheme"
+            f"{artifact} must register only the {identity.desktop_id} URL scheme"
         )
 
 
 def verify_linux_desktop(
-    content: str, expected_executable: str, artifact: str
+    content: str, expected_executable: str, artifact: str,
+    identity: package_native.PackageIdentity = package_native.STABLE_IDENTITY,
 ) -> None:
     fields: dict[str, str] = {}
     for line in content.splitlines():
@@ -110,8 +115,11 @@ def verify_linux_desktop(
 
     expected = {
         "Type": "Application",
+        "Name": identity.display_name,
+        "Icon": identity.desktop_id,
+        "StartupWMClass": identity.desktop_id,
         "Exec": f"{expected_executable} %U",
-        "MimeType": f"x-scheme-handler/{package_native.URL_SCHEME};",
+        "MimeType": f"x-scheme-handler/{identity.desktop_id};",
     }
     for key, value in expected.items():
         if fields.get(key) != value:
@@ -200,7 +208,60 @@ def find_7zip() -> str:
     raise RuntimeError("7-Zip is required to verify the NSIS installer")
 
 
-def verify_windows_installer(path: Path, target: str) -> None:
+def verify_windows_installer_script(content: str, version: str) -> None:
+    identity = package_native.release_identity(version)
+    required = [
+        f'Name "{identity.display_name}"',
+        rf'InstallDir "$LOCALAPPDATA\Programs\{identity.display_name}"',
+        f'InstallDirRegKey HKCU "{identity.windows_registry_key}" "InstallDir"',
+        f'VIAddVersionKey "ProductName" "{identity.display_name}"',
+        f'VIAddVersionKey "FileDescription" "{identity.display_name} native GPUI terminal"',
+        f'WriteRegStr HKCU "{identity.windows_registry_key}" "InstallDir" "$INSTDIR"',
+        f'WriteRegStr HKCU "{identity.windows_uninstall_key}" "DisplayName" "{identity.display_name}"',
+        rf'WriteRegStr HKCU "Software\Classes\{identity.desktop_id}" "URL Protocol" ""',
+        rf'CreateDirectory "$SMPROGRAMS\{identity.display_name}"',
+        rf'CreateShortcut "$SMPROGRAMS\{identity.display_name}\{identity.display_name}.lnk" "$INSTDIR\NyaTerm.exe" "" "$INSTDIR\icon.ico"',
+        rf'CreateShortcut "$DESKTOP\{identity.display_name}.lnk" "$INSTDIR\NyaTerm.exe" "" "$INSTDIR\icon.ico"',
+        f'DeleteRegKey HKCU "{identity.windows_registry_key}"',
+        f'DeleteRegKey HKCU "{identity.windows_uninstall_key}"',
+        rf'DeleteRegKey HKCU "Software\Classes\{identity.desktop_id}"',
+        rf'Delete "$DESKTOP\{identity.display_name}.lnk"',
+        rf'RMDir "$SMPROGRAMS\{identity.display_name}"',
+    ]
+    directives = {line.strip() for line in content.splitlines()}
+    for line in required:
+        if line not in directives:
+            raise RuntimeError(f"NSIS identity directive missing: {line}")
+    other = (package_native.STABLE_IDENTITY if identity == package_native.PREVIEW_IDENTITY
+             else package_native.PREVIEW_IDENTITY)
+    for forbidden in [
+        f'"{other.windows_registry_key}"', f'"{other.windows_uninstall_key}"',
+        rf'"Software\Classes\{other.desktop_id}"',
+        rf'"$LOCALAPPDATA\Programs\{other.display_name}"',
+        rf'"$SMPROGRAMS\{other.display_name}"',
+        rf'"$DESKTOP\{other.display_name}.lnk"',
+    ]:
+        if forbidden in content:
+            raise RuntimeError(f"NSIS script targets the other application: {forbidden}")
+
+
+def verify_windows_installer(path: Path, target: str, version: str) -> None:
+    identity = package_native.release_identity(version)
+    script = package_native.WORK_DIR / "nyaterm-installer.nsi"
+    verify_windows_installer_script(script.read_text(encoding="utf-8"), version)
+    if sys.platform == "win32":
+        # Pass the filename separately, never interpolate it into PowerShell.
+        metadata = json.loads(subprocess.check_output([
+            "powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+            "$v = (Get-Item -LiteralPath $env:NYATERM_VERIFY_INSTALLER).VersionInfo; "
+            "$v | Select-Object ProductName,FileDescription,ProductVersion | ConvertTo-Json -Compress",
+        ], text=True, env={**os.environ, "NYATERM_VERIFY_INSTALLER": str(path.resolve())}))
+        if metadata != {
+            "ProductName": identity.display_name,
+            "FileDescription": f"{identity.display_name} native GPUI terminal",
+            "ProductVersion": version,
+        }:
+            raise RuntimeError(f"{path.name} contains the wrong Windows version metadata")
     with path.open("rb") as handle:
         header = handle.read(2)
     if header != b"MZ":
@@ -213,6 +274,9 @@ def verify_windows_installer(path: Path, target: str) -> None:
             stdout=subprocess.DEVNULL,
         )
         names = {candidate.name for candidate in output.rglob("*") if candidate.is_file()}
+        version_files = list(output.rglob("VERSION"))
+        if len(version_files) != 1 or version_files[0].read_text(encoding="utf-8").strip() != version:
+            raise RuntimeError(f"{path.name} contains the wrong installed version")
     required = {"NyaTerm.exe", "LICENSE", "VERSION", "Uninstall.exe"}
     required.update(helper_filenames(target))
     missing = required - names
@@ -221,17 +285,19 @@ def verify_windows_installer(path: Path, target: str) -> None:
 
 
 def verify_macos_archive(path: Path, target: str, version: str) -> None:
-    executable = "NyaTerm.app/Contents/MacOS/NyaTerm"
-    helpers = [f"NyaTerm.app/Contents/MacOS/{name}" for name in helper_filenames(target)]
-    info_plist = "NyaTerm.app/Contents/Info.plist"
-    version_file = "NyaTerm.app/Contents/Resources/VERSION"
+    identity = package_native.release_identity(version)
+    bundle = identity.macos_bundle_name
+    executable = f"{bundle}/Contents/MacOS/NyaTerm"
+    helpers = [f"{bundle}/Contents/MacOS/{name}" for name in helper_filenames(target)]
+    info_plist = f"{bundle}/Contents/Info.plist"
+    version_file = f"{bundle}/Contents/Resources/VERSION"
     required = {
         executable,
         *helpers,
         info_plist,
         version_file,
-        "NyaTerm.app/Contents/Resources/LICENSE",
-        "NyaTerm.app/Contents/Resources/icon.icns",
+        f"{bundle}/Contents/Resources/LICENSE",
+        f"{bundle}/Contents/Resources/icon.icns",
     }
     with tarfile.open(path, "r:gz") as archive:
         names = verify_tar_paths(archive)
@@ -247,9 +313,14 @@ def verify_macos_archive(path: Path, target: str, version: str) -> None:
         }
     if packaged_version != version or plist.get("CFBundleShortVersionString") != version:
         raise RuntimeError(f"{path.name} contains inconsistent version metadata")
-    if plist.get("CFBundleIdentifier") != package_native.MACOS_IDENTIFIER:
+    if plist.get("CFBundleIdentifier") != identity.macos_identifier:
         raise RuntimeError(f"{path.name} contains the wrong bundle identifier")
-    verify_macos_url_scheme(plist, path.name)
+    for field in ("CFBundleDisplayName", "CFBundleName"):
+        if plist.get(field) != identity.display_name:
+            raise RuntimeError(f"{path.name} contains the wrong {field}")
+    if plist.get("CFBundleExecutable") != "NyaTerm" or plist.get("CFBundleVersion") != version:
+        raise RuntimeError(f"{path.name} contains inconsistent bundle metadata")
+    verify_macos_url_scheme(plist, path.name, identity)
     expected_cpu = {
         "x86_64-apple-darwin": 0x01000007,
         "aarch64-apple-darwin": 0x0100000C,
@@ -263,7 +334,8 @@ def verify_macos_archive(path: Path, target: str, version: str) -> None:
             )
 
 
-def verify_dmg(path: Path) -> None:
+def verify_dmg(path: Path, version: str) -> None:
+    identity = package_native.release_identity(version)
     if sys.platform != "darwin":
         return
     result = subprocess.run(
@@ -282,7 +354,19 @@ def verify_dmg(path: Path) -> None:
     try:
         if not mount_point:
             raise RuntimeError(f"{path.name} did not expose a mounted volume")
-        executable = Path(mount_point) / "NyaTerm.app" / "Contents" / "MacOS" / "NyaTerm"
+        executable = Path(mount_point) / identity.macos_bundle_name / "Contents" / "MacOS" / "NyaTerm"
+        bundle = Path(mount_point) / identity.macos_bundle_name
+        plist = plistlib.loads((bundle / "Contents" / "Info.plist").read_bytes())
+        if plist.get("CFBundleIdentifier") != identity.macos_identifier or plist.get("CFBundleDisplayName") != identity.display_name:
+            raise RuntimeError(f"{path.name} contains the wrong bundle identity")
+        verify_macos_url_scheme(plist, path.name, identity)
+        if not (Path(mount_point) / "Applications").is_symlink() or os.readlink(Path(mount_point) / "Applications") != "/Applications":
+            raise RuntimeError(f"{path.name} is missing the Applications link")
+        for name in helper_filenames("aarch64-apple-darwin"):
+            if not (bundle / "Contents" / "MacOS" / name).is_file():
+                raise RuntimeError(f"{path.name} is missing {name}")
+        if (bundle / "Contents" / "Resources" / "VERSION").read_text().strip() != version:
+            raise RuntimeError(f"{path.name} contains the wrong version")
         if not executable.is_file():
             raise RuntimeError(f"{path.name} does not contain the NyaTerm application")
     finally:
@@ -291,6 +375,7 @@ def verify_dmg(path: Path) -> None:
 
 
 def verify_appimage(path: Path, target: str, version: str) -> None:
+    identity = package_native.release_identity(version)
     expected_machine = {
         "x86_64-unknown-linux-gnu": 62,
         "aarch64-unknown-linux-gnu": 183,
@@ -315,13 +400,15 @@ def verify_appimage(path: Path, target: str, version: str) -> None:
             root / "usr" / "bin" / name
             for name in ("nyaterm", *helper_filenames(target))
         ]
-        version_file = root / "usr" / "share" / "doc" / "nyaterm" / "VERSION"
-        desktop_file = root / "usr" / "share" / "applications" / "nyaterm.desktop"
+        version_file = root / "usr" / "share" / "doc" / identity.desktop_id / "VERSION"
+        desktop_file = root / "usr" / "share" / "applications" / identity.linux_desktop_file
         required = [
             root / "AppRun",
             *executables,
             desktop_file,
-            root / "usr" / "share" / "doc" / "nyaterm" / "LICENSE",
+            root / identity.linux_desktop_file,
+            root / f"{identity.desktop_id}.png",
+            root / "usr" / "share" / "doc" / identity.desktop_id / "LICENSE",
             version_file,
         ]
         missing = [item for item in required if not item.exists()]
@@ -329,13 +416,18 @@ def verify_appimage(path: Path, target: str, version: str) -> None:
             raise RuntimeError(f"{path.name} is missing AppImage entries: {missing}")
         packaged_version = version_file.read_text(encoding="utf-8").strip()
         desktop_content = desktop_file.read_text(encoding="utf-8")
+        verify_linux_desktop((root / identity.linux_desktop_file).read_text(encoding="utf-8"), package_native.APP_BIN, path.name, identity)
+        for size in ("32x32", "64x64", "128x128", "256x256"):
+            icon = root / "usr" / "share" / "icons" / "hicolor" / size / "apps" / f"{identity.desktop_id}.png"
+            if not icon.is_file():
+                raise RuntimeError(f"{path.name} is missing {icon.name}")
         machines = {}
         for executable in executables:
             with executable.open("rb") as handle:
                 machines[executable.name] = elf_machine(handle.read(64))
     if packaged_version != version:
         raise RuntimeError(f"{path.name} contains inconsistent version")
-    verify_linux_desktop(desktop_content, package_native.APP_BIN, path.name)
+    verify_linux_desktop(desktop_content, package_native.APP_BIN, path.name, identity)
     for name, binary_machine in machines.items():
         if binary_machine != expected_machine:
             raise RuntimeError(
@@ -345,23 +437,25 @@ def verify_appimage(path: Path, target: str, version: str) -> None:
 
 
 def verify_deb(path: Path, target: str, version: str) -> None:
+    identity = package_native.release_identity(version)
     expected_arch = package_native.linux_deb_arch(target)
     fields = subprocess.check_output(
         ["dpkg-deb", "--field", str(path), "Package", "Version", "Architecture"],
         text=True,
     )
-    if "Package: nyaterm" not in fields:
+    metadata = dict(line.split(": ", 1) for line in fields.splitlines())
+    if metadata.get("Package") != identity.desktop_id:
         raise RuntimeError(f"{path.name} has the wrong Debian package name")
-    if f"Version: {version.replace('-', '~')}" not in fields:
+    if metadata.get("Version") != version.replace("-", "~"):
         raise RuntimeError(f"{path.name} has the wrong Debian version")
-    if f"Architecture: {expected_arch}" not in fields:
+    if metadata.get("Architecture") != expected_arch:
         raise RuntimeError(f"{path.name} has the wrong Debian architecture")
     contents = subprocess.check_output(["dpkg-deb", "--contents", str(path)], text=True)
     for required in (
-        "./opt/nyaterm/nyaterm",
-        "./opt/nyaterm/VERSION",
-        "./usr/share/applications/nyaterm.desktop",
-        *(f"./opt/nyaterm/{name}" for name in helper_filenames(target)),
+        f"./opt/{identity.desktop_id}/nyaterm",
+        f"./opt/{identity.desktop_id}/VERSION",
+        f"./usr/share/applications/{identity.linux_desktop_file}",
+        *(f"./opt/{identity.desktop_id}/{name}" for name in helper_filenames(target)),
     ):
         if required not in contents:
             raise RuntimeError(f"{path.name} is missing {required}")
@@ -371,15 +465,25 @@ def verify_deb(path: Path, target: str, version: str) -> None:
             check=True,
             stdout=subprocess.DEVNULL,
         )
+        root = Path(directory)
         desktop_content = (
-            Path(directory) / "usr" / "share" / "applications" / "nyaterm.desktop"
+            root / "usr" / "share" / "applications" / identity.linux_desktop_file
         ).read_text(encoding="utf-8")
-    verify_linux_desktop(desktop_content, "/opt/nyaterm/nyaterm", path.name)
+        if (root / "opt" / identity.desktop_id / "VERSION").read_text(encoding="utf-8").strip() != version:
+            raise RuntimeError(f"{path.name} contains the wrong installed version")
+        for name in (package_native.APP_BIN, *helper_filenames(target)):
+            if not (root / "opt" / identity.desktop_id / name).is_file():
+                raise RuntimeError(f"{path.name} is missing {name}")
+        for size in ("32x32", "64x64", "128x128", "256x256"):
+            if not (root / "usr" / "share" / "icons" / "hicolor" / size / "apps" / f"{identity.desktop_id}.png").is_file():
+                raise RuntimeError(f"{path.name} is missing its {size} icon")
+    verify_linux_desktop(desktop_content, f"/opt/{identity.desktop_id}/nyaterm", path.name, identity)
 
 
 def verify_rpm(path: Path, target: str, version: str) -> None:
+    identity = package_native.release_identity(version)
     rpm_version, rpm_release = package_native.linux_rpm_version(version)
-    expected = f"nyaterm|{rpm_version}|{rpm_release}|{package_native.linux_rpm_arch(target)}"
+    expected = f"{identity.desktop_id}|{rpm_version}|{rpm_release}|{package_native.linux_rpm_arch(target)}"
     actual = subprocess.check_output(
         ["rpm", "-qp", "--qf", "%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}", str(path)],
         text=True,
@@ -388,17 +492,21 @@ def verify_rpm(path: Path, target: str, version: str) -> None:
         raise RuntimeError(f"{path.name} has RPM metadata {actual!r}, expected {expected!r}")
     contents = subprocess.check_output(["rpm", "-qlp", str(path)], text=True)
     for required in (
-        "/opt/nyaterm/nyaterm",
-        "/opt/nyaterm/VERSION",
-        "/usr/share/applications/nyaterm.desktop",
-        *(f"/opt/nyaterm/{name}" for name in helper_filenames(target)),
+        f"/opt/{identity.desktop_id}/nyaterm",
+        f"/opt/{identity.desktop_id}/VERSION",
+        f"/usr/share/applications/{identity.linux_desktop_file}",
+        *(f"/opt/{identity.desktop_id}/{name}" for name in helper_filenames(target)),
+        *(f"/usr/share/icons/hicolor/{size}/apps/{identity.desktop_id}.png"
+          for size in ("32x32", "64x64", "128x128", "256x256")),
     ):
         if required not in contents.splitlines():
             raise RuntimeError(f"{path.name} is missing {required}")
+    if read_rpm_member(path, f"/opt/{identity.desktop_id}/VERSION").decode("utf-8").strip() != version:
+        raise RuntimeError(f"{path.name} contains the wrong installed version")
     desktop_content = read_rpm_member(
-        path, "/usr/share/applications/nyaterm.desktop"
+        path, f"/usr/share/applications/{identity.linux_desktop_file}"
     ).decode("utf-8")
-    verify_linux_desktop(desktop_content, "/opt/nyaterm/nyaterm", path.name)
+    verify_linux_desktop(desktop_content, f"/opt/{identity.desktop_id}/nyaterm", path.name, identity)
 
 
 def verify_release(
@@ -424,10 +532,10 @@ def verify_release(
     prefix = f"{package_native.APP_NAME}_{artifact_version}_{info.label}"
     if info.os_name == "windows":
         verify_windows_portable(dist / f"{prefix}_portable.zip", target, version)
-        verify_windows_installer(dist / f"{prefix}-setup.exe", target)
+        verify_windows_installer(dist / f"{prefix}-setup.exe", target, version)
     elif info.os_name == "macos":
         verify_macos_archive(dist / f"{prefix}.app.tar.gz", target, version)
-        verify_dmg(dist / f"{prefix}.dmg")
+        verify_dmg(dist / f"{prefix}.dmg", version)
     else:
         verify_appimage(dist / f"{prefix}.AppImage", target, version)
         verify_deb(dist / f"{prefix}.deb", target, version)

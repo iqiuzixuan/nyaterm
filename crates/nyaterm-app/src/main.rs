@@ -3,6 +3,7 @@ mod single_instance;
 use anyhow::Context as _;
 use gpui::{App, AppContext, TitlebarOptions, WindowOptions, point, px};
 use nyaterm_app::assets;
+use nyaterm_core::app_identity::AppFlavor;
 use nyaterm_core::{ActivationRequest, AppRuntime, LOG_FILE_PREFIX, LOG_FILE_SUFFIX};
 use nyaterm_desktop::{AppShell, AppShellStartup};
 use nyaterm_ui::nya_root;
@@ -48,6 +49,8 @@ fn main() -> anyhow::Result<()> {
     });
 
     application.run(move |cx: &mut App| {
+        let flavor = AppFlavor::current();
+        cx.set_app_identity(flavor.application_identifier(), flavor.display_name());
         gpui_component::init(cx);
         nyaterm_desktop::init(cx);
         let startup = AppShellStartup::prepare(&runtime);
@@ -56,7 +59,9 @@ fn main() -> anyhow::Result<()> {
 
         cx.open_window(
             WindowOptions {
+                app_id: Some(flavor.desktop_id().to_string()),
                 titlebar: Some(TitlebarOptions {
+                    title: Some(flavor.display_name().into()),
                     appears_transparent: true,
                     traffic_light_position: cfg!(target_os = "macos")
                         .then(|| point(px(9.), px(11.))),

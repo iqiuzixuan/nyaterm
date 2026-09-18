@@ -4,6 +4,8 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::app_identity::AppFlavor;
+
 pub const STABLE_MANIFEST_URL: &str = "https://downloads.nyaterm.app/latest.json";
 pub const PREVIEW_MANIFEST_URL: &str = "https://downloads.nyaterm.app/channels/preview/latest.json";
 
@@ -15,17 +17,22 @@ pub enum UpdateChannel {
 
 impl UpdateChannel {
     pub fn for_version(version: &Version) -> Self {
-        if version.pre.is_empty() {
-            Self::Stable
-        } else {
-            Self::Preview
-        }
+        AppFlavor::for_version(version).into()
     }
 
     pub fn manifest_url(self) -> &'static str {
         match self {
             Self::Stable => STABLE_MANIFEST_URL,
             Self::Preview => PREVIEW_MANIFEST_URL,
+        }
+    }
+}
+
+impl From<AppFlavor> for UpdateChannel {
+    fn from(flavor: AppFlavor) -> Self {
+        match flavor {
+            AppFlavor::Stable => Self::Stable,
+            AppFlavor::Preview => Self::Preview,
         }
     }
 }
