@@ -346,12 +346,12 @@ pub fn valid_file_browser_child_name(kind: FileBrowserBackendKind, name: &str) -
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
+    use super::file_browser_identity;
     use super::{
         FileBrowserBackendKind, file_browser_join, file_browser_name, file_browser_parent,
         file_browser_path_is_root, file_browser_root, valid_file_browser_child_name,
     };
-    #[cfg(windows)]
-    use super::file_browser_identity;
 
     #[test]
     fn remote_paths_keep_posix_semantics() {
