@@ -209,4 +209,4 @@ pub use translation::{
     translation_settings_has_secret, youdao_translate_lang, youdao_translate_signature,
     youdao_truncate_for_sign,
 };
-pub use updater::{NativeUpdateInfo, parse_github_latest_release};
+pub use updater::NativeUpdateInfo;

@@ -419,6 +419,16 @@ jobs:
               --endpoint-url "${R2_ENDPOINT}" --content-type 'application/json; charset=utf-8' \
               --cache-control 'public, max-age=60, must-revalidate' --no-progress
           done
+      - name: Update preview channel manifests
+        if: needs.release.outputs.prerelease == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for manifest in latest.json downloads.json; do
+            aws s3 cp "release-assets/${manifest}" "s3://${R2_BUCKET}/channels/preview/${manifest}" \
+              --endpoint-url "${R2_ENDPOINT}" --content-type 'application/json; charset=utf-8' \
+              --cache-control 'public, max-age=60, must-revalidate' --no-progress
+          done
       - name: Verify public stable manifests
         if: needs.release.outputs.prerelease == 'false'
         shell: bash
@@ -446,6 +456,36 @@ jobs:
             done
             [[ "${verified}" == 'true' ]] || {
               echo "public stable manifest did not update: ${manifest}" >&2
+              exit 1
+            }
+          done
+      - name: Verify public preview manifests
+        if: needs.release.outputs.prerelease == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for manifest in latest.json downloads.json; do
+            verified='false'
+            for attempt in {1..12}; do
+              if curl --fail --location --silent --show-error \
+                --header 'Cache-Control: no-cache' \
+                "${BASE_URL%/}/channels/preview/${manifest}?release=${VERSION}&attempt=${attempt}" \
+                -o "${RUNNER_TEMP}/public-preview-${manifest}" && \
+                python3 - "${RUNNER_TEMP}/public-preview-${manifest}" "${VERSION}" <<'PY'
+          import json
+          import sys
+          manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+          if manifest.get("version") != sys.argv[2] or not manifest.get("platforms"):
+              raise SystemExit(f"stale or invalid preview manifest: {sys.argv[1]}")
+          PY
+              then
+                verified='true'
+                break
+              fi
+              sleep 5
+            done
+            [[ "${verified}" == 'true' ]] || {
+              echo "public preview manifest did not update: ${manifest}" >&2
               exit 1
             }
           done

@@ -6096,6 +6096,7 @@ dependencies = [
  "rand 0.10.2",
  "regex",
  "rusty-leveldb",
+ "semver",
  "serde",
  "serde_json",
  "sha1 0.11.0",
