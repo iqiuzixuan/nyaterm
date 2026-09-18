@@ -6,6 +6,7 @@ pub(super) fn ansi_to_highlight_spans_compiled(
     ansi: &[nyaterm_terminal::StyledSpan],
     palette: nyaterm_ui::ThemePalette,
     compiled_keyword_rules: &[CompiledKeywordRule],
+    bold_default_foreground: bool,
 ) -> Vec<TerminalHighlightSpan> {
     // Build plain line for keyword overlay, then prefer keyword fg over default ANSI fg.
     let line: String = ansi.iter().map(|s| s.text.as_str()).collect();
@@ -16,7 +17,7 @@ pub(super) fn ansi_to_highlight_spans_compiled(
             .filter(|s| !s.text.is_empty())
             .map(|s| TerminalHighlightSpan {
                 text: s.text.clone(),
-                color: Some(resolve_cell_fg(palette, s.style)),
+                color: Some(resolve_cell_fg(palette, s.style, bold_default_foreground)),
                 bg: resolve_cell_bg(palette, s.style),
                 keyword: false,
                 underline: s.style.underline,
@@ -50,7 +51,7 @@ pub(super) fn ansi_to_highlight_spans_compiled(
         let end = cursor + s.text.len();
         cursor = end;
         let bg = resolve_cell_bg(palette, s.style);
-        let color = resolve_cell_fg(palette, s.style);
+        let color = resolve_cell_fg(palette, s.style, bold_default_foreground);
         if s.style.hidden {
             push_ansi_segment(
                 &mut out,
@@ -165,6 +166,7 @@ mod tests {
             ),
             palette,
             &compiled,
+            false,
         );
 
         assert_eq!(highlighted.len(), 3);
@@ -187,7 +189,7 @@ mod tests {
         let compiled = compiled("ERROR", 0xff2244);
 
         let highlighted =
-            ansi_to_highlight_spans_compiled(&spans("ERROR", style), palette, &compiled);
+            ansi_to_highlight_spans_compiled(&spans("ERROR", style), palette, &compiled, false);
 
         assert_eq!(highlighted.len(), 1);
         assert_eq!(highlighted[0].color, Some(0x112233));
@@ -205,7 +207,7 @@ mod tests {
         let compiled = compiled("secret", 0xff2244);
 
         let highlighted =
-            ansi_to_highlight_spans_compiled(&spans("secret", style), palette, &compiled);
+            ansi_to_highlight_spans_compiled(&spans("secret", style), palette, &compiled, false);
 
         assert_eq!(highlighted.len(), 1);
         assert_eq!(highlighted[0].color, Some(0x112233));
@@ -223,6 +225,7 @@ mod tests {
             &spans("界 ERROR", nyaterm_terminal::CellStyle::default()),
             palette,
             &compiled,
+            false,
         );
 
         assert_eq!(highlighted.len(), 2);

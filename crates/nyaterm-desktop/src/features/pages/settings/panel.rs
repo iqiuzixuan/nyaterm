@@ -1965,6 +1965,7 @@ forward_app_action!(
     toggle_command_suggestions,
     toggle_confirm_on_close,
     toggle_cursor_blink,
+    toggle_bold_default_foreground,
     toggle_docker_manager_panel,
     toggle_gpu_monitor_panel,
     toggle_interaction_copy_on_select,

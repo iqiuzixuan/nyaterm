@@ -2,10 +2,10 @@ use rust_i18n::t;
 
 use gpui::{ClipboardItem, Context};
 use nyaterm_core::{AiAction, AiContext};
-use nyaterm_transport::{RecordingMode, RecordingStatus};
+use nyaterm_transport::{RecordingMode, RecordingStatus, SessionKind};
 use nyaterm_ui::NyaMenuItem;
 
-use crate::features::{NyaTermApp, icons::known_search_engine_icon};
+use crate::features::{NyaTermApp, icons::known_search_engine_icon, session::SerialUploadProtocol};
 use crate::models::{AiPreparedRequest, NavItem, SettingsTab, TerminalSearchMode};
 
 use super::helpers::{available_translation_providers, open_external_url, search_engine_url};
@@ -139,6 +139,53 @@ impl NyaTermApp {
         }
 
         let recording_items = self.terminal_recording_menu_items(&session_id, recording_sc, cx);
+        let serial_upload = self
+            .session
+            .ordered_sessions()
+            .into_iter()
+            .find(|session| session.id == session_id)
+            .is_some_and(|session| session.kind == SessionKind::Serial);
+        if serial_upload {
+            let x_session = session_id.clone();
+            let y_session = session_id.clone();
+            let z_session = session_id.clone();
+            items.extend([
+                NyaMenuItem::separator(),
+                NyaMenuItem::submenu(
+                    t!("terminalCtx.serialUpload"),
+                    vec![
+                        NyaMenuItem::action("XMODEM").on_click(cx.listener(
+                            move |this, _, _, cx| {
+                                this.prompt_serial_upload_files(
+                                    x_session.clone(),
+                                    SerialUploadProtocol::Xmodem,
+                                    cx,
+                                );
+                            },
+                        )),
+                        NyaMenuItem::action("YMODEM").on_click(cx.listener(
+                            move |this, _, _, cx| {
+                                this.prompt_serial_upload_files(
+                                    y_session.clone(),
+                                    SerialUploadProtocol::Ymodem,
+                                    cx,
+                                );
+                            },
+                        )),
+                        NyaMenuItem::action("ZMODEM").on_click(cx.listener(
+                            move |this, _, _, cx| {
+                                this.prompt_serial_upload_files(
+                                    z_session.clone(),
+                                    SerialUploadProtocol::Zmodem,
+                                    cx,
+                                );
+                            },
+                        )),
+                    ],
+                )
+                .icon("icons/fe/upload.svg"),
+            ]);
+        }
         let clear_screen_session_id = session_id.clone();
         let clear_all_session_id = session_id.clone();
         let select_all_session_id = session_id;

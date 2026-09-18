@@ -508,6 +508,7 @@ mod tests {
     fn saved_connection(id: &str) -> SavedConnection {
         SavedConnection {
             extensions: Default::default(),
+            tags: Vec::new(),
             id: id.to_string(),
             name: id.to_string(),
             config: ConnectionType::LocalTerminal {

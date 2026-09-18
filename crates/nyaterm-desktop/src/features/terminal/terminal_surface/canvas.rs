@@ -610,6 +610,7 @@ impl NyaTermApp {
                 self.settings.summary().terminal_font_weight_bold as f32,
             );
             grid = grid
+                .with_bold_default_foreground(self.settings.summary().bold_default_foreground)
                 .with_selection(terminal_selection.map(|selection| {
                     crate::terminal::TerminalGridSelection::new(
                         selection.anchor.line,
@@ -644,6 +645,7 @@ impl NyaTermApp {
                 self.settings.summary().terminal_font_weight_bold as f32,
             );
             grid = grid
+                .with_bold_default_foreground(self.settings.summary().bold_default_foreground)
                 .with_selection(terminal_selection.map(|selection| {
                     crate::terminal::TerminalGridSelection::new(
                         selection.anchor.line,
@@ -922,13 +924,16 @@ impl NyaTermApp {
                                 })
                                 .on_drop({
                                     let session_id = output_session_id.clone();
-                                    cx.listener(move |this, paths: &gpui::ExternalPaths, _, cx| {
-                                        this.handle_terminal_external_file_drop(
-                                            session_id.clone(),
-                                            paths.paths().to_vec(),
-                                            cx,
-                                        );
-                                    })
+                                    cx.listener(
+                                        move |this, paths: &gpui::ExternalPaths, window, cx| {
+                                            this.handle_terminal_external_file_drop(
+                                                session_id.clone(),
+                                                paths.paths().to_vec(),
+                                                window,
+                                                cx,
+                                            );
+                                        },
+                                    )
                                 })
                                 .on_mouse_down(MouseButton::Left, {
                                     let session_id = output_session_id.clone();

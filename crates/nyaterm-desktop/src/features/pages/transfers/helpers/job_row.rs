@@ -200,6 +200,8 @@ fn transfer_job_file_name(job: &TransferJobRowSnapshot) -> String {
             | TransferJobKind::AiFileAction { remote_path, .. } => remote_file_name(remote_path),
             TransferJobKind::Upload { local_path, .. } => local_file_name(local_path),
             TransferJobKind::ZmodemUpload { file_name, .. }
+            | TransferJobKind::XmodemUpload { file_name, .. }
+            | TransferJobKind::YmodemUpload { file_name, .. }
             | TransferJobKind::ZmodemDownload { file_name, .. }
             | TransferJobKind::TrzszDownload { file_name, .. }
             | TransferJobKind::TrzszUpload { file_name, .. } => file_name.clone(),
@@ -289,6 +291,8 @@ fn transfer_job_icon_path(kind: &TransferJobKind, job: &TransferJobRowSnapshot) 
     match kind {
         TransferJobKind::Upload { .. }
         | TransferJobKind::ZmodemUpload { .. }
+        | TransferJobKind::XmodemUpload { .. }
+        | TransferJobKind::YmodemUpload { .. }
         | TransferJobKind::TrzszUpload { .. } => "icons/fe/upload.svg",
         TransferJobKind::SendTo { .. } => "icons/send.svg",
         _ => "icons/fe/download.svg",
@@ -305,6 +309,8 @@ fn transfer_job_direction_color(kind: &TransferJobKind) -> gpui::Rgba {
     match kind {
         TransferJobKind::Upload { .. }
         | TransferJobKind::ZmodemUpload { .. }
+        | TransferJobKind::XmodemUpload { .. }
+        | TransferJobKind::YmodemUpload { .. }
         | TransferJobKind::TrzszUpload { .. } => rgb(0x4ade80),
         _ => rgb(0x60a5fa),
     }

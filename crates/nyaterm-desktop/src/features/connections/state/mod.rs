@@ -1004,6 +1004,27 @@ impl ConnectionFeatureState {
         self.editor.toggle_group_select();
     }
 
+    pub fn add_editor_tag(&mut self) -> bool {
+        self.editor
+            .draft
+            .as_mut()
+            .is_some_and(ConnectionEditorState::add_tag)
+    }
+
+    pub fn remove_editor_tag(&mut self, tag: &str) -> bool {
+        self.editor
+            .draft
+            .as_mut()
+            .is_some_and(|draft| draft.remove_tag(tag))
+    }
+
+    pub fn editor_tag_field_is_focused(&self, cx: &App) -> bool {
+        self.editor
+            .fields
+            .get(&ConnectionEditorField::NewTag)
+            .is_some_and(|field| field.read(cx).has_focus())
+    }
+
     pub fn set_editor_icon(&mut self, icon: Option<&str>) -> bool {
         self.editor.set_icon(icon)
     }

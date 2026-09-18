@@ -237,6 +237,7 @@ impl NyaTermApp {
             name: parsed.name,
             host: parsed.host,
             port: parsed.port,
+            host_key_alias: None,
             username: parsed.username,
             password: None,
             key_auth: None,

@@ -121,6 +121,12 @@ impl Default for ZmodemSessionState {
 }
 
 impl ZmodemSessionState {
+    pub(super) fn is_active(&self) -> bool {
+        self.transfer.is_some()
+            || self.worker.is_some()
+            || self.pending_upload.is_some()
+            || self.pending_download
+    }
     pub(super) fn stop_worker(&mut self) {
         if let Some(worker) = self.worker.take() {
             worker.stop();

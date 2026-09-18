@@ -1,3 +1,5 @@
+use rust_i18n::t;
+
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -34,6 +36,7 @@ impl NyaTermApp {
             cx.notify();
             return;
         }
+
         let duplicate_policy = self.transfer.duplicate_policy();
         let duplicate_resolver = (duplicate_policy == SftpDuplicatePolicy::Ask)
             .then(|| self.session.prompt_duplicate_broker() as Arc<dyn SftpDuplicateResolver>);
@@ -238,6 +241,21 @@ impl NyaTermApp {
             self.cancel_zmodem_transfer(&session_id, cx);
             self.shell
                 .set_status(format!("ZMODEM transfer cancelled: {id}"));
+            cx.notify();
+            return;
+        }
+
+        if let TransferJobKind::XmodemUpload { session_id, .. }
+        | TransferJobKind::YmodemUpload { session_id, .. } = job.kind.clone()
+        {
+            let id = job.id.clone();
+            job.status = TransferJobStatus::Cancelling;
+            job.detail = t!("fileTransfer.cancelling").to_string();
+            job.progress = None;
+            job.speed.reset();
+            self.cancel_xymodem_transfer(&session_id);
+            self.shell
+                .set_status(t!("terminalCtx.serialUploadCancelling", id = id.as_str()).to_string());
             cx.notify();
             return;
         }
@@ -544,9 +562,15 @@ impl NyaTermApp {
 
     pub(in crate::features) fn cancel_all_transfer_jobs(&mut self, cx: &mut Context<Self>) {
         let active_session_id = self.session.active_id_owned();
-        let changed = self
+        let xymodem_jobs =
+            visible_xymodem_job_ids(self.transfer.transfer_jobs(), active_session_id.as_deref());
+        let mut changed = self
             .transfer
             .cancel_visible_transfer_jobs(active_session_id.as_deref());
+        for job_id in xymodem_jobs {
+            self.cancel_transfer_job(&job_id, cx);
+            changed += 1;
+        }
         self.shell.set_status(if changed == 0 {
             "no active transfer jobs to cancel".to_string()
         } else {
@@ -579,5 +603,80 @@ impl NyaTermApp {
             format!("cleared {removed} stopped transfer job(s)")
         });
         cx.notify();
+    }
+}
+
+fn visible_xymodem_job_ids(jobs: &[TransferJobState], session_id: Option<&str>) -> Vec<String> {
+    jobs.iter()
+        .filter(|job| {
+            job.is_visible_for_session(session_id)
+                && matches!(
+                    job.status,
+                    TransferJobStatus::Running | TransferJobStatus::Paused
+                )
+                && matches!(
+                    job.kind,
+                    TransferJobKind::XmodemUpload { .. } | TransferJobKind::YmodemUpload { .. }
+                )
+        })
+        .map(|job| job.id.clone())
+        .collect()
+}
+
+#[cfg(test)]
+mod xymodem_cancel_tests {
+    use super::visible_xymodem_job_ids;
+    use crate::models::{TransferJobKind, TransferJobState, TransferJobStatus};
+
+    fn job(id: &str, session_id: &str, kind: TransferJobKind) -> TransferJobState {
+        TransferJobState {
+            id: id.into(),
+            session_id: Some(session_id.into()),
+            kind,
+            status: TransferJobStatus::Running,
+            detail: String::new(),
+            created_at_ms: 1,
+            display_name: String::new(),
+            entries: Vec::new(),
+            summary: None,
+            progress: None,
+            control: None,
+            speed: Default::default(),
+        }
+    }
+
+    #[test]
+    fn bulk_cancel_selects_only_active_xymodem_jobs() {
+        let mut completed = job(
+            "completed",
+            "a",
+            TransferJobKind::XmodemUpload {
+                session_id: "a".into(),
+                file_name: "one".into(),
+            },
+        );
+        completed.status = TransferJobStatus::Completed;
+        let jobs = vec![
+            job(
+                "x",
+                "a",
+                TransferJobKind::XmodemUpload {
+                    session_id: "a".into(),
+                    file_name: "one".into(),
+                },
+            ),
+            job(
+                "y-other",
+                "b",
+                TransferJobKind::YmodemUpload {
+                    session_id: "b".into(),
+                    file_name: "two".into(),
+                },
+            ),
+            completed,
+        ];
+
+        assert_eq!(visible_xymodem_job_ids(&jobs, Some("a")), ["x"]);
+        assert_eq!(visible_xymodem_job_ids(&jobs, None), ["x", "y-other"]);
     }
 }

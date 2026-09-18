@@ -89,8 +89,14 @@ impl NyaTermApp {
             self.existing_text_input(format!("transfer.rename.{}", state.old_path))
         });
         let show_hidden_files = self.settings.summary().ui_file_explorer_show_hidden_files;
+        let tree = self
+            .transfer
+            .tree_presentation(active_session_id.as_deref(), show_hidden_files);
+        let tree_focus = self.transfer.tree_focus().clone();
         let browser = self.transfer.browser_view();
         let browser = TransferBrowserPresentation {
+            tree,
+            tree_focus,
             local_backend: self.session.active_file_browser_backend()
                 == Some(nyaterm_transport::FileBrowserBackendKind::Local),
             path: browser.path.clone(),

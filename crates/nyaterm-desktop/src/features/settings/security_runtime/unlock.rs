@@ -173,6 +173,9 @@ impl NyaTermApp {
             SecurityUnlockAction::ViewPrivateKey(id) => {
                 self.view_security_private_key(id, window, cx);
             }
+            SecurityUnlockAction::CopyPublicKey(id) => {
+                self.copy_security_public_key(id, window, cx);
+            }
             SecurityUnlockAction::OpenPasswordEditor(id) => {
                 self.open_security_password_editor(id, window, cx);
             }
@@ -208,6 +211,9 @@ impl NyaTermApp {
     ) {
         self.security.set_auth_tab(tab);
         window.close_all_nya_dialogs(cx);
+        if tab == SecurityAuthTab::KnownHosts {
+            self.refresh_security_known_hosts(cx);
+        }
         cx.notify();
     }
 

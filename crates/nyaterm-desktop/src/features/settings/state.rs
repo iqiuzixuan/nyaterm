@@ -974,6 +974,11 @@ impl SettingsFeatureState {
         true
     }
 
+    pub(in crate::features) fn toggle_bold_default_foreground(&mut self) -> bool {
+        self.summary.bold_default_foreground = !self.summary.bold_default_foreground;
+        self.summary.bold_default_foreground
+    }
+
     pub(in crate::features) fn select_background_image(&mut self, path: String) {
         self.summary.background_image_path = Some(path);
         if self.summary.background_image_fit.trim().is_empty() {

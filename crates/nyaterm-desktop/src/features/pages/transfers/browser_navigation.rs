@@ -112,7 +112,7 @@ impl NyaTermApp {
         self.start_sftp_list_job(None, rollback, cx);
     }
 
-    pub(in crate::features::pages::transfers) fn open_transfer_browser_directory(
+    pub(in crate::features) fn open_transfer_browser_directory(
         &mut self,
         path: String,
         _window: &mut Window,
@@ -127,7 +127,7 @@ impl NyaTermApp {
         );
     }
 
-    pub(in crate::features::pages::transfers) fn open_transfer_browser_entry_directory(
+    pub(in crate::features) fn open_transfer_browser_entry_directory(
         &mut self,
         entry: SftpFileEntry,
         _window: &mut Window,

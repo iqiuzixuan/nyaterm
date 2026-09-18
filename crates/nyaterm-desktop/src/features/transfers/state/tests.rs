@@ -26,6 +26,7 @@ use super::{
 
 fn transfer_focus(cx: &TestAppContext) -> TransferFeatureFocus {
     cx.update(|cx| TransferFeatureFocus {
+        tree: cx.focus_handle(),
         queue: cx.focus_handle(),
         browser: cx.focus_handle(),
         editor: cx.focus_handle(),

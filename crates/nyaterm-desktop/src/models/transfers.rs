@@ -19,6 +19,10 @@ pub(crate) enum TransferJobKind {
     ListChildren {
         remote_path: String,
     },
+    ListTree {
+        path: nyaterm_transport::RemoteFilePath,
+        generation: u64,
+    },
     ResolveHome,
     SyncCwd,
     Download {
@@ -108,6 +112,14 @@ pub(crate) enum TransferJobKind {
     },
     /// In-band ZMODEM upload (local files -> remote `rz`).
     ZmodemUpload {
+        session_id: String,
+        file_name: String,
+    },
+    XmodemUpload {
+        session_id: String,
+        file_name: String,
+    },
+    YmodemUpload {
         session_id: String,
         file_name: String,
     },
@@ -212,6 +224,7 @@ impl TransferJobState {
 
     pub(crate) fn display_name_for_kind(kind: &TransferJobKind) -> String {
         match kind {
+            TransferJobKind::ListTree { path, .. } => remote_file_name(&path.display_path),
             TransferJobKind::Download { remote_path, .. }
             | TransferJobKind::OpenExternal { remote_path, .. }
             | TransferJobKind::LoadEditor { remote_path, .. }
@@ -236,6 +249,8 @@ impl TransferJobState {
             }
             TransferJobKind::SendTo { target_path, .. } => remote_file_name(target_path),
             TransferJobKind::ZmodemUpload { file_name, .. }
+            | TransferJobKind::XmodemUpload { file_name, .. }
+            | TransferJobKind::YmodemUpload { file_name, .. }
             | TransferJobKind::ZmodemDownload { file_name, .. }
             | TransferJobKind::TrzszDownload { file_name, .. }
             | TransferJobKind::TrzszUpload { file_name, .. } => file_name.clone(),
@@ -261,6 +276,8 @@ impl TransferJobState {
                 | TransferJobKind::SendTo { .. }
                 | TransferJobKind::OpenExternal { .. }
                 | TransferJobKind::ZmodemUpload { .. }
+                | TransferJobKind::XmodemUpload { .. }
+                | TransferJobKind::YmodemUpload { .. }
                 | TransferJobKind::ZmodemDownload { .. }
                 | TransferJobKind::TrzszDownload { .. }
                 | TransferJobKind::TrzszUpload { .. }
@@ -477,6 +494,7 @@ pub(crate) enum TransferJobEvent {
 #[derive(Debug)]
 pub(crate) enum TransferJobOutput {
     Entries(Vec<SftpFileEntry>),
+    TreeEntries(Vec<SftpFileEntry>),
     ChildEntries {
         remote_path: String,
         entries: Vec<SftpFileEntry>,

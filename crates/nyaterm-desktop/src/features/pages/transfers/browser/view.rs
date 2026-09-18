@@ -386,6 +386,12 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
                         .flex()
                         .items_center()
                         .gap(px(2.))
+                        .when(!local_backend, |toolbar| toolbar.child(
+                            nyaterm_ui::NyaButton::new("transfer-browser-toggle-tree", "")
+                                .icon("icons/conn/folder.svg").compact().variant(nyaterm_ui::NyaButtonVariant::Ghost)
+                                .selected(browser.tree.visible).tooltip(t!("fileExplorer.toggleTree"))
+                                .on_click(cx.listener(|panel, _, _, cx| panel.with_app(cx, |app, cx| app.toggle_transfer_tree(cx)))),
+                        ))
                         .child(compact_transfer_toolbar_button(
                             palette,
                             "transfer-browser-new-file",
@@ -501,6 +507,8 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
                 )
                 .child(super::super::path_bar::transfer_browser_path_row(panel, current_browser_path.clone(), cx))
             })
+            .child(div().flex().flex_1().min_h_0().min_w_0()
+            .when(!local_backend && browser.tree.visible, |this| this.child(super::super::tree::transfer_tree_view(panel, cx)))
             .child(NyaContextMenu::new_dynamic(
                 div()
                     .id(SharedString::from("transfer-browser-table-viewport"))
@@ -635,7 +643,7 @@ pub(in crate::features::pages::transfers) fn transfer_browser_view(
             // Match the Tauri file-explorer menu width (w-52 / min-w-[200px]);
             // 208px is the 13rem (w-52) equivalent so labels and shortcuts do not
             // reflow between items when the menu opens.
-            .min_width(px(208.)))
+            .min_width(px(208.))))
             // Tauri FileExplorer footer: totals left, cwd sync / send icons right.
             .child(
                 div()
