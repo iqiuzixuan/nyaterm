@@ -7,7 +7,7 @@ use russh_sftp::protocol::{Status, StatusCode, Version};
 
 use super::{
     OpenSftpConnection, OpenSftpSession, SFTP_COMPATIBILITY_CACHE, SftpService, open_sftp_session,
-    sftp_error_category,
+    sftp_error_category, sftp_error_invalidates_compatibility_session,
 };
 use crate::session_config::{SftpSettings, SshSessionConfig};
 
@@ -139,14 +139,21 @@ fn closed_session_is_evicted_without_retrying_the_operation() {
     let (service, _, renames) = seeded_service();
     let state = service.compatibility.as_ref().unwrap();
     let session = state.cache.lock().unwrap().as_ref().unwrap().sftp.clone();
+    // Make the close/write race deterministic: a request queued immediately after the close
+    // sentinel may time out before the writer task has dropped its receiver.
+    session.set_timeout(0);
     state
         .block_on(async move {
             session.close().await?;
             Ok(())
         })
         .unwrap();
-    assert!(service.rename_path("/a", "/b").is_err());
-    assert!(state.cache.lock().unwrap().is_none());
+    let error = service.rename_path("/a", "/b").unwrap_err();
+    assert!(
+        state.cache.lock().unwrap().is_none(),
+        "closed session stayed cached after {error:?} (category {})",
+        sftp_error_category(&error)
+    );
     assert_eq!(renames.load(Ordering::SeqCst), 0);
 }
 
@@ -159,6 +166,19 @@ fn diagnostic_categories_never_include_server_error_messages() {
         language_tag: "en".into(),
     }));
     assert_eq!(sftp_error_category(&error), "operation_failed");
+}
+
+#[test]
+fn closed_or_timed_out_requests_invalidate_compatibility_sessions() {
+    let dropped = anyhow::Error::from(russh_sftp::client::error::Error::UnexpectedBehavior(
+        "sender dropped".into(),
+    ));
+    assert!(sftp_error_invalidates_compatibility_session(&dropped));
+    assert_eq!(sftp_error_category(&dropped), "stream_closed");
+
+    let timeout = anyhow::Error::from(russh_sftp::client::error::Error::Timeout);
+    assert!(sftp_error_invalidates_compatibility_session(&timeout));
+    assert_eq!(sftp_error_category(&timeout), "timeout");
 }
 
 #[test]

@@ -158,7 +158,7 @@ impl SftpCompatibilityState {
         if result
             .as_ref()
             .err()
-            .is_some_and(sftp_error_is_stream_closed)
+            .is_some_and(sftp_error_invalidates_compatibility_session)
         {
             self.evict_closed_session();
         }
@@ -2533,16 +2533,24 @@ fn sftp_error_category(error: &anyhow::Error) -> &'static str {
         "cancelled"
     } else if sftp_error_is_stream_closed(error) {
         "stream_closed"
-    } else if error.chain().any(|cause| {
-        matches!(
-            cause.downcast_ref::<russh_sftp::client::error::Error>(),
-            Some(russh_sftp::client::error::Error::Timeout)
-        )
-    }) {
+    } else if sftp_error_is_timeout(error) {
         "timeout"
     } else {
         "operation_failed"
     }
+}
+
+fn sftp_error_is_timeout(error: &anyhow::Error) -> bool {
+    error.chain().any(|cause| {
+        matches!(
+            cause.downcast_ref::<russh_sftp::client::error::Error>(),
+            Some(russh_sftp::client::error::Error::Timeout)
+        )
+    })
+}
+
+fn sftp_error_invalidates_compatibility_session(error: &anyhow::Error) -> bool {
+    sftp_error_is_stream_closed(error) || sftp_error_is_timeout(error)
 }
 
 fn sftp_error_is_stream_closed(error: &anyhow::Error) -> bool {
@@ -2552,6 +2560,7 @@ fn sftp_error_is_stream_closed(error: &anyhow::Error) -> bool {
                 message == "Stream closed"
                     || message == "SFTP stream closed"
                     || message == "session closed"
+                    || message == "sender dropped"
                     || message.starts_with("SendError:")
                     || message.starts_with("RecvError:")
             }
