@@ -3250,9 +3250,186 @@ fn translation_settings_read_legacy_plaintext_and_encrypt_on_save() {
 }
 
 #[test]
+fn cloud_sync_settings_read_tauri_embedded_config_before_stale_legacy_doc() {
+    let dir = unique_temp_dir("cloud-sync-embedded");
+    let store = ConnectionStore::open(&dir).expect("store");
+    let crypto = store.credential_crypto().expect("crypto");
+    let master_key = store
+        .get_or_create_master_key_token(&crypto)
+        .expect("master key");
+    let password = crypto
+        .encrypt_secret(&master_key, "synthetic-webdav-secret")
+        .expect("encrypt");
+    store
+        .save_settings_doc_value(
+            SETTINGS_CLOUD_SYNC,
+            &serde_json::json!({
+                "enabled": false
+            }),
+        )
+        .expect("seed stale legacy settings");
+    store
+        .save_settings_value(&serde_json::json!({
+            "cloud_sync": {
+                "enabled": true,
+                "provider": "webdav",
+                "device_name": "tauri-device",
+                "remote_root": "shared-root",
+                "auto_pull_remote_changes": false,
+                "webdav": { "endpoint": "https://dav.example.invalid/dav", "password": password }
+            }
+        }))
+        .expect("seed Tauri settings");
+
+    let loaded = store
+        .load_cloud_sync_settings()
+        .expect("load embedded settings");
+    assert!(loaded.enabled);
+    assert_eq!(loaded.device_name, "tauri-device");
+    assert_eq!(loaded.remote_root, "shared-root");
+    assert!(!loaded.auto_pull_remote_changes);
+    assert_eq!(loaded.webdav.endpoint, "https://dav.example.invalid/dav");
+    assert_eq!(
+        loaded.webdav.password.as_deref(),
+        Some("synthetic-webdav-secret")
+    );
+    drop(store);
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn cloud_sync_settings_migrate_legacy_doc_on_save_without_losing_unknown_fields() {
+    let dir = unique_temp_dir("cloud-sync-legacy-migration");
+    let store = ConnectionStore::open(&dir).expect("store");
+    let crypto = store.credential_crypto().expect("crypto");
+    let master_key = store
+        .get_or_create_master_key_token(&crypto)
+        .expect("master key");
+    let password = crypto
+        .encrypt_secret(&master_key, "synthetic-legacy-secret")
+        .expect("encrypt");
+    let legacy = serde_json::json!({
+        "enabled": true,
+        "future_sync_policy": { "mode": "keep" },
+        "webdav": { "password": password, "future_provider_option": true }
+    });
+    store
+        .save_settings_doc_value(SETTINGS_CLOUD_SYNC, &legacy)
+        .expect("seed legacy settings");
+    store
+        .save_settings_value(&serde_json::json!({
+            "general": { "future_general_option": true }
+        }))
+        .expect("seed unrelated settings");
+
+    let mut loaded = store
+        .load_cloud_sync_settings()
+        .expect("load legacy settings");
+    assert!(loaded.enabled);
+    assert_eq!(
+        loaded.webdav.password.as_deref(),
+        Some("synthetic-legacy-secret")
+    );
+    loaded.webdav.password = Some(nyaterm_core::MASKED_SECRET_VALUE.into());
+    loaded.device_name = "gpui-device".to_string();
+    let saved = store
+        .save_cloud_sync_settings(loaded)
+        .expect("migrate on save");
+    let value = store.load_settings_value().expect("settings");
+    assert_eq!(value["cloud_sync"]["device_name"], "gpui-device");
+    assert_eq!(value["cloud_sync"]["future_sync_policy"]["mode"], "keep");
+    assert_eq!(
+        value["cloud_sync"]["webdav"]["future_provider_option"],
+        true
+    );
+    assert_eq!(value["general"]["future_general_option"], true);
+    assert_ne!(
+        value["cloud_sync"]["webdav"]["password"].as_str(),
+        Some("synthetic-legacy-secret")
+    );
+    assert_eq!(
+        store
+            .load_cloud_sync_settings()
+            .expect("reload migrated settings"),
+        saved
+    );
+    assert_eq!(
+        store
+            .read_json_table::<serde_json::Value>(SETTINGS_TABLE, SETTINGS_CLOUD_SYNC)
+            .expect("legacy doc"),
+        Some(legacy)
+    );
+    drop(store);
+    let reopened = ConnectionStore::open(&dir).expect("reopen store");
+    assert_eq!(
+        reopened
+            .load_cloud_sync_settings()
+            .expect("reopen migrated settings"),
+        saved
+    );
+    drop(reopened);
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn cloud_sync_settings_embedded_disable_wins_over_enabled_legacy_doc() {
+    let dir = unique_temp_dir("cloud-sync-disabled-embedded");
+    let store = ConnectionStore::open(&dir).expect("store");
+    store
+        .save_settings_doc_value(SETTINGS_CLOUD_SYNC, &serde_json::json!({ "enabled": true }))
+        .expect("seed legacy settings");
+    store
+        .save_settings_value(&serde_json::json!({ "cloud_sync": { "enabled": false } }))
+        .expect("seed embedded settings");
+    assert!(
+        !store
+            .load_cloud_sync_settings()
+            .expect("load embedded disable")
+            .enabled
+    );
+    drop(store);
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn cloud_sync_settings_invalid_embedded_data_does_not_fall_back_or_overwrite() {
+    let dir = unique_temp_dir("cloud-sync-corrupt-embedded");
+    let store = ConnectionStore::open(&dir).expect("store");
+    store
+        .save_settings_doc_value(SETTINGS_CLOUD_SYNC, &serde_json::json!({ "enabled": true }))
+        .expect("seed legacy settings");
+    for cloud_sync in [
+        serde_json::json!({ "enabled": "invalid" }),
+        serde_json::json!({ "enabled": true, "webdav": { "password": "corrupt-token" } }),
+        serde_json::Value::Null,
+    ] {
+        let value = serde_json::json!({ "cloud_sync": cloud_sync });
+        store
+            .save_settings_value(&value)
+            .expect("seed invalid embedded settings");
+        assert!(store.load_cloud_sync_settings().is_err());
+        assert!(
+            store
+                .save_cloud_sync_settings(CloudSyncSettings::default())
+                .is_err()
+        );
+        assert_eq!(
+            store.load_settings_value().expect("unchanged settings"),
+            value
+        );
+    }
+    drop(store);
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
 fn cloud_sync_settings_encrypt_and_merge_masked_provider_secrets() {
     let dir = unique_temp_dir("cloud-sync-settings");
     let store = ConnectionStore::open(&dir).expect("store");
+    store.save_settings_value(&serde_json::json!({
+        "cloud_sync": { "future_sync_option": true, "webdav": { "future_provider_option": 42 } },
+        "general": { "future_general_option": "keep" }
+    })).expect("seed unknown embedded fields");
     let mut settings = CloudSyncSettings {
         enabled: true,
         provider: "github_gist".to_string(),
@@ -3269,10 +3446,9 @@ fn cloud_sync_settings_encrypt_and_merge_masked_provider_secrets() {
     assert_eq!(saved, settings);
     assert!(store.load_master_key_token().expect("master key").is_some());
 
-    let raw = store
-        .read_json_table::<CloudSyncSettings>(SETTINGS_TABLE, SETTINGS_CLOUD_SYNC)
-        .expect("read raw")
-        .expect("raw cloud settings");
+    let raw_settings = store.load_settings_value().expect("read raw settings");
+    let raw: CloudSyncSettings =
+        serde_json::from_value(raw_settings["cloud_sync"].clone()).expect("raw cloud settings");
     assert_ne!(raw.webdav.password.as_deref(), Some("webdav-secret"));
     assert_ne!(raw.s3.secret_access_key.as_deref(), Some("s3-secret"));
     assert_ne!(
@@ -3307,6 +3483,13 @@ fn cloud_sync_settings_encrypt_and_merge_masked_provider_secrets() {
         .load_cloud_sync_settings()
         .expect("reload cloud settings");
     assert_eq!(reloaded, merged);
+    let raw_settings = store.load_settings_value().expect("read saved settings");
+    assert_eq!(raw_settings["cloud_sync"]["future_sync_option"], true);
+    assert_eq!(
+        raw_settings["cloud_sync"]["webdav"]["future_provider_option"],
+        42
+    );
+    assert_eq!(raw_settings["general"]["future_general_option"], "keep");
 
     std::fs::remove_dir_all(dir).ok();
 }

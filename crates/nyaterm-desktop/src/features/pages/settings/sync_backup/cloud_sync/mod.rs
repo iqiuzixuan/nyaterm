@@ -12,9 +12,7 @@ use crate::features::{
     formatting::format_cloud_provider, formatting::format_history_timestamp_ms,
     pages::settings::panel::SettingsPanel, view_widgets::dialog_action_button,
 };
-use crate::models::{
-    CloudSyncConflictState, CloudSyncInputField, SettingsTab, SnapshotPasswordPromptKind,
-};
+use crate::models::{CloudSyncConflictState, CloudSyncInputField, SettingsTab};
 use crate::theme::ThemePalette;
 use crate::widgets::small_button;
 
@@ -209,19 +207,6 @@ impl SettingsPanel {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let palette = self.theme_palette();
-        let cloud_snapshot_prompt = self.settings.snapshot_password_prompt().filter(|prompt| {
-            matches!(
-                prompt.kind,
-                SnapshotPasswordPromptKind::CloudForcePush
-                    | SnapshotPasswordPromptKind::CloudForcePull
-                    | SnapshotPasswordPromptKind::CloudProviderPush
-                    | SnapshotPasswordPromptKind::CloudProviderPull
-                    | SnapshotPasswordPromptKind::CloudProviderForcePush
-                    | SnapshotPasswordPromptKind::CloudProviderForcePull
-                    | SnapshotPasswordPromptKind::CloudRecoverCurrent
-                    | SnapshotPasswordPromptKind::CloudProviderRecoverCurrent
-            )
-        });
         let cloud_conflict = self.cloud_sync.conflict().cloned();
         let active_cloud_provider = configured_cloud_sync_provider(self.cloud_sync.settings());
         let form_enabled = self.cloud_sync_form_enabled();
@@ -684,9 +669,6 @@ impl SettingsPanel {
                             )),
                     ),
             ))
-            .when_some(cloud_snapshot_prompt, |this, prompt| {
-                this.child(self.snapshot_password_prompt_banner(prompt, cx))
-            })
             .child(settings_form_section(
                 palette,
                 Some(t!("settings.syncConflictSection")),

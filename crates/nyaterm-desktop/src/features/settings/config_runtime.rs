@@ -7,6 +7,7 @@ use gpui::{
 use nyaterm_store::ConnectionStore;
 use nyaterm_store::{BootstrapSnapshot, LoadBootstrap};
 use nyaterm_transport::SftpDuplicatePolicy;
+use nyaterm_ui::NyaDialogWindowExt;
 
 use crate::features::{NyaTermApp, runtime_jobs::await_blocking_job, text_inputs::TextInputSetup};
 use crate::models::{
@@ -14,13 +15,34 @@ use crate::models::{
     TranslationSecretDraft,
 };
 
+fn snapshot_password_prompt_title_key(kind: SnapshotPasswordPromptKind) -> &'static str {
+    match kind {
+        SnapshotPasswordPromptKind::Export => "runtimePrompt.snapshotExport",
+        SnapshotPasswordPromptKind::Import => "runtimePrompt.snapshotImport",
+        SnapshotPasswordPromptKind::CloudForcePush => "runtimePrompt.cloudForcePush",
+        SnapshotPasswordPromptKind::CloudForcePull => "runtimePrompt.cloudForcePull",
+        SnapshotPasswordPromptKind::CloudProviderPush => "runtimePrompt.cloudProviderPush",
+        SnapshotPasswordPromptKind::CloudProviderPull => "runtimePrompt.cloudProviderPull",
+        SnapshotPasswordPromptKind::CloudProviderForcePush => {
+            "runtimePrompt.cloudProviderForcePush"
+        }
+        SnapshotPasswordPromptKind::CloudProviderForcePull => {
+            "runtimePrompt.cloudProviderForcePull"
+        }
+        SnapshotPasswordPromptKind::CloudRecoverCurrent
+        | SnapshotPasswordPromptKind::CloudProviderRecoverCurrent => {
+            "settings.useCurrentRemoteSnapshot"
+        }
+    }
+}
+
 impl NyaTermApp {
     pub(in crate::features) fn prompt_encrypted_portable_snapshot_export(
         &mut self,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        self.open_local_snapshot_password_dialog(SnapshotPasswordPromptKind::Export, window, cx);
+        self.open_snapshot_password_dialog(SnapshotPasswordPromptKind::Export, window, cx);
     }
 
     pub(in crate::features) fn prompt_encrypted_portable_snapshot_import(
@@ -37,10 +59,10 @@ impl NyaTermApp {
             cx.notify();
             return;
         }
-        self.open_local_snapshot_password_dialog(SnapshotPasswordPromptKind::Import, window, cx);
+        self.open_snapshot_password_dialog(SnapshotPasswordPromptKind::Import, window, cx);
     }
 
-    fn open_local_snapshot_password_dialog(
+    fn open_snapshot_password_dialog(
         &mut self,
         kind: SnapshotPasswordPromptKind,
         window: &mut Window,
@@ -75,28 +97,20 @@ impl NyaTermApp {
         );
         self.settings
             .set_store_message("awaiting .nya master password");
-
-        let title = match kind {
-            SnapshotPasswordPromptKind::Export => t!("runtimePrompt.snapshotExport"),
-            SnapshotPasswordPromptKind::Import => t!("runtimePrompt.snapshotImport"),
-            SnapshotPasswordPromptKind::CloudForcePush
-            | SnapshotPasswordPromptKind::CloudForcePull
-            | SnapshotPasswordPromptKind::CloudProviderPush
-            | SnapshotPasswordPromptKind::CloudProviderPull
-            | SnapshotPasswordPromptKind::CloudProviderForcePush
-            | SnapshotPasswordPromptKind::CloudProviderForcePull
-            | SnapshotPasswordPromptKind::CloudRecoverCurrent
-            | SnapshotPasswordPromptKind::CloudProviderRecoverCurrent => {
-                t!("runtimePrompt.cloudPush")
-            }
-        };
+        if !matches!(
+            kind,
+            SnapshotPasswordPromptKind::Export | SnapshotPasswordPromptKind::Import
+        ) {
+            self.cloud_sync.set_status("awaiting cloud sync password");
+        }
+        let title = t!(snapshot_password_prompt_title_key(kind));
         self.open_form_dialog(
             (
                 title.to_string(),
                 448.,
                 t!("runtimePrompt.submit").to_string(),
-                |app, _, cx| app.local_snapshot_password_dialog_content(cx),
-                |app, _, cx| app.submit_local_snapshot_password_dialog(cx),
+                |app, _, cx| app.snapshot_password_dialog_content(cx),
+                |app, _, cx| app.submit_snapshot_password_prompt(cx),
                 |app, cx| app.cancel_snapshot_password_prompt(cx),
             ),
             window,
@@ -121,12 +135,19 @@ impl NyaTermApp {
         }
     }
 
-    fn local_snapshot_password_dialog_content(&mut self, cx: &mut Context<Self>) -> AnyElement {
+    fn snapshot_password_dialog_content(&mut self, cx: &mut Context<Self>) -> AnyElement {
         let Some(prompt) = self.settings.snapshot_password_prompt() else {
             return div().into_any_element();
         };
         let palette = self.theme_palette();
-        let description = t!("runtimePrompt.localSnapshotDescription");
+        let description = if matches!(
+            prompt.kind,
+            SnapshotPasswordPromptKind::Export | SnapshotPasswordPromptKind::Import
+        ) {
+            t!("runtimePrompt.localSnapshotDescription")
+        } else {
+            t!("runtimePrompt.cloudSnapshotDescription")
+        };
         let password_input = self.text_input_box(
             "snapshot-password.value",
             &prompt.value,
@@ -135,11 +156,12 @@ impl NyaTermApp {
         );
 
         div()
+            .debug_selector(|| "snapshot-password-dialog-content".to_string())
             .flex()
             .flex_col()
             .gap_3()
-            .on_key_down(cx.listener(|this, event: &KeyDownEvent, _, cx| {
-                if this.handle_snapshot_password_key_down(event, cx) {
+            .on_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| {
+                if this.handle_snapshot_password_key_down(event, window, cx) {
                     cx.stop_propagation();
                 }
             }))
@@ -154,7 +176,16 @@ impl NyaTermApp {
             .into_any_element()
     }
 
-    fn submit_local_snapshot_password_dialog(&mut self, cx: &mut Context<Self>) -> bool {
+    pub(in crate::features) fn start_snapshot_password_prompt(
+        &mut self,
+        kind: SnapshotPasswordPromptKind,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.open_snapshot_password_dialog(kind, window, cx);
+    }
+
+    fn submit_snapshot_password_prompt(&mut self, cx: &mut Context<Self>) -> bool {
         let Some(state) = self.settings.take_snapshot_password_prompt() else {
             return true;
         };
@@ -166,110 +197,6 @@ impl NyaTermApp {
                 .set_status("master password is required for encrypted .nya".to_string());
             cx.notify();
             return false;
-        }
-        self.forget_text_inputs("snapshot-password.");
-
-        match state.kind {
-            SnapshotPasswordPromptKind::Export => {
-                self.prompt_encrypted_portable_snapshot_export_path(password, cx);
-            }
-            SnapshotPasswordPromptKind::Import => {
-                self.prompt_encrypted_portable_snapshot_import_path(password, cx);
-            }
-            SnapshotPasswordPromptKind::CloudForcePush
-            | SnapshotPasswordPromptKind::CloudForcePull
-            | SnapshotPasswordPromptKind::CloudProviderPush
-            | SnapshotPasswordPromptKind::CloudProviderPull
-            | SnapshotPasswordPromptKind::CloudProviderForcePush
-            | SnapshotPasswordPromptKind::CloudProviderForcePull
-            | SnapshotPasswordPromptKind::CloudRecoverCurrent
-            | SnapshotPasswordPromptKind::CloudProviderRecoverCurrent => {
-                self.settings.restore_snapshot_password_prompt(state.kind);
-                self.shell.set_status(
-                    "cloud sync password prompt must be submitted from settings".to_string(),
-                );
-                cx.notify();
-                return false;
-            }
-        }
-        true
-    }
-
-    pub(in crate::features) fn start_snapshot_password_prompt(
-        &mut self,
-        kind: SnapshotPasswordPromptKind,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        if !self.settings.begin_snapshot_password_prompt(kind) {
-            self.shell
-                .set_status("backup or sync prompt is already open".to_string());
-            cx.notify();
-            return;
-        }
-        self.forget_text_inputs("snapshot-password.");
-        let field = self.text_input("snapshot-password.value", "", TextInputSetup::masked(), cx);
-        window.focus(&field.read(cx).focus_handle(), cx);
-        self.shell.set_status(
-            match kind {
-                SnapshotPasswordPromptKind::Export => "enter password for encrypted .nya export",
-                SnapshotPasswordPromptKind::Import => "enter password for encrypted .nya import",
-                SnapshotPasswordPromptKind::CloudForcePush => {
-                    "enter password for forced cloud sync push"
-                }
-                SnapshotPasswordPromptKind::CloudForcePull => {
-                    "enter password for forced cloud sync pull"
-                }
-                SnapshotPasswordPromptKind::CloudProviderPush => {
-                    "enter password for provider cloud sync push"
-                }
-                SnapshotPasswordPromptKind::CloudProviderPull => {
-                    "enter password for provider cloud sync pull"
-                }
-                SnapshotPasswordPromptKind::CloudProviderForcePush => {
-                    "enter password for forced provider cloud sync push"
-                }
-                SnapshotPasswordPromptKind::CloudProviderForcePull => {
-                    "enter password for forced provider cloud sync pull"
-                }
-                SnapshotPasswordPromptKind::CloudRecoverCurrent => {
-                    "enter password to recover cloud sync metadata"
-                }
-                SnapshotPasswordPromptKind::CloudProviderRecoverCurrent => {
-                    "enter password to recover provider cloud sync metadata"
-                }
-            }
-            .to_string(),
-        );
-        let store_message = match kind {
-            SnapshotPasswordPromptKind::CloudForcePush
-            | SnapshotPasswordPromptKind::CloudForcePull
-            | SnapshotPasswordPromptKind::CloudProviderPush
-            | SnapshotPasswordPromptKind::CloudProviderPull
-            | SnapshotPasswordPromptKind::CloudProviderForcePush
-            | SnapshotPasswordPromptKind::CloudProviderForcePull
-            | SnapshotPasswordPromptKind::CloudRecoverCurrent
-            | SnapshotPasswordPromptKind::CloudProviderRecoverCurrent => {
-                "awaiting cloud sync password".to_string()
-            }
-            _ => "awaiting .nya master password".to_string(),
-        };
-        self.settings.set_store_message(store_message);
-        cx.notify();
-    }
-
-    pub(in crate::features) fn submit_snapshot_password_prompt(&mut self, cx: &mut Context<Self>) {
-        let Some(state) = self.settings.take_snapshot_password_prompt() else {
-            return;
-        };
-        let password: nyaterm_core::SecretString = state.value.trim().to_owned().into();
-        if password.is_empty() {
-            self.settings.restore_snapshot_password_prompt(state.kind);
-            self.reset_text_input("snapshot-password.value", "", cx);
-            self.shell
-                .set_status("master password is required for encrypted .nya".to_string());
-            cx.notify();
-            return;
         }
         self.forget_text_inputs("snapshot-password.");
 
@@ -305,6 +232,7 @@ impl NyaTermApp {
                 self.run_cloud_sync_recovery(password, true, cx);
             }
         }
+        true
     }
 
     pub(in crate::features) fn cancel_snapshot_password_prompt(&mut self, cx: &mut Context<Self>) {
@@ -312,6 +240,12 @@ impl NyaTermApp {
             return;
         };
         self.forget_text_inputs("snapshot-password.");
+        if !matches!(
+            state.kind,
+            SnapshotPasswordPromptKind::Export | SnapshotPasswordPromptKind::Import
+        ) {
+            self.cloud_sync.set_status("cloud sync cancelled");
+        }
         self.shell.set_status(match state.kind {
             SnapshotPasswordPromptKind::Export => "encrypted .nya export cancelled".to_string(),
             SnapshotPasswordPromptKind::Import => "encrypted .nya import cancelled".to_string(),
@@ -347,6 +281,7 @@ impl NyaTermApp {
     pub(in crate::features) fn handle_snapshot_password_key_down(
         &mut self,
         event: &KeyDownEvent,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
         self.mark_user_activity();
@@ -359,8 +294,15 @@ impl NyaTermApp {
         }
 
         match keystroke.key.as_str() {
-            "enter" => self.submit_snapshot_password_prompt(cx),
-            "escape" => self.cancel_snapshot_password_prompt(cx),
+            "enter" => {
+                if self.submit_snapshot_password_prompt(cx) {
+                    window.close_nya_dialog(cx);
+                }
+            }
+            "escape" => {
+                self.cancel_snapshot_password_prompt(cx);
+                window.close_nya_dialog(cx);
+            }
             _ => return false,
         }
         true

@@ -259,12 +259,6 @@ impl SettingsPresentation {
         &self.keybinding_focus
     }
 
-    pub(in crate::features) fn snapshot_password_prompt(
-        &self,
-    ) -> Option<SnapshotPasswordPromptState> {
-        self.snapshot_password_prompt.clone()
-    }
-
     pub(in crate::features) fn snapshot_password_prompt_active(&self) -> bool {
         self.snapshot_password_prompt_active
     }
@@ -1897,25 +1891,6 @@ impl SettingsPanel {
         cx: &mut Context<Self>,
     ) {
         self.with_app(cx, |app, cx| app.reset_keybinding(shortcut_id, cx));
-    }
-
-    pub(in crate::features) fn snapshot_password_prompt_banner(
-        &mut self,
-        prompt: SnapshotPasswordPromptState,
-        _cx: &mut Context<Self>,
-    ) -> AnyElement {
-        let palette = self.theme_palette();
-        div()
-            .rounded_md()
-            .border_1()
-            .border_color(rgb(palette.border))
-            .bg(rgb(palette.section_header))
-            .px_3()
-            .py_2()
-            .text_size(px(12.))
-            .text_color(rgb(palette.text_muted))
-            .child(format!("{:?}", prompt.kind))
-            .into_any_element()
     }
 }
 
