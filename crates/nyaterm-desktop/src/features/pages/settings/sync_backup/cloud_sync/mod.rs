@@ -226,6 +226,8 @@ impl SettingsPanel {
         };
         let prompt_busy = self.settings.snapshot_password_prompt_active()
             || self.settings.config_path_prompt_active();
+        let local_backup_status = self.settings.local_backup_status.clone();
+        let local_backup_ready = self.settings.local_backup_ready;
         let actions_busy = prompt_busy || self.cloud_sync.job_running();
         let can_run_actions = action_block_message.is_none() && !actions_busy;
         let can_run_enabled_actions = can_run_actions && self.cloud_sync.settings().enabled;
@@ -409,7 +411,26 @@ impl SettingsPanel {
                                 this.prompt_encrypted_portable_snapshot_import(window, cx);
                             }),
                         ),
-                    )),
+                    ))
+                    .when(!local_backup_status.is_empty(), |this| {
+                        this.child(
+                            div()
+                                .min_w_0()
+                                .rounded_md()
+                                .border_1()
+                                .border_color(rgb(if local_backup_ready {
+                                    palette.success
+                                } else {
+                                    palette.border
+                                }))
+                                .bg(rgb(palette.surface_elevated))
+                                .px_3()
+                                .py_2()
+                                .text_size(px(12.))
+                                .text_color(rgb(palette.text_muted))
+                                .child(local_backup_status),
+                        )
+                    }),
             ))
             .child(settings_form_section(
                 palette,

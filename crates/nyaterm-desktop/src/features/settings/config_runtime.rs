@@ -4,8 +4,7 @@ use gpui::{
     AnyElement, Context, FontWeight, KeyDownEvent, PathPromptOptions, SharedString, Window, div,
     prelude::*, rgb,
 };
-use nyaterm_store::ConnectionStore;
-use nyaterm_store::{BootstrapSnapshot, LoadBootstrap};
+use nyaterm_store::{BootstrapSnapshot, LoadBootstrap, StoreDomain};
 use nyaterm_transport::SftpDuplicatePolicy;
 use nyaterm_ui::NyaDialogWindowExt;
 
@@ -336,25 +335,31 @@ impl NyaTermApp {
         }
         let directory = self.runtime.config_dir().to_path_buf();
         let receiver = cx.prompt_for_new_path(&directory, Some("nyaterm-encrypted.nya"));
-        let config_dir = self.runtime.config_dir().to_path_buf();
-        let portable_key_path = self.runtime.portable_key_path().map(ToOwned::to_owned);
+        let store = self.store_blocking_client();
         let scheduler = self.blocking_jobs.clone();
         self.shell
             .set_status("selecting encrypted portable snapshot destination".to_string());
         self.settings
             .set_store_message("selecting encrypted .nya export destination");
+        self.request_settings_panel_refresh(cx);
         cx.spawn(async move |this, cx| {
             let result = match receiver.await {
                 Ok(Ok(Some(path))) => {
+                    let _ = this.update(cx, |this, cx| {
+                        this.settings
+                            .update_store_status("exporting encrypted .nya snapshot", false);
+                        this.request_settings_panel_refresh(cx);
+                    });
+                    tracing::info!(operation = "portable_snapshot_export", "started");
                     let task = scheduler.submit_task("portable-snapshot-export", move |_| {
-                        match ConnectionStore::export_encrypted_portable_snapshot(
-                            &config_dir,
-                            portable_key_path,
-                            &path,
-                            "native-local",
-                            env!("CARGO_PKG_VERSION"),
-                            master_password.expose_secret(),
-                        ) {
+                        match store.request_fn(StoreDomain::Settings, move |database| {
+                            database.export_encrypted_portable_snapshot_from_open_store(
+                                &path,
+                                "native-local",
+                                env!("CARGO_PKG_VERSION"),
+                                master_password.expose_secret(),
+                            )
+                        }) {
                             Ok(info) => ConfigPathPromptResult::Exported(info),
                             Err(error) => ConfigPathPromptResult::Failed(error.to_string()),
                         }
@@ -401,28 +406,34 @@ impl NyaTermApp {
             prompt: Some(SharedString::from("Select encrypted .nya snapshot")),
         };
         let receiver = cx.prompt_for_paths(options);
-        let config_dir = self.runtime.config_dir().to_path_buf();
-        let portable_key_path = self.runtime.portable_key_path().map(ToOwned::to_owned);
+        let store = self.store_blocking_client();
         let scheduler = self.blocking_jobs.clone();
         self.shell
             .set_status("selecting encrypted portable snapshot to import".to_string());
         self.settings
             .set_store_message("selecting encrypted .nya snapshot");
+        self.request_settings_panel_refresh(cx);
         cx.spawn(async move |this, cx| {
             let result = match receiver.await {
                 Ok(Ok(Some(paths))) => match paths.into_iter().next() {
                     Some(path) => {
-                        let task = scheduler.submit_task("portable-snapshot-import", move |_| {
-                            match ConnectionStore::import_encrypted_portable_snapshot(
-                                &config_dir,
-                                portable_key_path,
-                                &path,
-                                master_password.expose_secret(),
-                            ) {
+                        let _ = this.update(cx, |this, cx| {
+                            this.settings
+                                .update_store_status("importing encrypted .nya snapshot", false);
+                            this.request_settings_panel_refresh(cx);
+                        });
+                        tracing::info!(operation = "portable_snapshot_import", "started");
+                        let task =
+                            scheduler.submit_task("portable-snapshot-import", move |_| match store
+                                .request_fn(StoreDomain::Settings, move |database| {
+                                    database.import_encrypted_portable_snapshot_into_open_store(
+                                        &path,
+                                        master_password.expose_secret(),
+                                    )
+                                }) {
                                 Ok(info) => ConfigPathPromptResult::Imported(info),
                                 Err(error) => ConfigPathPromptResult::Failed(error.to_string()),
-                            }
-                        });
+                            });
                         await_blocking_job(task)
                             .await
                             .unwrap_or_else(ConfigPathPromptResult::Failed)
@@ -457,6 +468,11 @@ impl NyaTermApp {
         }
         match result {
             ConfigPathPromptResult::Exported(info) => {
+                tracing::info!(
+                    operation = "portable_snapshot_export",
+                    bytes = info.bytes,
+                    "completed"
+                );
                 let message = match kind {
                     ConfigPathPromptKind::EncryptedPortableExport => {
                         format!("exported {} byte encrypted .nya snapshot", info.bytes)
@@ -486,8 +502,12 @@ impl NyaTermApp {
                 });
             }
             ConfigPathPromptResult::Imported(info) => {
-                self.refresh_store_from_runtime_and_sync_theme(cx);
-                self.rebase_open_settings_draft(cx);
+                tracing::info!(
+                    operation = "portable_snapshot_import",
+                    bytes = info.bytes,
+                    safety_backup = info.safety_backup_path.is_some(),
+                    "completed"
+                );
                 let safety = info
                     .safety_backup_path
                     .as_ref()
@@ -507,7 +527,7 @@ impl NyaTermApp {
                         )
                     }
                 };
-                self.settings.update_store_status(message, true);
+                self.refresh_store_after_portable_import(message, cx);
                 self.shell.set_status(match kind {
                     ConfigPathPromptKind::EncryptedPortableImport => {
                         format!(
@@ -524,6 +544,7 @@ impl NyaTermApp {
                 });
             }
             ConfigPathPromptResult::Cancelled => {
+                tracing::info!(operation = ?kind, "portable snapshot picker cancelled");
                 self.shell.set_status(match kind {
                     ConfigPathPromptKind::EncryptedPortableExport => {
                         "encrypted portable snapshot export cancelled".to_string()
@@ -535,6 +556,7 @@ impl NyaTermApp {
                 self.settings.set_store_message("config picker cancelled");
             }
             ConfigPathPromptResult::Failed(error) => {
+                tracing::warn!(operation = ?kind, error = %error, "portable snapshot operation failed");
                 self.shell.set_status(match kind {
                     ConfigPathPromptKind::EncryptedPortableExport => {
                         format!("encrypted portable snapshot export failed: {error}")
@@ -547,11 +569,42 @@ impl NyaTermApp {
                     .update_store_status(self.shell.status().to_string(), false);
             }
             ConfigPathPromptResult::Closed => {
+                tracing::warn!(operation = ?kind, "portable snapshot picker closed");
                 self.shell
                     .set_status("config path picker closed before returning".to_string());
                 self.settings.set_store_message("config picker closed");
             }
         }
+        self.request_settings_panel_refresh(cx);
+    }
+
+    fn refresh_store_after_portable_import(
+        &mut self,
+        success_message: String,
+        cx: &mut Context<Self>,
+    ) {
+        self.submit_store_request(
+            0,
+            LoadBootstrap,
+            move |this, event, cx| match event.outcome {
+                Ok(snapshot) => {
+                    this.apply_store_refresh(snapshot, cx);
+                    this.rebase_open_settings_draft(cx);
+                    this.settings.update_store_status(success_message, true);
+                    this.request_settings_panel_refresh(cx);
+                    cx.notify();
+                }
+                Err(error) => {
+                    let message = format!("store refresh after import failed: {error}");
+                    tracing::warn!(error = %error, "portable snapshot import refresh failed");
+                    this.settings.update_store_status(message.clone(), false);
+                    this.shell.set_status(message);
+                    this.request_settings_panel_refresh(cx);
+                    cx.notify();
+                }
+            },
+            cx,
+        );
     }
 
     pub(in crate::features) fn refresh_store_from_runtime_and_sync_theme(

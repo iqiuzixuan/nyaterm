@@ -6237,6 +6237,7 @@ dependencies = [
  "hmac 0.13.0",
  "nyaterm-core",
  "redb",
+ "semver",
  "serde",
  "serde_json",
  "sha1 0.11.0",

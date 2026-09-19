@@ -710,29 +710,15 @@ fn encrypted_portable_snapshot_requires_master_password() {
             }],
         })
         .expect("seed source");
-    drop(source_store);
-
     assert!(
-        ConnectionStore::export_encrypted_portable_snapshot(
-            &source_dir,
-            None,
-            &snapshot_path,
-            "dev",
-            "1",
-            "",
-        )
-        .is_err()
+        source_store
+            .export_encrypted_portable_snapshot_from_open_store(&snapshot_path, "dev", "1", "",)
+            .is_err()
     );
 
-    ConnectionStore::export_encrypted_portable_snapshot(
-        &source_dir,
-        None,
-        &snapshot_path,
-        "dev",
-        "1",
-        "secret",
-    )
-    .expect("export encrypted snapshot");
+    source_store
+        .export_encrypted_portable_snapshot_from_open_store(&snapshot_path, "dev", "1", "secret")
+        .expect("export encrypted snapshot from open store");
     assert!(
         crate::decode_raw_portable_snapshot(
             &std::fs::read(&snapshot_path).expect("read encrypted snapshot")
@@ -794,22 +780,184 @@ fn encrypted_portable_snapshot_requires_master_password() {
         .expect("load preserved");
     assert_eq!(preserved.connections[0].name, "Keep");
 
-    ConnectionStore::import_encrypted_portable_snapshot(
-        &target_dir,
-        None,
-        &snapshot_path,
+    let target_store = ConnectionStore::open(&target_dir).expect("open target store");
+    let import = target_store
+        .import_encrypted_portable_snapshot_into_open_store(&snapshot_path, "secret")
+        .expect("import encrypted snapshot into open store");
+    let imported = target_store.load_sessions().expect("load imported");
+    assert_eq!(imported.connections[0].name, "Encrypted Snapshot");
+    let safety_backup_path = import
+        .safety_backup_path
+        .expect("encrypted safety backup path");
+    assert_eq!(
+        safety_backup_path
+            .extension()
+            .and_then(std::ffi::OsStr::to_str),
+        Some("nya")
+    );
+    let safety_snapshot = crate::decode_encrypted_raw_portable_snapshot(
+        &std::fs::read(&safety_backup_path).expect("read safety backup"),
         "secret",
     )
-    .expect("import encrypted snapshot");
-    let imported = ConnectionStore::open(&target_dir)
-        .expect("open imported")
-        .load_sessions()
-        .expect("load imported");
-    assert_eq!(imported.connections[0].name, "Encrypted Snapshot");
+    .expect("decode encrypted safety backup");
+    let safety_sessions: SessionsConfig = serde_json::from_str(
+        safety_snapshot
+            .entities
+            .get("sessions")
+            .expect("safety sessions entity"),
+    )
+    .expect("decode safety sessions");
+    assert!(safety_sessions.connections.is_empty());
+
+    drop(source_store);
+    drop(target_store);
 
     std::fs::remove_dir_all(source_dir).ok();
     std::fs::remove_dir_all(target_dir).ok();
     std::fs::remove_dir_all(wrong_target_dir).ok();
+    if let Some(parent) = snapshot_path.parent() {
+        std::fs::remove_dir_all(parent).ok();
+    }
+}
+
+#[test]
+fn legacy_tauri_snapshot_reencrypts_settings_and_rewraps_master_key() {
+    const SNAPSHOT_PASSWORD: &str = "legacy-snapshot-password";
+    const AI_SECRET: &str = "synthetic-ai-secret";
+    const CLOUD_SECRET: &str = "synthetic-cloud-secret";
+    const VAULT_SECRET: &str = "synthetic-vault-secret";
+
+    let source_dir = unique_temp_dir("legacy-tauri-portable-source");
+    let snapshot_path = unique_temp_dir("legacy-tauri-portable-output").join("legacy.nya");
+    let source = ConnectionStore::open(&source_dir).expect("source store");
+    source
+        .save_master_password(Some(SNAPSHOT_PASSWORD))
+        .expect("set source master password");
+
+    let mut ai = AiSettings::default();
+    ai.provider_profiles
+        .first_mut()
+        .expect("default AI profile")
+        .api_key = Some(AI_SECRET.into());
+    source
+        .save_ai_settings(ai)
+        .expect("save source AI settings");
+
+    let mut cloud = CloudSyncSettings::default();
+    cloud.webdav.password = Some(CLOUD_SECRET.into());
+    source
+        .save_cloud_sync_settings(cloud)
+        .expect("save source cloud settings");
+    source
+        .save_password(nyaterm_core::SavedPassword {
+            id: "legacy-account".to_string(),
+            name: "Legacy account".to_string(),
+            username: "legacy-user".to_string(),
+            password: Some(VAULT_SECRET.into()),
+            has_password: false,
+        })
+        .expect("save source vault secret");
+
+    let source_master_key = source
+        .load_master_key_token()
+        .expect("load source master key")
+        .expect("source master key exists");
+    let mut snapshot = source
+        .build_raw_portable_snapshot(
+            nyaterm_core::PortableSnapshotKind::Backup,
+            "legacy-device",
+            "1.2.10",
+        )
+        .expect("build source snapshot");
+    let mut settings: serde_json::Value =
+        serde_json::from_str(snapshot.entities.get("settings").expect("settings entity"))
+            .expect("decode settings entity");
+    settings["ai"] = serde_json::to_value(source.load_ai_settings().expect("load plaintext AI"))
+        .expect("encode plaintext AI");
+    settings["cloud_sync"] = serde_json::to_value(
+        source
+            .load_cloud_sync_settings()
+            .expect("load plaintext cloud settings"),
+    )
+    .expect("encode plaintext cloud settings");
+    settings["ai"]["future_ai_field"] = serde_json::json!("preserved");
+    settings["cloud_sync"]["future_cloud_field"] = serde_json::json!("preserved");
+    snapshot.entities.insert(
+        "settings".to_string(),
+        serde_json::to_string(&settings).expect("encode legacy settings"),
+    );
+    snapshot.recalculate_hash().expect("hash legacy snapshot");
+    let encoded = crate::encode_encrypted_raw_portable_snapshot(&snapshot, SNAPSHOT_PASSWORD)
+        .expect("encrypt legacy snapshot");
+    std::fs::create_dir_all(snapshot_path.parent().expect("snapshot parent"))
+        .expect("create snapshot parent");
+    std::fs::write(&snapshot_path, encoded).expect("write legacy snapshot");
+
+    for target_password in [None, Some("different-target-password")] {
+        let target_dir = unique_temp_dir(if target_password.is_some() {
+            "legacy-tauri-portable-password-target"
+        } else {
+            "legacy-tauri-portable-fallback-target"
+        });
+        let target = ConnectionStore::open(&target_dir).expect("target store");
+        if let Some(target_password) = target_password {
+            target
+                .save_master_password(Some(target_password))
+                .expect("set target master password");
+        }
+
+        target
+            .import_encrypted_portable_snapshot_into_open_store(&snapshot_path, SNAPSHOT_PASSWORD)
+            .expect("import legacy snapshot");
+
+        let loaded_ai = target
+            .load_ai_settings()
+            .expect("load imported AI settings");
+        assert_eq!(
+            loaded_ai.provider_profiles[0].api_key.as_deref(),
+            Some(AI_SECRET)
+        );
+        let loaded_cloud = target
+            .load_cloud_sync_settings()
+            .expect("load imported cloud settings");
+        assert_eq!(loaded_cloud.webdav.password.as_deref(), Some(CLOUD_SECRET));
+        let loaded_password = target
+            .load_decrypted_password_by_id("legacy-account")
+            .expect("load imported account")
+            .expect("imported account exists");
+        assert_eq!(loaded_password.password.as_deref(), Some(VAULT_SECRET));
+
+        let stored_settings = target.load_settings_value().expect("raw imported settings");
+        let stored_settings_text =
+            serde_json::to_string(&stored_settings).expect("encode raw imported settings");
+        assert!(!stored_settings_text.contains(AI_SECRET));
+        assert!(!stored_settings_text.contains(CLOUD_SECRET));
+        assert_eq!(stored_settings["ai"]["future_ai_field"], "preserved");
+        assert_eq!(
+            stored_settings["cloud_sync"]["future_cloud_field"],
+            "preserved"
+        );
+        assert_eq!(
+            target
+                .load_app_settings_summary()
+                .expect("target settings summary")
+                .has_master_password,
+            target_password.is_some()
+        );
+        assert_ne!(
+            target
+                .load_master_key_token()
+                .expect("load target master key")
+                .expect("target master key exists"),
+            source_master_key
+        );
+
+        drop(target);
+        std::fs::remove_dir_all(target_dir).ok();
+    }
+
+    drop(source);
+    std::fs::remove_dir_all(source_dir).ok();
     if let Some(parent) = snapshot_path.parent() {
         std::fs::remove_dir_all(parent).ok();
     }

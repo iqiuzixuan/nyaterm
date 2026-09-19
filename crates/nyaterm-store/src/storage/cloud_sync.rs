@@ -111,30 +111,35 @@ impl ConnectionStore {
         } else {
             None
         };
-        let master_key_token = master_key_token.as_deref();
-        settings.webdav.password =
-            encrypt_optional_secret(&crypto, master_key_token, &settings.webdav.password)?;
-        settings.s3.access_key_id =
-            encrypt_optional_secret(&crypto, master_key_token, &settings.s3.access_key_id)?;
-        settings.s3.secret_access_key =
-            encrypt_optional_secret(&crypto, master_key_token, &settings.s3.secret_access_key)?;
-        settings.s3.session_token =
-            encrypt_optional_secret(&crypto, master_key_token, &settings.s3.session_token)?;
-        settings.gitee_snippet.access_token = encrypt_optional_secret(
-            &crypto,
-            master_key_token,
-            &settings.gitee_snippet.access_token,
-        )?;
-        encrypt_oauth_drive_settings(&crypto, master_key_token, &mut settings.google_drive)?;
-        encrypt_oauth_drive_settings(&crypto, master_key_token, &mut settings.onedrive)?;
-        encrypt_aliyun_drive_settings(&crypto, master_key_token, &mut settings.aliyun_drive)?;
-        settings.github_gist.access_token = encrypt_optional_secret(
-            &crypto,
-            master_key_token,
-            &settings.github_gist.access_token,
-        )?;
+        encrypt_cloud_sync_settings_secrets(&mut settings, &crypto, master_key_token.as_deref())?;
         Ok(settings)
     }
+}
+
+pub(super) fn encrypt_cloud_sync_settings_secrets(
+    settings: &mut CloudSyncSettings,
+    crypto: &CredentialCrypto,
+    master_key_token: Option<&str>,
+) -> Result<(), StorageError> {
+    settings.webdav.password =
+        encrypt_optional_secret(crypto, master_key_token, &settings.webdav.password)?;
+    settings.s3.access_key_id =
+        encrypt_optional_secret(crypto, master_key_token, &settings.s3.access_key_id)?;
+    settings.s3.secret_access_key =
+        encrypt_optional_secret(crypto, master_key_token, &settings.s3.secret_access_key)?;
+    settings.s3.session_token =
+        encrypt_optional_secret(crypto, master_key_token, &settings.s3.session_token)?;
+    settings.gitee_snippet.access_token = encrypt_optional_secret(
+        crypto,
+        master_key_token,
+        &settings.gitee_snippet.access_token,
+    )?;
+    encrypt_oauth_drive_settings(crypto, master_key_token, &mut settings.google_drive)?;
+    encrypt_oauth_drive_settings(crypto, master_key_token, &mut settings.onedrive)?;
+    encrypt_aliyun_drive_settings(crypto, master_key_token, &mut settings.aliyun_drive)?;
+    settings.github_gist.access_token =
+        encrypt_optional_secret(crypto, master_key_token, &settings.github_gist.access_token)?;
+    Ok(())
 }
 
 fn decrypt_oauth_drive_settings(
@@ -193,7 +198,7 @@ fn encrypt_aliyun_drive_settings(
     Ok(())
 }
 
-fn cloud_sync_settings_has_secret(settings: &CloudSyncSettings) -> bool {
+pub(super) fn cloud_sync_settings_has_secret(settings: &CloudSyncSettings) -> bool {
     optional_secret_present(&settings.webdav.password)
         || optional_secret_present(&settings.s3.access_key_id)
         || optional_secret_present(&settings.s3.secret_access_key)

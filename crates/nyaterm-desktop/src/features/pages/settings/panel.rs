@@ -140,6 +140,8 @@ pub(in crate::features) struct SettingsPresentation {
     pub(in crate::features) snapshot_password_prompt: Option<SnapshotPasswordPromptState>,
     pub(in crate::features) snapshot_password_prompt_active: bool,
     pub(in crate::features) config_path_prompt_active: bool,
+    pub(in crate::features) local_backup_status: String,
+    pub(in crate::features) local_backup_ready: bool,
     pub(in crate::features) terminal_theme_is_dark: bool,
     pub(in crate::features) panel_multi_open: bool,
 }
@@ -172,6 +174,8 @@ impl SettingsPresentation {
             snapshot_password_prompt: None,
             snapshot_password_prompt_active: false,
             config_path_prompt_active: false,
+            local_backup_status: String::new(),
+            local_backup_ready: true,
             terminal_theme_is_dark: true,
             panel_multi_open: false,
         }

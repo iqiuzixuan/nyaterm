@@ -991,14 +991,7 @@ impl ConnectionStore {
         } else {
             None
         };
-        let master_key_token = master_key_token.as_deref();
-        for profile in &mut settings.provider_profiles {
-            profile.api_key = encrypt_optional_secret(&crypto, master_key_token, &profile.api_key)?;
-        }
-        for credential in &mut settings.provider_credentials {
-            credential.api_key =
-                encrypt_optional_secret(&crypto, master_key_token, &credential.api_key)?;
-        }
+        encrypt_ai_settings_secrets(&mut settings, &crypto, master_key_token.as_deref())?;
         Ok(settings)
     }
 
@@ -1133,6 +1126,21 @@ impl ConnectionStore {
             })
             .collect()
     }
+}
+
+fn encrypt_ai_settings_secrets(
+    settings: &mut AiSettings,
+    crypto: &CredentialCrypto,
+    master_key_token: Option<&str>,
+) -> Result<(), StorageError> {
+    for profile in &mut settings.provider_profiles {
+        profile.api_key = encrypt_optional_secret(crypto, master_key_token, &profile.api_key)?;
+    }
+    for credential in &mut settings.provider_credentials {
+        credential.api_key =
+            encrypt_optional_secret(crypto, master_key_token, &credential.api_key)?;
+    }
+    Ok(())
 }
 
 fn merge_unknown_json(current: &serde_json::Value, next: &mut serde_json::Value) {
