@@ -12,6 +12,10 @@ on:
         required: false
         default: false
         type: boolean
+      source_run_id:
+        description: Optional Release run ID whose package artifacts should be reused
+        required: false
+        type: string
   push:
     tags: ['v*']
 
@@ -37,6 +41,10 @@ jobs:
       tag: ${{ steps.release.outputs.tag }}
       publish: ${{ steps.release.outputs.publish }}
       prerelease: ${{ steps.release.outputs.prerelease }}
+      source_sha: ${{ steps.source.outputs.sha }}
+    permissions:
+      actions: read
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -53,10 +61,15 @@ jobs:
         id: release
         shell: bash
         env:
+          INPUT_SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_UPLOAD: ${{ inputs.upload_release }}
         run: |
           set -euo pipefail
+          if [[ -n "${INPUT_SOURCE_RUN_ID:-}" && "${INPUT_UPLOAD:-false}" != 'true' ]]; then
+            echo 'source_run_id requires upload_release=true' >&2
+            exit 1
+          fi
           workspace_version="$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')"
           publish='false'
           if [[ "${GITHUB_REF_TYPE}" == 'tag' ]]; then
@@ -94,7 +107,41 @@ jobs:
             echo "prerelease=${prerelease}"
           } >> "${GITHUB_OUTPUT}"
 
+      - name: Validate source release run
+        id: source
+        if: github.event_name == 'workflow_dispatch' && inputs.source_run_id != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "${SOURCE_RUN_ID}" =~ ^[0-9]+$ ]] || {
+            echo 'source_run_id must be a numeric GitHub Actions run ID' >&2
+            exit 1
+          }
+
+          source_workflow_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" --jq '.workflow_id')"
+          current_workflow_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/release.yml" --jq '.id')"
+          source_status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" --jq '.status')"
+          source_sha="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" --jq '.head_sha')"
+
+          [[ "${source_workflow_id}" == "${current_workflow_id}" ]] || {
+            echo "run ${SOURCE_RUN_ID} was not produced by release.yml" >&2
+            exit 1
+          }
+          [[ "${source_status}" == 'completed' ]] || {
+            echo "run ${SOURCE_RUN_ID} has not completed" >&2
+            exit 1
+          }
+          [[ "${source_sha}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "run ${SOURCE_RUN_ID} returned an invalid head SHA" >&2
+            exit 1
+          }
+          echo "sha=${source_sha}" >> "${GITHUB_OUTPUT}"
+
       - name: Verify build configuration
+        if: github.event_name != 'workflow_dispatch' || inputs.source_run_id == ''
         shell: bash
         env:
           NYATERM_GITHUB_GIST_CLIENT_ID: ${{ vars.NYATERM_GITHUB_GIST_CLIENT_ID }}
@@ -106,14 +153,18 @@ jobs:
           fi
 
       - name: Set up Rust
+        if: github.event_name != 'workflow_dispatch' || inputs.source_run_id == ''
         uses: ./.github/actions/setup-rust
         with:
           cache-key: release-preflight
       - name: Install Linux system dependencies
+        if: github.event_name != 'workflow_dispatch' || inputs.source_run_id == ''
         uses: ./.github/actions/install-linux-deps
       - name: Test workspace
+        if: github.event_name != 'workflow_dispatch' || inputs.source_run_id == ''
         run: cargo test --workspace --locked --no-fail-fast
       - name: Test packaging and release helpers
+        if: github.event_name != 'workflow_dispatch' || inputs.source_run_id == ''
         run: >-
           python -m unittest
           scripts.tests.test_check_release_assets
@@ -130,6 +181,7 @@ jobs:
   package:
     name: Package ${{ matrix.label }}
     needs: preflight
+    if: github.event_name != 'workflow_dispatch' || inputs.source_run_id == ''
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:
@@ -203,10 +255,18 @@ jobs:
   release:
     name: Publish GitHub release
     needs: [preflight, package]
-    if: needs.preflight.outputs.publish == 'true'
+    if: >-
+      always() &&
+      needs.preflight.result == 'success' &&
+      needs.preflight.outputs.publish == 'true' &&
+      (needs.package.result == 'success' ||
+      (github.event_name == 'workflow_dispatch' &&
+      inputs.source_run_id != '' &&
+      needs.package.result == 'skipped'))
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
+      actions: read
       contents: write
     outputs:
       version: ${{ needs.preflight.outputs.version }}
@@ -229,11 +289,21 @@ jobs:
       - name: Install signature verification tool
         run: sudo apt-get update && sudo apt-get install -y minisign
       - name: Download package artifacts
+        if: github.event_name != 'workflow_dispatch' || inputs.source_run_id == ''
         uses: actions/download-artifact@v4
         with:
           pattern: NyaTerm-*
           path: dist-release
           merge-multiple: true
+      - name: Download reused package artifacts
+        if: github.event_name == 'workflow_dispatch' && inputs.source_run_id != ''
+        uses: actions/download-artifact@v4
+        with:
+          pattern: NyaTerm-*
+          path: dist-release
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.source_run_id }}
       - name: Validate release assets
         env:
           VERSION: ${{ needs.preflight.outputs.version }}
@@ -246,6 +316,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.preflight.outputs.tag }}
+          TARGET_SHA: ${{ needs.preflight.outputs.source_sha || github.sha }}
         run: |
           set -euo pipefail
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
@@ -253,7 +324,7 @@ jobs:
             published_at="$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json publishedAt --jq '.publishedAt')"
           else
             gh api --method POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
-              -f tag_name="${TAG}" -f target_commitish="${GITHUB_SHA}" --jq '.body // ""' > release-notes.md
+              -f tag_name="${TAG}" -f target_commitish="${TARGET_SHA}" --jq '.body // ""' > release-notes.md
             published_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           fi
           echo "published_at=${published_at}" >> "${GITHUB_OUTPUT}"
@@ -294,7 +365,10 @@ jobs:
           )
           for file in "${files[@]}"; do
             npx --yes @tauri-apps/cli@2.10.0 signer sign --password "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" "${file}"
-            minisign -Vm "${file}" -p "${RUNNER_TEMP}/nyaterm-updater.pub" -x "${file}.sig"
+            decoded_sig="${RUNNER_TEMP}/$(basename "${file}").minisig"
+            base64 --decode "${file}.sig" > "${decoded_sig}"
+            minisign -Vm "${file}" -p "${RUNNER_TEMP}/nyaterm-updater.pub" -x "${decoded_sig}"
+            rm -- "${decoded_sig}"
           done
       - name: Generate checksums and manifests
         shell: bash
@@ -316,6 +390,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
           TAG: ${{ needs.preflight.outputs.tag }}
+          TARGET_SHA: ${{ needs.preflight.outputs.source_sha || github.sha }}
         run: |
           set -euo pipefail
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
@@ -323,7 +398,7 @@ jobs:
             gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
               -f name="NyaTerm ${TAG}" -F prerelease="${PRERELEASE}" >/dev/null
           else
-            args=(release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" --title "NyaTerm ${TAG}" --notes-file release-notes.md)
+            args=(release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --target "${TARGET_SHA}" --title "NyaTerm ${TAG}" --notes-file release-notes.md)
             [[ "${PRERELEASE}" == 'true' ]] && args+=(--prerelease)
             gh "${args[@]}"
           fi
