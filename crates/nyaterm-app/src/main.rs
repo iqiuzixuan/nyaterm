@@ -67,7 +67,6 @@ fn main() -> anyhow::Result<()> {
                     appears_transparent: true,
                     traffic_light_position: cfg!(target_os = "macos")
                         .then(|| point(px(9.), px(11.))),
-                    ..Default::default()
                 }),
                 #[cfg(target_os = "linux")]
                 window_decorations: Some(gpui::WindowDecorations::Client),
