@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import textwrap
+import time
 import tomllib
 import zipfile
 from dataclasses import dataclass
@@ -118,6 +119,19 @@ def run(
 ) -> None:
     print("+", " ".join(args), flush=True)
     subprocess.run(args, cwd=cwd, env=env, check=True)
+
+
+def run_with_retry(args: list[str], *, attempts: int = 3, delay_seconds: float = 2.0) -> None:
+    if attempts < 1:
+        raise ValueError("attempts must be at least 1")
+    for attempt in range(1, attempts + 1):
+        try:
+            run(args)
+            return
+        except subprocess.CalledProcessError:
+            if attempt == attempts:
+                raise
+            time.sleep(delay_seconds)
 
 
 def require_tool(name: str) -> str:
@@ -324,8 +338,10 @@ def create_windows_packages(
             InstallDir "$LOCALAPPDATA\Programs\{identity.display_name}"
             InstallDirRegKey HKCU "{identity.windows_registry_key}" "InstallDir"
             VIProductVersion "{windows_numeric_version(version)}"
+            VIFileVersion "{windows_numeric_version(version)}"
             VIAddVersionKey "ProductName" "{identity.display_name}"
             VIAddVersionKey "ProductVersion" "{version}"
+            VIAddVersionKey "FileVersion" "{version}"
             VIAddVersionKey "FileDescription" "{identity.display_name} native GPUI terminal"
             VIAddVersionKey "LegalCopyright" "Copyright Kang"
 
@@ -439,7 +455,7 @@ def create_macos_packages(
     shutil.copytree(bundle, dmg_root / identity.macos_bundle_name, symlinks=True)
     (dmg_root / "Applications").symlink_to("/Applications")
     dmg_output = DIST_DIR / f"{APP_NAME}_{artifact_version}_{info.label}.dmg"
-    run(
+    run_with_retry(
         [
             require_tool("hdiutil"),
             "create",

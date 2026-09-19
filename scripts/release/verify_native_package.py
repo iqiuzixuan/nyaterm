@@ -214,7 +214,11 @@ def verify_windows_installer_script(content: str, version: str) -> None:
         f'Name "{identity.display_name}"',
         rf'InstallDir "$LOCALAPPDATA\Programs\{identity.display_name}"',
         f'InstallDirRegKey HKCU "{identity.windows_registry_key}" "InstallDir"',
+        f'VIProductVersion "{package_native.windows_numeric_version(version)}"',
+        f'VIFileVersion "{package_native.windows_numeric_version(version)}"',
         f'VIAddVersionKey "ProductName" "{identity.display_name}"',
+        f'VIAddVersionKey "ProductVersion" "{version}"',
+        f'VIAddVersionKey "FileVersion" "{version}"',
         f'VIAddVersionKey "FileDescription" "{identity.display_name} native GPUI terminal"',
         f'WriteRegStr HKCU "{identity.windows_registry_key}" "InstallDir" "$INSTDIR"',
         f'WriteRegStr HKCU "{identity.windows_uninstall_key}" "DisplayName" "{identity.display_name}"',
@@ -254,14 +258,25 @@ def verify_windows_installer(path: Path, target: str, version: str) -> None:
         metadata = json.loads(subprocess.check_output([
             "powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
             "$v = (Get-Item -LiteralPath $env:NYATERM_VERIFY_INSTALLER).VersionInfo; "
-            "$v | Select-Object ProductName,FileDescription,ProductVersion | ConvertTo-Json -Compress",
+            "$v | Select-Object ProductName,FileDescription,ProductVersion,FileVersion | ConvertTo-Json -Compress",
         ], text=True, env={**os.environ, "NYATERM_VERIFY_INSTALLER": str(path.resolve())}))
-        if metadata != {
+        expected_strings = {
             "ProductName": identity.display_name,
             "FileDescription": f"{identity.display_name} native GPUI terminal",
-            "ProductVersion": version,
-        }:
-            raise RuntimeError(f"{path.name} contains the wrong Windows version metadata")
+        }
+        for key, expected in expected_strings.items():
+            if metadata.get(key) != expected:
+                raise RuntimeError(
+                    f"{path.name} contains the wrong Windows version metadata: "
+                    f"{key}={metadata.get(key)!r}, expected {expected!r}"
+                )
+        numeric_version = package_native.windows_numeric_version(version)
+        for key in ("ProductVersion", "FileVersion"):
+            if metadata.get(key) not in {version, numeric_version}:
+                raise RuntimeError(
+                    f"{path.name} contains the wrong Windows version metadata: "
+                    f"{key}={metadata.get(key)!r}, expected {version!r} or {numeric_version!r}"
+                )
     with path.open("rb") as handle:
         header = handle.read(2)
     if header != b"MZ":
