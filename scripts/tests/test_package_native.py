@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import plistlib
+import subprocess
 import struct
 import tarfile
 from contextlib import contextmanager
@@ -67,6 +68,11 @@ class PackageNativeTests(unittest.TestCase):
                 package_native.create_windows_packages(binary, info, version, version)
                 script = (root / "work" / "nyaterm-installer.nsi").read_text()
                 verify_native_package.verify_windows_installer_script(script, version)
+                numeric_version = package_native.windows_numeric_version(version)
+                self.assertIn(f'VIProductVersion "{numeric_version}"', script)
+                self.assertIn(f'VIFileVersion "{numeric_version}"', script)
+                self.assertIn(f'VIAddVersionKey "ProductVersion" "{version}"', script)
+                self.assertIn(f'VIAddVersionKey "FileVersion" "{version}"', script)
                 self.assertIn(f'InstallDir "$LOCALAPPDATA\\Programs\\{identity.display_name}"', script)
                 self.assertIn(f'DeleteRegKey HKCU "{identity.windows_registry_key}"', script)
                 other_version = "2.0.0-preview.1" if version == "2.0.0" else "2.0.0"
@@ -94,6 +100,18 @@ class PackageNativeTests(unittest.TestCase):
                 archive = next((root / "dist").glob("*.tar.gz"))
                 with tarfile.open(archive) as handle:
                     self.assertIn(f"{identity.macos_bundle_name}/Contents/MacOS/NyaTerm", handle.getnames())
+
+    def test_run_with_retry_retries_transient_command_failures(self) -> None:
+        failure = subprocess.CalledProcessError(1, ["hdiutil", "create"])
+        with (
+            mock.patch.object(package_native, "run", side_effect=[failure, None]) as run,
+            mock.patch.object(package_native.time, "sleep") as sleep,
+        ):
+            package_native.run_with_retry(
+                ["hdiutil", "create"], attempts=3, delay_seconds=0.5
+            )
+        self.assertEqual(run.call_count, 2)
+        sleep.assert_called_once_with(0.5)
 
     def test_linux_formats_use_isolated_package_desktop_icons_and_install_paths(self) -> None:
         for version in ("2.0.0", "2.0.0-preview.1"):
