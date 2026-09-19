@@ -6060,6 +6060,7 @@ name = "nyaterm-app"
 version = "2.0.0-preview.1"
 dependencies = [
  "anyhow",
+ "embed-resource",
  "futures",
  "gpui",
  "gpui-component",
