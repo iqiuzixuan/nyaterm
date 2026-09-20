@@ -42,6 +42,23 @@ fn submit_docker_job(
     }
 }
 
+fn docker_error_kind(error: &str) -> &'static str {
+    let error = error.to_ascii_lowercase();
+    if error.contains("timed out") {
+        "timeout"
+    } else if error.contains("not installed") || error.contains("executable is unavailable") {
+        "executable_unavailable"
+    } else if error.contains("authorization") || error.contains("authentication") {
+        "authorization"
+    } else if error.contains("cancel") {
+        "cancelled"
+    } else if error.contains("session") || error.contains("multiplex") {
+        "session"
+    } else {
+        "remote_operation"
+    }
+}
+
 impl NyaTermApp {
     fn active_docker_runtime_context(
         &mut self,
@@ -693,6 +710,13 @@ impl NyaTermApp {
                     .set_status(self.remote_ops.docker_status().to_string());
             }
             Err(error) => {
+                tracing::warn!(
+                    job_id = event.job_id,
+                    session_id = %event.session_id,
+                    overview_refresh = was_overview_refresh,
+                    error_kind = docker_error_kind(&error),
+                    "Docker background operation failed"
+                );
                 if was_overview_refresh && self.remote_ops.record_docker_refresh_failure() >= 3 {
                     self.remote_ops.clear_docker_overview();
                 }

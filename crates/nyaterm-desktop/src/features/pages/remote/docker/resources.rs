@@ -36,7 +36,13 @@ pub(in crate::features::pages::remote) fn docker_images_panel(
     if pad_top > 0. {
         rows = rows.child(div().h(px(pad_top)).w_full().flex_none());
     }
-    for image in images.get(window_start..window_end).unwrap_or(&[]) {
+    for (visible_index, image) in images
+        .get(window_start..window_end)
+        .unwrap_or(&[])
+        .iter()
+        .enumerate()
+    {
+        let row_index = window_start + visible_index;
         let image_id = image.id.clone();
         let label = docker_image_label(image);
         let row_labels = labels.clone();
@@ -52,7 +58,7 @@ pub(in crate::features::pages::remote) fn docker_images_panel(
                 ),
             )
             .child(svg_icon_button(
-                format!("docker-image-remove-{}", compact_id(&image_id)),
+                format!("docker-image-remove-{row_index}-{}", compact_id(&image_id)),
                 "icons/fe/delete.svg",
                 14.,
                 palette,

@@ -103,8 +103,6 @@ pub(in crate::features) struct PanelChrome {
     /// `shell_surface_color(palette.surface)`, which the process and Docker row menus
     /// sit on.
     pub surface: Rgba,
-    /// `shell_surface_color(palette.bg)`, the Docker confirm dialog's ground.
-    pub dialog_surface: Rgba,
     /// `shell_transparent_color(palette.section_header)`, the Docker section headers.
     pub transparent_section_header: Rgba,
 }
@@ -518,7 +516,6 @@ impl NyaTermApp {
         PanelChrome {
             transparent_surface: self.shell_transparent_color(palette.surface),
             surface: self.shell_surface_color(palette.surface),
-            dialog_surface: self.shell_surface_color(palette.bg),
             transparent_section_header: self.shell_transparent_color(palette.section_header),
             palette,
         }
@@ -1922,6 +1919,28 @@ mod isolation_tests {
                 "{label} must not re-render Stats, GPU or NPU"
             );
         }
+    }
+
+    #[test]
+    fn duplicate_docker_image_ids_keep_accessibility_nodes_unique() {
+        let test_dir = TestConfigDir::new("nyaterm-docker-image-a11y");
+        let mut cx = TestAppContext::single();
+        let (app, vcx) = hosted_docker(&mut cx, test_dir.path());
+
+        vcx.update(|window, cx| {
+            app.update(cx, |app, cx| {
+                let mut overview = docker_overview(2);
+                for (index, image) in overview.images.iter_mut().take(3).enumerate() {
+                    image.id = "sha256:shared-image-id".to_string();
+                    image.repository = format!("shared-repository-{index}");
+                }
+                app.remote_ops.apply_docker_overview(overview);
+                app.remote_ops.set_docker_tab(DockerTab::Images);
+                app.flush_remote_panel_snapshots(cx);
+            });
+            _ = window.draw(cx);
+        });
+        vcx.run_until_parked();
     }
 
     /// The compose fallback survives the move into the snapshot: a host without compose

@@ -15,7 +15,7 @@ use crate::models::{DockerConfirmAction, DockerConfirmState};
 use crate::theme::ThemePalette;
 use crate::widgets::{empty_panel, status_pill, svg_icon_button};
 
-use super::DockerRenderContext;
+use super::{DockerRenderContext, docker_menu_layer};
 
 pub(in crate::features::pages::remote) struct DockerContainersPanelState<'a> {
     pub has_snapshot: bool,
@@ -274,13 +274,13 @@ fn docker_container_row(
                         }),
                     ))
                     .when(menu_open, |this| {
-                        this.child(docker_container_action_menu(
+                        this.child(docker_menu_layer(docker_container_action_menu(
                             context,
                             container_id.clone(),
                             container.name.clone(),
                             running,
                             cx,
-                        ))
+                        )))
                     }),
             ),
         )
@@ -311,9 +311,6 @@ fn docker_container_action_menu(
 
     div()
         .id(SharedString::from(format!("docker-menu-{short}")))
-        .absolute()
-        .top(px(28.))
-        .right_0()
         .w(px(148.))
         .rounded_md()
         .border_1()
@@ -323,7 +320,8 @@ fn docker_container_action_menu(
         .py_1()
         .flex()
         .flex_col()
-        .on_mouse_down(MouseButton::Left, |_, _, _| {})
+        .occlude()
+        .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
         .child(docker_menu_item(
             palette,
             format!("docker-menu-logs-{short}"),

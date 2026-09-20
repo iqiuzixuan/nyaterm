@@ -10,7 +10,7 @@ use crate::features::shell::gpui_code_font_family;
 use crate::models::DockerTab;
 use crate::theme::ThemePalette;
 
-use super::DockerRenderContext;
+use super::{DockerRenderContext, docker_tab_menu_layer};
 
 pub(in crate::features::pages::remote) struct DockerTabBarLabels {
     pub tabs: [String; 5],
@@ -31,20 +31,16 @@ pub(in crate::features::pages::remote) fn docker_overview_strip(
     let stopped = overview.containers.len().saturating_sub(running);
 
     div()
-        .h(px(32.))
+        .h(px(30.))
         .flex_none()
-        .mx_2()
-        .mt_2()
-        .mb_2()
-        .rounded_md()
+        .rounded_sm()
         .border_1()
         .border_color(rgb(palette.border))
         .bg(rgb(palette.section_header))
-        .px_2()
+        .px_1()
         .flex()
         .items_center()
-        .justify_between()
-        .gap_1()
+        .gap(px(2.))
         .child(docker_overview_stat(
             palette,
             running_label,
@@ -73,8 +69,10 @@ fn docker_overview_stat(
 ) -> impl IntoElement {
     div()
         .min_w_0()
+        .flex_1()
         .flex()
         .items_center()
+        .justify_center()
         .gap_1()
         .text_size(px(10.))
         .text_color(accent.map(rgb).unwrap_or_else(|| rgb(palette.text_muted)))
@@ -164,10 +162,6 @@ pub(in crate::features::pages::remote) fn docker_tab_bar(
         .relative()
         .h(px(32.))
         .flex_none()
-        .px_2()
-        .border_b_1()
-        .border_color(rgb(palette.border))
-        .bg(rgb(palette.section_header))
         .flex()
         .items_center()
         .gap_1();
@@ -193,27 +187,23 @@ pub(in crate::features::pages::remote) fn docker_tab_bar(
         ),
     );
     if !hidden_tabs.is_empty() {
-        bar = bar.child(
-            div()
-                .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                .child(docker_tab_button(
-                    palette,
-                    "docker-tab-more",
-                    more_label,
-                    menu_open || more_active,
-                    cx.listener(|panel, _, _, cx| {
-                        panel.with_app(cx, |this, cx| {
-                            this.toggle_docker_tab_menu(cx);
-                        });
-                    }),
-                )),
-        );
+        let mut more = div()
+            .relative()
+            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+            .child(docker_tab_button(
+                palette,
+                "docker-tab-more",
+                more_label,
+                menu_open || more_active,
+                cx.listener(|panel, _, _, cx| {
+                    panel.with_app(cx, |this, cx| {
+                        this.toggle_docker_tab_menu(cx);
+                    });
+                }),
+            ));
         if menu_open {
             let mut menu = div()
                 .id("docker-tab-more-menu")
-                .absolute()
-                .top(px(30.))
-                .right(px(4.))
                 .w(px(160.))
                 .rounded_md()
                 .border_1()
@@ -223,6 +213,7 @@ pub(in crate::features::pages::remote) fn docker_tab_bar(
                 .py_1()
                 .flex()
                 .flex_col()
+                .occlude()
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation());
             for (index, (tab, label)) in hidden_tabs.iter().enumerate() {
                 let tab = *tab;
@@ -240,8 +231,9 @@ pub(in crate::features::pages::remote) fn docker_tab_bar(
                     }),
                 ));
             }
-            bar = bar.child(menu);
+            more = more.child(docker_tab_menu_layer(menu));
         }
+        bar = bar.child(more);
     }
     bar
 }
