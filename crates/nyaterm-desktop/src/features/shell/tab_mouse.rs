@@ -6,7 +6,7 @@ use gpui::{
     StatefulInteractiveElement as _, Styled as _, Window, div, prelude::FluentBuilder as _, px,
     rgb, rgba, svg,
 };
-use nyaterm_core::{group_path_label, truncate_preview};
+use nyaterm_core::{assets::build_group_path, models::Group, truncate_preview};
 use nyaterm_ui::NyaIconButton;
 
 use crate::features::{NyaTermApp, formatting::short_id, view_widgets::mono_icon};
@@ -288,6 +288,20 @@ fn line_looks_copyable(line: &str) -> bool {
     true
 }
 
+fn session_tab_group_label(groups: &[Group], group_id: Option<&str>, ungrouped: &str) -> String {
+    let path = build_group_path(groups, group_id)
+        .into_iter()
+        .skip(1)
+        .map(|segment| segment.name)
+        .collect::<Vec<_>>()
+        .join(" / ");
+    if path.is_empty() {
+        ungrouped.to_string()
+    } else {
+        path
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub(in crate::features) enum TabMouseActionTarget {
     Double,
@@ -315,7 +329,7 @@ impl NyaTermApp {
         let group = connection.map_or_else(
             || ungrouped.clone(),
             |connection| {
-                group_path_label(
+                session_tab_group_label(
                     self.connection_state.groups(),
                     connection.group_id.as_deref(),
                     &ungrouped,
@@ -601,4 +615,59 @@ fn normalize_tab_mouse_action(action: &str) -> &'static str {
         .copied()
         .find(|item| *item == action)
         .unwrap_or("none")
+}
+
+#[cfg(test)]
+mod tests {
+    use nyaterm_core::models::Group;
+
+    use super::session_tab_group_label;
+
+    fn group(id: &str, name: &str, parent_id: Option<&str>) -> Group {
+        Group {
+            id: id.to_string(),
+            name: name.to_string(),
+            parent_id: parent_id.map(ToOwned::to_owned),
+            ..Group::default()
+        }
+    }
+
+    #[test]
+    fn session_tab_group_label_uses_ungrouped_for_no_group() {
+        let groups = [group("production", "Production", None)];
+        assert_eq!(
+            session_tab_group_label(&groups, None, "Ungrouped"),
+            "Ungrouped"
+        );
+    }
+
+    #[test]
+    fn session_tab_group_label_omits_root_for_top_level_group() {
+        let groups = [group("production", "Production", None)];
+        assert_eq!(
+            session_tab_group_label(&groups, Some("production"), "Ungrouped"),
+            "Production"
+        );
+    }
+
+    #[test]
+    fn session_tab_group_label_joins_only_real_ancestors() {
+        let groups = [
+            group("production", "Production", None),
+            group("web", "Web Servers", Some("production")),
+        ];
+        assert_eq!(
+            session_tab_group_label(&groups, Some("web"), "Ungrouped"),
+            "Production / Web Servers"
+        );
+    }
+
+    #[test]
+    fn session_tab_group_label_uses_ungrouped_for_missing_group() {
+        let groups = [group("production", "Production", None)];
+        assert_eq!(
+            session_tab_group_label(&groups, Some("deleted"), "Ungrouped"),
+            "Ungrouped"
+        );
+    }
 }
