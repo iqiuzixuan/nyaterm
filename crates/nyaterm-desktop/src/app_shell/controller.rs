@@ -177,7 +177,7 @@ impl DesktopController {
             let event = process_state.update(cx, |state, cx| {
                 state.mutate(
                     GlobalStateMutation::ReplaceSnapshot {
-                        snapshot,
+                        snapshot: Box::new(snapshot),
                         domain: SharedStateDomain::All,
                     },
                     cx,
@@ -271,7 +271,10 @@ impl DesktopController {
         };
         let event = process_state.update(cx, |state, cx| {
             state.mutate(
-                GlobalStateMutation::ReplaceSnapshot { snapshot, domain },
+                GlobalStateMutation::ReplaceSnapshot {
+                    snapshot: Box::new(snapshot),
+                    domain,
+                },
                 cx,
             )
         });
@@ -633,7 +636,7 @@ impl DesktopController {
         self.shared_refresh_generation = self.shared_refresh_generation.saturating_add(1);
         self.applied_shared_refresh_generation = self.shared_refresh_generation;
         let event = process_state.update(cx, |state, cx| {
-            state.mutate(GlobalStateMutation::UpdateSettings(settings), cx)
+            state.mutate(GlobalStateMutation::UpdateSettings(Box::new(settings)), cx)
         });
         self.broadcast_shared_state(event, cx);
     }

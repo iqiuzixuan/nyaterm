@@ -46,9 +46,9 @@ pub(crate) struct SettingsDraftRevisions {
 }
 
 pub(crate) enum GlobalStateMutation {
-    UpdateSettings(nyaterm_core::AppSettingsSummary),
+    UpdateSettings(Box<nyaterm_core::AppSettingsSummary>),
     ReplaceSnapshot {
-        snapshot: BootstrapSnapshot,
+        snapshot: Box<BootstrapSnapshot>,
         domain: SharedStateDomain,
     },
 }
@@ -112,7 +112,7 @@ impl ProcessStateStore {
         let domain = match mutation {
             GlobalStateMutation::UpdateSettings(settings) => {
                 let local = &self.snapshot.settings;
-                let mut settings = settings;
+                let mut settings = *settings;
                 settings.ui_left_panel_width = local.ui_left_panel_width;
                 settings.ui_right_panel_width = local.ui_right_panel_width;
                 settings.ui_quick_cmd_height = local.ui_quick_cmd_height;
@@ -140,7 +140,7 @@ impl ProcessStateStore {
                     changed = normalized != self.snapshot.settings
                         || snapshot.keyword_highlights != self.snapshot.keyword_highlights;
                 }
-                self.snapshot = snapshot;
+                self.snapshot = *snapshot;
                 domain
             }
         };
@@ -225,7 +225,7 @@ mod tests {
         settings.ui_left_panel_width = 999;
         settings.ui_active_left_panel = Some("notes".to_string());
 
-        let event = state.apply_mutation(GlobalStateMutation::UpdateSettings(settings));
+        let event = state.apply_mutation(GlobalStateMutation::UpdateSettings(Box::new(settings)));
 
         assert_eq!(event.domain, SharedStateDomain::Settings);
         assert_eq!(state.snapshot.settings.language, "ja");
@@ -249,7 +249,7 @@ mod tests {
         let snapshot = state.snapshot.clone();
 
         let event = state.apply_mutation(GlobalStateMutation::ReplaceSnapshot {
-            snapshot,
+            snapshot: Box::new(snapshot),
             domain: SharedStateDomain::All,
         });
 
@@ -271,7 +271,7 @@ mod tests {
         let snapshot = state.snapshot.clone();
 
         let event = state.apply_mutation(GlobalStateMutation::ReplaceSnapshot {
-            snapshot,
+            snapshot: Box::new(snapshot),
             domain: SharedStateDomain::Settings,
         });
 

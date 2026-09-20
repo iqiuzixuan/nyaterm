@@ -35,6 +35,17 @@ mod types;
 
 pub(in crate::features) use types::SettingsDraftSnapshot;
 
+pub(crate) struct NyaTermStoreClients {
+    pub(crate) ui: StoreUiClient,
+    pub(crate) blocking: StoreBlockingClient,
+}
+
+impl NyaTermStoreClients {
+    pub(crate) fn new(ui: StoreUiClient, blocking: StoreBlockingClient) -> Self {
+        Self { ui, blocking }
+    }
+}
+
 pub struct NyaTermApp {
     pub(in crate::features) workspace_id: nyaterm_core::WorkspaceId,
     pub(in crate::features) workspace_revision: u64,

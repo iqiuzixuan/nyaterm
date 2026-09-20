@@ -393,10 +393,6 @@ impl SecurityFeatureState {
         self.unlock.error = None;
     }
 
-    pub(in crate::features) fn unlock_without_master_password(&mut self) {
-        self.unlock.secrets_unlocked = true;
-    }
-
     pub(in crate::features) fn begin_unlock_request(&mut self) -> Option<(u64, SecretString)> {
         if self.unlock.busy || !self.unlock.prompt_open {
             return None;

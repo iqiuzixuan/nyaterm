@@ -35,7 +35,7 @@ use nyaterm_ui::{
 
 use crate::{
     entities::{OverlayStore, StartupRestoreStore, UiStoreHandles},
-    features::{AppLifecycleEvent, NyaTermApp},
+    features::{AppLifecycleEvent, NyaTermApp, NyaTermStoreClients},
 };
 
 actions!(
@@ -328,8 +328,10 @@ impl AppShell {
                 stores,
                 process_state,
                 workspace_init,
-                store_runtime.ui_client(),
-                store_runtime.blocking_client(),
+                NyaTermStoreClients::new(
+                    store_runtime.ui_client(),
+                    store_runtime.blocking_client(),
+                ),
                 session_manager,
                 cx,
             )

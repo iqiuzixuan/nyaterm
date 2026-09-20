@@ -395,11 +395,9 @@ impl NyaTermApp {
                         }
                     }
                 }
-                if settings_changed {
-                    if !settings.startup_restore_window_layout {
-                        store.save_terminal_window_layout(None)?;
-                        store.save_workspace_pane_layout(None)?;
-                    }
+                if settings_changed && !settings.startup_restore_window_layout {
+                    store.save_terminal_window_layout(None)?;
+                    store.save_workspace_pane_layout(None)?;
                 }
                 let saved_keyword_highlights = if keyword_changed {
                     store.save_keyword_highlights(&keyword_highlights)?

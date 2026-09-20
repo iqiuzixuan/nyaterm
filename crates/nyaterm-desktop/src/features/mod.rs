@@ -50,6 +50,7 @@ pub(crate) fn init_protection_key_bindings(cx: &mut gpui::App) {
 
 pub(crate) use app_state::AppLifecycleEvent;
 pub use app_state::NyaTermApp;
+pub(crate) use app_state::NyaTermStoreClients;
 pub(crate) use app_state::WorkspaceCloseSnapshot;
 pub(in crate::features) use font_catalog::{
     FontAvailability, FontAvailabilityReason, FontCatalogEntry, FontCatalogKind,

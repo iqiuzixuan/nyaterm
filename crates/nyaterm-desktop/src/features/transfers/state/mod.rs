@@ -1137,10 +1137,6 @@ impl TransferFeatureState {
         self.panel.height
     }
 
-    pub(in crate::features) fn set_panel_height(&mut self, height: f32) {
-        self.panel.height = height;
-    }
-
     pub(in crate::features) fn start_panel_height_resize(&mut self, start_y: Pixels) {
         self.panel.start_height_resize(start_y);
     }

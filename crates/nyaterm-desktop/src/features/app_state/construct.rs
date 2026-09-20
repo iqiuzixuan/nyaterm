@@ -7,7 +7,7 @@ use crate::models::{
 use crate::terminal::initial_terminal_screen;
 use gpui::{AppContext as _, Context};
 use nyaterm_core::{AppRuntime, uuid};
-use nyaterm_store::{BootstrapSnapshot, StoreBlockingClient, StoreUiClient};
+use nyaterm_store::BootstrapSnapshot;
 #[cfg(test)]
 use nyaterm_store::{LoadBootstrap, StoreConfig, StoreRuntime};
 use nyaterm_terminal::TerminalOutputDecoder;
@@ -15,7 +15,7 @@ use nyaterm_transport::{SessionManager, SftpDuplicatePolicy};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use super::NyaTermApp;
+use super::{NyaTermApp, NyaTermStoreClients};
 use crate::features::ai::{
     AiFeatureFocus, AiFeatureInit, AiFeatureState, AiPanel, ai_active_profile_drafts,
 };
@@ -57,12 +57,15 @@ impl NyaTermApp {
         stores: crate::entities::UiStoreHandles,
         process_state: gpui::Entity<crate::app_shell::ProcessStateStore>,
         workspace_init: crate::app_shell::WorkspaceInitSnapshot,
-        store_ui: StoreUiClient,
-        store_blocking: StoreBlockingClient,
+        store_clients: NyaTermStoreClients,
         session_manager: Arc<SessionManager>,
         cx: &mut Context<Self>,
     ) -> Self {
         nyaterm_core::warm_terminal_input_tracker();
+        let NyaTermStoreClients {
+            ui: store_ui,
+            blocking: store_blocking,
+        } = store_clients;
         let workspace_id = workspace_init.workspace_id;
         let mut bootstrap = process_state.read(cx).snapshot().clone();
         if let Some(workspace) = workspace_init.state.as_ref() {
@@ -471,8 +474,7 @@ impl NyaTermApp {
             stores,
             process_state,
             workspace_init,
-            store_ui,
-            store_blocking,
+            NyaTermStoreClients::new(store_ui, store_blocking),
             Arc::new(SessionManager::new()),
             cx,
         );
