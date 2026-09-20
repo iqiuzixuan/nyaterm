@@ -187,8 +187,7 @@ impl NyaTermApp {
             move |this, event, cx| {
                 match event.outcome {
                     Ok(config) => {
-                        this.commands
-                            .replace_quick_command_catalog(config.commands, config.categories);
+                        this.replace_quick_command_catalog(config.commands, config.categories, cx);
                         this.commands.close_quick_editor();
                         this.settings
                             .update_store_status(format!("quick command '{label}' saved"), true);

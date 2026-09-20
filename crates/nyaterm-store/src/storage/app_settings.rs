@@ -218,6 +218,11 @@ impl ConnectionStore {
                 &["ui", "quick_cmd_sort_mode"],
                 "created",
             )),
+            ui_quick_cmd_selected_category: json_string(
+                &value,
+                &["ui", "quick_cmd_selected_category"],
+                "all",
+            ),
             ui_saved_connections_sort_mode: normalize_saved_connections_sort_mode(&json_string(
                 &value,
                 &["ui", "saved_connections_sort_mode"],
@@ -771,6 +776,11 @@ impl ConnectionStore {
             &mut value,
             &["ui", "quick_cmd_sort_mode"],
             normalize_quick_cmd_sort_mode(&settings.ui_quick_cmd_sort_mode),
+        );
+        set_nested_json_string(
+            &mut value,
+            &["ui", "quick_cmd_selected_category"],
+            settings.ui_quick_cmd_selected_category.clone(),
         );
         self.save_settings_value(&value)?;
         self.load_app_settings_summary()

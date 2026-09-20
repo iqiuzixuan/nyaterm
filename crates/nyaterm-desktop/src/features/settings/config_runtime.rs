@@ -795,6 +795,12 @@ impl NyaTermApp {
                     &self.settings.summary().transfer_duplicate_strategy,
                 ));
         }
+        if matches!(
+            event.domain,
+            SharedStateDomain::Commands | SharedStateDomain::All
+        ) {
+            self.sync_quick_command_selected_category(cx);
+        }
         if !settings_blocked
             && matches!(event.domain, SharedStateDomain::Ai | SharedStateDomain::All)
         {

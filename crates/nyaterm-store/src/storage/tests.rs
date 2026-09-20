@@ -2344,6 +2344,7 @@ fn app_settings_summary_reads_and_updates_host_key_policy() {
     assert_eq!(summary.ui_docker_manager_interval, 13);
     assert_eq!(summary.ui_quick_cmd_view_mode, "compact");
     assert_eq!(summary.ui_quick_cmd_sort_mode, "useCount");
+    assert_eq!(summary.ui_quick_cmd_selected_category, "all");
     assert_eq!(
         summary.ui_file_explorer_view_mode,
         nyaterm_core::TransferBrowserViewMode::Tree
@@ -2753,11 +2754,23 @@ fn app_settings_summary_reads_and_updates_host_key_policy() {
     let mut quick_command_update = saved_terminal.clone();
     quick_command_update.ui_quick_cmd_view_mode = "list".to_string();
     quick_command_update.ui_quick_cmd_sort_mode = "name".to_string();
+    quick_command_update.ui_quick_cmd_selected_category = "category-1".to_string();
     let saved_quick_command_ui = store
         .save_quick_command_ui_settings(&quick_command_update)
         .expect("save quick command ui settings");
     assert_eq!(saved_quick_command_ui.ui_quick_cmd_view_mode, "list");
     assert_eq!(saved_quick_command_ui.ui_quick_cmd_sort_mode, "name");
+    assert_eq!(
+        saved_quick_command_ui.ui_quick_cmd_selected_category,
+        "category-1"
+    );
+    assert_eq!(
+        store
+            .load_app_settings_summary()
+            .expect("reload quick command settings")
+            .ui_quick_cmd_selected_category,
+        "category-1"
+    );
     let stored = store
         .load_settings_value()
         .expect("stored quick command ui settings");
@@ -2768,6 +2781,10 @@ fn app_settings_summary_reads_and_updates_host_key_policy() {
     assert_eq!(
         json_path(&stored, &["ui", "quick_cmd_sort_mode"]).and_then(|value| value.as_str()),
         Some("name")
+    );
+    assert_eq!(
+        json_path(&stored, &["ui", "quick_cmd_selected_category"]).and_then(|value| value.as_str()),
+        Some("category-1")
     );
 
     let mut ui_layout_update = saved_quick_command_ui.clone();

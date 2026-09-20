@@ -343,6 +343,7 @@ impl NyaTermApp {
                                             if event.keystroke.key == "escape" {
                                                 cx.stop_propagation();
                                                 this.commands.clear_quick_filters();
+                                                this.sync_quick_command_selected_category(cx);
                                                 this.reset_text_input(
                                                     "quick-command.search",
                                                     "",

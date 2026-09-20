@@ -882,6 +882,10 @@ impl SettingsFeatureState {
         self.summary.ui_quick_cmd_sort_mode = mode;
     }
 
+    pub(in crate::features) fn set_quick_command_selected_category(&mut self, category: String) {
+        self.summary.ui_quick_cmd_selected_category = category;
+    }
+
     pub(in crate::features) fn set_saved_connections_sort_mode(&mut self, mode: String) {
         self.summary.ui_saved_connections_sort_mode = mode;
     }

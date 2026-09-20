@@ -38,6 +38,13 @@ impl NyaTermApp {
         };
         crate::shortcuts::rebuild_keymap(&settings.keybindings, cx);
         self.settings.replace_summary(settings);
+        let selected = self
+            .settings
+            .summary()
+            .ui_quick_cmd_selected_category
+            .clone();
+        self.commands.select_quick_category(selected);
+        self.sync_quick_command_selected_category(cx);
         self.sync_component_theme(cx);
         if terminal_font_changed {
             // External loading or settings-save completion may replace font settings;

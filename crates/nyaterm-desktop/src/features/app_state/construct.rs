@@ -275,6 +275,7 @@ impl NyaTermApp {
                 history: command_history,
                 sort_mode: quick_command_sort_mode_from_setting(&settings.ui_quick_cmd_sort_mode),
                 view_mode: quick_command_view_mode_from_setting(&settings.ui_quick_cmd_view_mode),
+                selected_category: settings.ui_quick_cmd_selected_category.clone(),
                 focus: QuickCommandFeatureFocus {
                     editor: cx.focus_handle(),
                     details: cx.focus_handle(),
@@ -424,6 +425,7 @@ impl NyaTermApp {
             _test_config_dir: None,
         };
         app.update_custom_icons(custom_icons, cx);
+        app.sync_quick_command_selected_category(cx);
         app
     }
 
