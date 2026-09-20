@@ -198,7 +198,11 @@ docker ps -a --no-trunc --format "CONTAINER\t{{.ID}}\t{{.Names}}\t{{.Image}}\t{{
 if docker compose version >/dev/null 2>&1; then
   printf "COMPOSE_AVAILABLE\t1\n"
 else
-  printf "COMPOSE_AVAILABLE\t0\n"
+  compose_version=$(docker-compose version --short 2>/dev/null || true)
+  case "$compose_version" in
+    2.*|v2.*) printf "COMPOSE_AVAILABLE\t1\n" ;;
+    *) printf "COMPOSE_AVAILABLE\t0\n" ;;
+  esac
 fi
 '"#;
 
@@ -207,11 +211,17 @@ pub const DOCKER_VOLUMES_SCRIPT: &str =
     r#"docker volume ls --format "VOLUME\t{{.Driver}}\t{{.Name}}" 2>/dev/null"#;
 pub const DOCKER_NETWORKS_SCRIPT: &str = r#"docker network ls --no-trunc --format "NETWORK\t{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.Scope}}" 2>/dev/null"#;
 pub const DOCKER_COMPOSE_PROJECTS_SCRIPT: &str = r#"sh -c '
-if ! docker compose version >/dev/null 2>&1; then
+if docker compose version >/dev/null 2>&1; then
+  docker compose ls --format json 2>/dev/null || true
   exit 0
 fi
-docker compose ls --format json 2>/dev/null || true
+compose_version=$(docker-compose version --short 2>/dev/null || true)
+case "$compose_version" in
+  2.*|v2.*) docker-compose ls --format json 2>/dev/null || true ;;
+esac
 '"#;
+
+const COMPOSE_COMMAND_SETUP: &str = "compose() { if docker compose version >/dev/null 2>&1; then docker compose \"$@\"; else case \"$(docker-compose version --short 2>/dev/null)\" in 2.*|v2.*) docker-compose \"$@\" ;; *) return 127 ;; esac; fi; }; ";
 
 pub const DOCKER_CONTAINER_DETAILS_INSPECT_BEGIN: &str = "INSPECT_JSON_BEGIN";
 pub const DOCKER_CONTAINER_DETAILS_INSPECT_END: &str = "INSPECT_JSON_END";
@@ -369,7 +379,11 @@ impl DockerService {
         if action == "up" {
             command.push_str(" -d");
         }
-        self.exec_success(&command, DOCKER_TIMEOUT, "Docker compose action failed")
+        self.exec_success(
+            &format!("{COMPOSE_COMMAND_SETUP}{command}"),
+            DOCKER_TIMEOUT,
+            "Docker compose action failed",
+        )
     }
 
     pub fn compose_services(
@@ -379,7 +393,7 @@ impl DockerService {
     ) -> anyhow::Result<Vec<DockerComposeService>> {
         let base = build_compose_base_command(project_name, config_files);
         let command = format!(
-            "services_output=$({base} config --services) || exit $?; \
+            "{COMPOSE_COMMAND_SETUP}services_output=$({base} config --services) || exit $?; \
              printf '%s\\n' \"$services_output\"; \
              printf '\\n{COMPOSE_PS_JSON_BEGIN}\\n'; \
              {base} ps --all --format json 2>/dev/null || true; \
@@ -408,7 +422,7 @@ impl DockerService {
         command.push(' ');
         command.push_str(&sh_quote(service_name));
         self.exec_success(
-            &command,
+            &format!("{COMPOSE_COMMAND_SETUP}{command}"),
             DOCKER_TIMEOUT,
             "Docker compose service action failed",
         )
@@ -1008,7 +1022,7 @@ fn compose_service_status(containers: &[DockerComposeServiceContainer]) -> Strin
 }
 
 fn build_compose_base_command(project_name: &str, config_files: Option<&str>) -> String {
-    let mut command = String::from("docker compose");
+    let mut command = String::from("compose");
     if let Some(config_files) = config_files.filter(|value| !value.trim().is_empty()) {
         for file in config_files
             .split(',')
@@ -1093,13 +1107,28 @@ fn sh_quote(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        DockerProbeClassification, classify_docker_probe, normalize_compose_action,
+        COMPOSE_COMMAND_SETUP, DOCKER_COMPOSE_PROJECTS_SCRIPT, DOCKER_OVERVIEW_SCRIPT,
+        DockerProbeClassification, build_compose_base_command, classify_docker_probe,
+        normalize_compose_action,
         normalize_compose_service_action, normalize_container_action, parse_compose_projects,
         parse_compose_services_output, parse_docker_container_details_output,
         parse_docker_images_output, parse_docker_networks_output, parse_docker_overview_output,
         parse_docker_volumes_output,
     };
     use crate::RemoteCommandOutput;
+
+    #[test]
+    fn standalone_compose_v2_is_available_for_listing_and_actions() {
+        assert!(DOCKER_OVERVIEW_SCRIPT.contains("docker-compose version --short"));
+        assert!(DOCKER_OVERVIEW_SCRIPT.contains("2.*|v2.*"));
+        assert!(DOCKER_COMPOSE_PROJECTS_SCRIPT.contains("docker-compose ls --format json"));
+        assert!(COMPOSE_COMMAND_SETUP.contains("docker-compose \"$@\""));
+        assert!(COMPOSE_COMMAND_SETUP.contains("*) return 127"));
+        assert_eq!(
+            build_compose_base_command("my project", Some("/a.yml,/b.yml")),
+            "compose -f '/a.yml' -f '/b.yml' -p 'my project'"
+        );
+    }
 
     #[test]
     fn parses_docker_overview_rows() {

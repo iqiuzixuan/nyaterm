@@ -88,7 +88,9 @@ impl From<StorageError> for StoreOperationError {
         let category = match &error {
             StorageError::CreateDir { .. } => "create_dir",
             StorageError::Open { .. } => "open",
-            StorageError::Crypto(_) | StorageError::MissingMasterKey => "crypto",
+            StorageError::Crypto(_)
+            | StorageError::MissingMasterKey
+            | StorageError::MissingPortableKey { .. } => "crypto",
             StorageError::InvalidData(_) | StorageError::PortableSnapshotEntity { .. } => {
                 "invalid_data"
             }

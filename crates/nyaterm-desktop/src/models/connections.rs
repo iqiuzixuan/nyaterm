@@ -378,6 +378,7 @@ pub(crate) struct ConnectionEditorState {
     pub(crate) account_id: Option<String>,
     pub(crate) password: nyaterm_core::SecretString,
     pub(crate) existing_password: Option<nyaterm_core::SecretString>,
+    pub(crate) existing_password_locked: bool,
     pub(crate) key_id: Option<String>,
     pub(crate) otp_id: Option<String>,
     pub(crate) auto_fill_otp: bool,

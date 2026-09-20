@@ -6236,6 +6236,7 @@ dependencies = [
  "futures",
  "hmac 0.13.0",
  "nyaterm-core",
+ "rand 0.10.2",
  "redb",
  "semver",
  "serde",

@@ -1,6 +1,10 @@
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use base64::{Engine, engine::general_purpose::STANDARD as B64};
+use rand::RngExt;
 use redb::{Database, ReadableDatabase, ReadableTable, TableDefinition};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
@@ -141,6 +145,13 @@ pub enum StorageError {
     Crypto(#[from] CredentialCryptoError),
     #[error("encrypted credential material exists but master key is missing")]
     MissingMasterKey,
+    #[error("portable encryption key is missing: {path}")]
+    MissingPortableKey { path: PathBuf },
+    #[error("failed to create portable encryption key {path}: {source}")]
+    CreatePortableKey {
+        path: PathBuf,
+        source: std::io::Error,
+    },
     #[error("configuration backup does not exist: {path}")]
     ConfigBackupMissing { path: PathBuf },
     #[error("configuration backup path is not a file: {path}")]
@@ -184,6 +195,8 @@ struct ConnectionPasswordRecord {
     updated_at_ms: u64,
 }
 
+struct PreparedConnectionForStorage(SavedConnection);
+
 impl ConnectionStore {
     pub fn open(config_dir: impl AsRef<Path>) -> Result<Self, StorageError> {
         Self::open_with_portable_key_path(config_dir, None)
@@ -209,6 +222,7 @@ impl ConnectionStore {
             portable_key_path,
         };
         store.ensure_tables()?;
+        store.ensure_portable_key()?;
         store.migrate_legacy_rdp_known_hosts()?;
         store.import_legacy_known_hosts_if_needed()?;
         Ok(store)
@@ -405,8 +419,9 @@ impl ConnectionStore {
     }
 
     pub fn replace_sessions(&self, config: &SessionsConfig) -> Result<(), StorageError> {
+        let prepared_connections = self.prepare_connections_for_storage(&config.connections)?;
         let txn = self.db.begin_write()?;
-        replace_sessions_in_txn(&txn, config)?;
+        replace_sessions_in_txn(&txn, config, &prepared_connections)?;
         txn.commit()?;
         Ok(())
     }
@@ -497,8 +512,9 @@ impl ConnectionStore {
     }
 
     pub fn save_connection(&self, connection: &SavedConnection) -> Result<(), StorageError> {
+        let connection = self.prepare_connection_for_storage(connection)?;
         let txn = self.db.begin_write()?;
-        save_connection_in_txn(&txn, connection)?;
+        save_connection_in_txn(&txn, &connection)?;
         txn.commit()?;
         Ok(())
     }
@@ -508,9 +524,10 @@ impl ConnectionStore {
         group: &Group,
         connection: &SavedConnection,
     ) -> Result<(), StorageError> {
+        let connection = self.prepare_connection_for_storage(connection)?;
         let txn = self.db.begin_write()?;
         save_group_in_txn(&txn, group)?;
-        save_connection_in_txn(&txn, connection)?;
+        save_connection_in_txn(&txn, &connection)?;
         txn.commit()?;
         Ok(())
     }
@@ -855,50 +872,122 @@ impl ConnectionStore {
         &self,
         connections: &mut [SavedConnection],
     ) -> Result<(), StorageError> {
-        let master_key_token = self.load_master_key_token()?;
+        let mut master_key_token = self.load_master_key_token()?;
         let crypto = self.credential_crypto()?;
-        let txn = self.db.begin_read()?;
-        let table = match txn.open_table(CREDENTIALS_TABLE) {
-            Ok(table) => table,
-            Err(redb::TableError::TableDoesNotExist(_)) => return Ok(()),
-            Err(error) => return Err(error.into()),
-        };
-        for connection in connections {
-            let Some(auth) = connection.auth.as_mut() else {
-                continue;
+        let records = {
+            let txn = self.db.begin_read()?;
+            let table = match txn.open_table(CREDENTIALS_TABLE) {
+                Ok(table) => table,
+                Err(redb::TableError::TableDoesNotExist(_)) => return Ok(()),
+                Err(error) => return Err(error.into()),
             };
-            if let (Some(master_key_token), Some(password)) = (
-                master_key_token.as_deref(),
-                auth.password
-                    .as_ref()
-                    .map(nyaterm_core::SecretString::expose_secret),
-            ) && let Ok(plaintext) = crypto.decrypt_secret(master_key_token, password)
+            let mut records: Vec<(usize, ConnectionPasswordRecord)> = Vec::new();
+            for (index, connection) in connections.iter_mut().enumerate() {
+                let Some(auth) = connection.auth.as_mut() else {
+                    continue;
+                };
+                if let (Some(master_key_token), Some(password)) = (
+                    master_key_token.as_deref(),
+                    auth.password
+                        .as_ref()
+                        .map(nyaterm_core::SecretString::expose_secret),
+                ) && let Ok(plaintext) = crypto.decrypt_secret(master_key_token, password)
+                {
+                    auth.password = Some(plaintext.into());
+                    auth.has_password = false;
+                    continue;
+                }
+                let key = entity_key(CONNECTION_PASSWORD_PREFIX, &connection.id);
+                if let Some(raw) = table.get(key.as_str())? {
+                    records.push((index, deserialize_json(raw.value())?));
+                }
+            }
+            records
+        };
+
+        let mut migrated_records = Vec::new();
+        for (index, mut record) in records {
+            let stored_password = record.password.expose_secret();
+            let auth = connections[index]
+                .auth
+                .as_mut()
+                .expect("connection auth existed while reading its password record");
+            if let Some(master_key_token) = master_key_token.as_deref()
+                && let Ok(plaintext) = crypto.decrypt_secret(master_key_token, stored_password)
             {
                 auth.password = Some(plaintext.into());
                 auth.has_password = false;
                 continue;
             }
-            let key = entity_key(CONNECTION_PASSWORD_PREFIX, &connection.id);
-            if let Some(raw) = table.get(key.as_str())? {
-                let record: ConnectionPasswordRecord = deserialize_json(raw.value())?;
-                if let Some(master_key_token) = master_key_token.as_deref() {
-                    match crypto.decrypt_secret(master_key_token, record.password.expose_secret()) {
-                        Ok(plaintext) => {
-                            auth.password = Some(plaintext.into());
-                            auth.has_password = false;
+
+            if !could_be_current_secret_ciphertext(stored_password) {
+                let token = match master_key_token.clone() {
+                    Some(token) => token,
+                    None => match self.get_or_create_master_key_token(&crypto) {
+                        Ok(token) => {
+                            master_key_token = Some(token.clone());
+                            token
                         }
                         Err(_) => {
                             auth.password = Some(record.password);
                             auth.has_password = true;
+                            continue;
                         }
-                    }
-                } else {
-                    auth.password = Some(record.password);
-                    auth.has_password = true;
+                    },
+                };
+                if let Ok(ciphertext) = crypto.encrypt_secret(&token, stored_password) {
+                    let plaintext = record.password.clone();
+                    record.password = ciphertext.into();
+                    record.updated_at_ms = current_time_ms();
+                    migrated_records.push(record);
+                    auth.password = Some(plaintext);
+                    auth.has_password = false;
+                    continue;
                 }
             }
+
+            auth.password = Some(record.password);
+            auth.has_password = true;
+        }
+
+        if !migrated_records.is_empty() {
+            let txn = self.db.begin_write()?;
+            for record in &migrated_records {
+                write_json_in_txn(
+                    &txn,
+                    CREDENTIALS_TABLE,
+                    &entity_key(CONNECTION_PASSWORD_PREFIX, &record.connection_id),
+                    record,
+                )?;
+            }
+            txn.commit()?;
         }
         Ok(())
+    }
+
+    fn prepare_connection_for_storage(
+        &self,
+        connection: &SavedConnection,
+    ) -> Result<PreparedConnectionForStorage, StorageError> {
+        let mut prepared =
+            self.prepare_connections_for_storage(std::slice::from_ref(connection))?;
+        Ok(prepared.remove(0))
+    }
+
+    fn prepare_connections_for_storage(
+        &self,
+        connections: &[SavedConnection],
+    ) -> Result<Vec<PreparedConnectionForStorage>, StorageError> {
+        let crypto = self.credential_crypto()?;
+        let master_key_token = if connections
+            .iter()
+            .any(connection_inline_password_requires_encryption)
+        {
+            Some(self.get_or_create_master_key_token(&crypto)?)
+        } else {
+            None
+        };
+        prepare_connections_for_storage(connections, &crypto, master_key_token.as_deref())
     }
 
     fn credential_crypto(&self) -> Result<CredentialCrypto, StorageError> {
@@ -911,6 +1000,29 @@ impl ConnectionStore {
             self.portable_key_path.clone(),
             master_password,
         ))
+    }
+
+    fn ensure_portable_key(&self) -> Result<(), StorageError> {
+        let Some(path) = self.portable_key_path.as_deref() else {
+            return Ok(());
+        };
+
+        match validate_portable_key(path) {
+            Ok(()) => return Ok(()),
+            Err(CredentialCryptoError::ReadPortableKey { source, .. })
+                if source.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+
+        if self.load_master_key_token()?.is_some()
+            || self.load_encrypted_master_password()?.is_some()
+        {
+            return Err(StorageError::MissingPortableKey {
+                path: path.to_path_buf(),
+            });
+        }
+
+        create_portable_key(path)
     }
 
     fn load_encrypted_master_password(&self) -> Result<Option<String>, StorageError> {
@@ -1192,9 +1304,102 @@ fn lower_hex(bytes: &[u8]) -> String {
     encoded
 }
 
+fn validate_portable_key(path: &Path) -> Result<(), CredentialCryptoError> {
+    let material =
+        std::fs::read_to_string(path).map_err(|source| CredentialCryptoError::ReadPortableKey {
+            path: path.to_path_buf(),
+            source,
+        })?;
+    if material.trim().is_empty() {
+        return Err(CredentialCryptoError::EmptyPortableKey(path.to_path_buf()));
+    }
+    Ok(())
+}
+
+fn create_portable_key(path: &Path) -> Result<(), StorageError> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|source| StorageError::CreateDir {
+            path: parent.to_path_buf(),
+            source,
+        })?;
+    }
+
+    let material = B64.encode(rand::rng().random::<[u8; 32]>());
+    let mut file = match OpenOptions::new().write(true).create_new(true).open(path) {
+        Ok(file) => file,
+        Err(source) if source.kind() == std::io::ErrorKind::AlreadyExists => {
+            return validate_portable_key(path).map_err(Into::into);
+        }
+        Err(source) => {
+            return Err(StorageError::CreatePortableKey {
+                path: path.to_path_buf(),
+                source,
+            });
+        }
+    };
+
+    if let Err(source) = file
+        .write_all(material.as_bytes())
+        .and_then(|()| file.sync_all())
+    {
+        drop(file);
+        let _ = std::fs::remove_file(path);
+        return Err(StorageError::CreatePortableKey {
+            path: path.to_path_buf(),
+            source,
+        });
+    }
+    Ok(())
+}
+
+fn connection_inline_password_requires_encryption(connection: &SavedConnection) -> bool {
+    connection.auth.as_ref().is_some_and(|auth| {
+        !auth.has_password
+            && auth
+                .password
+                .as_ref()
+                .is_some_and(|password| !password.is_empty())
+    })
+}
+
+fn prepare_connections_for_storage(
+    connections: &[SavedConnection],
+    crypto: &CredentialCrypto,
+    master_key_token: Option<&str>,
+) -> Result<Vec<PreparedConnectionForStorage>, StorageError> {
+    connections
+        .iter()
+        .map(|connection| {
+            let mut connection = connection.clone();
+            if let Some(auth) = connection.auth.as_mut()
+                && !auth.has_password
+                && let Some(password) = auth
+                    .password
+                    .as_ref()
+                    .filter(|password| !password.is_empty())
+            {
+                let token = master_key_token.ok_or(StorageError::MissingMasterKey)?;
+                auth.password = Some(
+                    crypto
+                        .encrypt_secret(token, password.expose_secret())?
+                        .into(),
+                );
+                auth.has_password = true;
+            }
+            Ok(PreparedConnectionForStorage(connection))
+        })
+        .collect()
+}
+
+fn could_be_current_secret_ciphertext(value: &str) -> bool {
+    B64.decode(value.trim())
+        .is_ok_and(|decoded| decoded.len() >= 12 + 16)
+}
+
 fn replace_sessions_in_txn(
     txn: &redb::WriteTransaction,
     config: &SessionsConfig,
+    prepared_connections: &[PreparedConnectionForStorage],
 ) -> Result<(), StorageError> {
     clear_prefix_in_txn(txn, GROUPS_TABLE, GROUP_PREFIX)?;
     clear_prefix_in_txn(txn, CONNECTIONS_TABLE, CONNECTION_PREFIX)?;
@@ -1214,7 +1419,7 @@ fn replace_sessions_in_txn(
     for group in &config.groups {
         save_group_in_txn(txn, group)?;
     }
-    for connection in &config.connections {
+    for connection in prepared_connections {
         save_connection_in_txn(txn, connection)?;
     }
     Ok(())
@@ -1245,9 +1450,9 @@ fn existing_group_created_at(
 
 fn save_connection_in_txn(
     txn: &redb::WriteTransaction,
-    connection: &SavedConnection,
+    connection: &PreparedConnectionForStorage,
 ) -> Result<(), StorageError> {
-    let mut connection = connection.clone();
+    let mut connection = connection.0.clone();
     // Canonicalize legacy fields before every write so input-only aliases are
     // never silently discarded by unrelated updates.
     migrate_legacy_ssh_agent_settings(&mut connection);
@@ -1274,6 +1479,11 @@ fn save_connection_in_txn(
     delete_connection_password_in_txn(txn, &connection.id)?;
     if let Some(auth) = connection.auth.as_mut() {
         if let Some(password) = auth.password.take().filter(|value| !value.is_empty()) {
+            if !auth.has_password {
+                return Err(StorageError::InvalidData(
+                    "connection inline password reached storage without encryption".to_string(),
+                ));
+            }
             let record = ConnectionPasswordRecord {
                 id: connection.id.clone(),
                 connection_id: connection.id.clone(),

@@ -174,6 +174,8 @@ fn docker_container_row(
     let menu_id = container.id.clone();
     let state = container.state.clone();
     let running = state.trim().eq_ignore_ascii_case("running");
+    let can_start = can_start_docker_container(&state);
+    let can_stop = can_stop_docker_container(&state);
     let accent = docker_state_border_color(palette, &state);
     let short = compact_id(&container.id);
 
@@ -279,6 +281,8 @@ fn docker_container_row(
                             container_id.clone(),
                             container.name.clone(),
                             running,
+                            can_start,
+                            can_stop,
                             cx,
                         )))
                     }),
@@ -291,6 +295,8 @@ fn docker_container_action_menu(
     container_id: String,
     container_name: String,
     running: bool,
+    can_start: bool,
+    can_stop: bool,
     cx: &mut Context<RemoteMonitorPanel>,
 ) -> impl IntoElement {
     let DockerRenderContext {
@@ -351,7 +357,7 @@ fn docker_container_action_menu(
             palette,
             format!("docker-menu-start-{short}"),
             labels.start.clone(),
-            running,
+            !can_start,
             cx.listener(move |panel, _, window, cx| {
                 panel.with_app(cx, |this, cx| {
                     this.remote_ops.close_docker_container_menu();
@@ -363,7 +369,7 @@ fn docker_container_action_menu(
             palette,
             format!("docker-menu-stop-{short}"),
             labels.stop.clone(),
-            !running,
+            !can_stop,
             cx.listener(move |panel, _, window, cx| {
                 panel.with_app(cx, |this, cx| {
                     this.remote_ops.close_docker_container_menu();
@@ -449,6 +455,14 @@ fn docker_container_action_menu(
         ))
 }
 
+fn can_start_docker_container(state: &str) -> bool {
+    matches!(state.trim().to_ascii_lowercase().as_str(), "created" | "exited")
+}
+
+fn can_stop_docker_container(state: &str) -> bool {
+    matches!(state.trim().to_ascii_lowercase().as_str(), "running" | "restarting")
+}
+
 fn docker_menu_item(
     palette: ThemePalette,
     id: impl Into<String>,
@@ -489,5 +503,26 @@ fn docker_state_border_color(palette: ThemePalette, state: &str) -> gpui::Hsla {
         "exited" | "dead" => rgb(0xef4444).into(),
         "created" => rgb(0x3b82f6).into(),
         _ => rgb(palette.text_dimmed).into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{can_start_docker_container, can_stop_docker_container};
+
+    #[test]
+    fn docker_container_actions_follow_runtime_state() {
+        for state in ["created", " exited ", "CREATED"] {
+            assert!(can_start_docker_container(state));
+            assert!(!can_stop_docker_container(state));
+        }
+        for state in ["running", " Restarting ", "RUNNING"] {
+            assert!(!can_start_docker_container(state));
+            assert!(can_stop_docker_container(state));
+        }
+        for state in ["paused", "dead", "unknown"] {
+            assert!(!can_start_docker_container(state));
+            assert!(!can_stop_docker_container(state));
+        }
     }
 }

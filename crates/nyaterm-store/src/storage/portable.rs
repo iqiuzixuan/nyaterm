@@ -20,8 +20,9 @@ use super::{
     PASSWORD_PREFIX, PORTABLE_OPAQUE_ENTITIES_TABLE, PROXIES_TABLE, PROXY_PREFIX, SETTINGS_DEFAULT,
     SETTINGS_PROXY_GROUPS, SETTINGS_QUICK_COMMANDS, SETTINGS_TABLE, SETTINGS_TUNNEL_GROUPS,
     SSH_KEY_PREFIX, StorageError, TEXT_DOCS_TABLE, TUNNEL_PREFIX, TUNNELS_TABLE,
-    clear_prefix_in_txn, copy_config_database, current_time_ms, encrypt_ai_settings_secrets,
-    ensure_not_same_existing_file, ensure_parent_dir, entity_key, merge_unknown_json,
+    clear_prefix_in_txn, connection_inline_password_requires_encryption, copy_config_database,
+    current_time_ms, encrypt_ai_settings_secrets, ensure_not_same_existing_file, ensure_parent_dir,
+    entity_key, merge_unknown_json, prepare_connections_for_storage,
     replace_command_history_in_txn, replace_known_hosts_text_in_txn, replace_sessions_in_txn,
     set_nested_json_value, validate_config_backup_file, validate_config_backup_source,
     write_json_in_txn, write_portable_snapshot_file,
@@ -521,6 +522,21 @@ impl ConnectionStore {
             PortableSnapshotKind::Backup => normalize_backup_agent_settings(&mut sessions),
         }
 
+        let crypto = self.credential_crypto()?;
+        if master_key_token.is_none()
+            && sessions
+                .connections
+                .iter()
+                .any(connection_inline_password_requires_encryption)
+        {
+            master_key_token = Some(crypto.generate_master_key_token()?);
+        }
+        let prepared_connections = prepare_connections_for_storage(
+            &sessions.connections,
+            &crypto,
+            master_key_token.as_deref(),
+        )?;
+
         let txn = self.db.begin_write()?;
         {
             let mut table = txn.open_table(PORTABLE_OPAQUE_ENTITIES_TABLE)?;
@@ -548,7 +564,7 @@ impl ConnectionStore {
                 source_schema_version.as_str(),
             )?;
         }
-        replace_sessions_in_txn(&txn, &sessions)?;
+        replace_sessions_in_txn(&txn, &sessions, &prepared_connections)?;
         replace_raw_wrapped_array_in_txn(
             &txn,
             CREDENTIALS_TABLE,
