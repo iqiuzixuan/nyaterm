@@ -1,93 +1,12 @@
 use std::io::{Read, Write};
 use std::net::TcpListener;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use nyaterm_store::{FlushBarrier, StoreBlockingClient, StoreConfig, StoreRuntime};
 
-/// Removes a test's isolated configuration tree after its owners have shut down.
-///
-/// Bind this guard before the GPUI test context. Rust drops locals in reverse
-/// order, which closes database and log handles before cleanup runs on Windows.
-pub(crate) struct TestConfigDir {
-    path: PathBuf,
-}
-
-impl TestConfigDir {
-    pub(crate) fn new(prefix: &str) -> Self {
-        Self::from_path(std::env::temp_dir().join(format!(
-            "{prefix}-{}-{}",
-            std::process::id(),
-            nyaterm_core::uuid()
-        )))
-    }
-
-    /// Takes cleanup ownership of an existing test configuration root.
-    ///
-    /// Restrict adopted paths to a direct child of the system temporary
-    /// directory so a malformed test runtime can never turn this guard into a
-    /// broad recursive deletion.
-    pub(crate) fn from_path(path: PathBuf) -> Self {
-        let temp_dir = absolute_path(&std::env::temp_dir());
-        let path = absolute_path(&path);
-        assert_eq!(
-            path.parent(),
-            Some(temp_dir.as_path()),
-            "test configuration directory must be a direct child of {}",
-            temp_dir.display()
-        );
-        assert!(
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with("nyaterm-")),
-            "test configuration directory must use the nyaterm- prefix: {}",
-            path.display()
-        );
-        Self { path }
-    }
-
-    pub(crate) fn path(&self) -> &Path {
-        &self.path
-    }
-}
-
-impl Drop for TestConfigDir {
-    fn drop(&mut self) {
-        const RETRY_WINDOW: std::time::Duration = std::time::Duration::from_secs(5);
-        const RETRY_DELAY: std::time::Duration = std::time::Duration::from_millis(10);
-        let deadline = std::time::Instant::now() + RETRY_WINDOW;
-        loop {
-            match std::fs::remove_dir_all(&self.path) {
-                Ok(()) => return,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
-                Err(_) if std::time::Instant::now() < deadline => {
-                    // redb is owned by a storage worker. Its last sender may
-                    // have dropped, but Windows can still reject deletion
-                    // until that worker observes disconnect and closes the DB.
-                    std::thread::sleep(RETRY_DELAY);
-                }
-                Err(error) => {
-                    eprintln!(
-                        "failed to remove test configuration directory {}: {error}",
-                        self.path.display()
-                    );
-                    return;
-                }
-            }
-        }
-    }
-}
-
-fn absolute_path(path: &Path) -> PathBuf {
-    if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir()
-            .expect("resolve current test directory")
-            .join(path)
-    }
-}
+pub(crate) use nyaterm_core::test_support::TestTempDir as TestConfigDir;
 
 /// Opens an isolated test store and waits until its redb worker is ready.
 ///

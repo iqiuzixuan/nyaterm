@@ -95,7 +95,8 @@ fn sftp_service_round_trips_file_manager_operations() -> anyhow::Result<()> {
     let remote_file = format!("{remote_dir}/file2.txt");
     let renamed_file = format!("{remote_dir}/file10.txt");
     let uploaded_file = format!("{remote_dir}/uploaded.txt");
-    let local_dir = env::temp_dir().join(format!("nyaterm-sftp-e2e-{unique}"));
+    let local_dir =
+        nyaterm_core::test_support::TestTempDir::new(&format!("nyaterm-sftp-e2e-{unique}"));
     let local_source = local_dir.join("source.txt");
     let local_download = local_dir.join("download.txt");
 

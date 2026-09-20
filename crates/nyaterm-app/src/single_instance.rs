@@ -309,7 +309,6 @@ fn restrict_instance_directory(path: &Path) -> anyhow::Result<()> {
 mod tests {
     use std::io::{Read as _, Write as _};
     use std::net::{Shutdown, TcpStream};
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     use futures::FutureExt as _;
 
@@ -329,16 +328,11 @@ mod tests {
         }
     }
 
-    fn temporary_root(test_name: &str) -> std::path::PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "nyaterm-single-instance-{test_name}-{}-{nanos}",
-            std::process::id()
+    fn temporary_root(test_name: &str) -> nyaterm_core::test_support::TestTempDir {
+        let root = nyaterm_core::test_support::TestTempDir::new(&format!(
+            "nyaterm-single-instance-{test_name}"
         ));
-        std::fs::create_dir_all(&root).unwrap();
+        std::fs::create_dir_all(root.path()).unwrap();
         root
     }
 
@@ -376,7 +370,6 @@ mod tests {
         ));
         drop(stable_owner);
         drop(preview_owner);
-        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -402,7 +395,6 @@ mod tests {
         let third = acquire(&root, request(3)).unwrap();
         assert!(matches!(third, SingleInstanceOutcome::Owner(_)));
         drop(third);
-        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]
@@ -436,6 +428,5 @@ mod tests {
 
         drop(receiver);
         drop(owner);
-        let _ = std::fs::remove_dir_all(root);
     }
 }

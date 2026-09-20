@@ -1891,26 +1891,30 @@ fn validate_config_backup_file(
         path: validation_dir.clone(),
         source,
     })?;
-    let validation_db = validation_dir.join(DATABASE_FILE);
-    copy_config_database(source, &validation_db)?;
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(
-        || -> Result<(), StorageError> {
-            let store =
-                ConnectionStore::open_with_portable_key_path(&validation_dir, portable_key_path)?;
-            store.load_sessions()?;
-            store.load_app_settings_summary()?;
-            store.list_tunnels()?;
-            drop(store);
-            Ok(())
-        },
-    ))
-    .map_err(|_| {
-        StorageError::InvalidData(format!(
-            "configuration backup is not a valid redb database: {}",
-            source.display()
+    let result = (|| {
+        let validation_db = validation_dir.join(DATABASE_FILE);
+        copy_config_database(source, &validation_db)?;
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(
+            || -> Result<(), StorageError> {
+                let store = ConnectionStore::open_with_portable_key_path(
+                    &validation_dir,
+                    portable_key_path,
+                )?;
+                store.load_sessions()?;
+                store.load_app_settings_summary()?;
+                store.list_tunnels()?;
+                drop(store);
+                Ok(())
+            },
         ))
-    })?;
-    std::fs::remove_dir_all(validation_dir).ok();
+        .map_err(|_| {
+            StorageError::InvalidData(format!(
+                "configuration backup is not a valid redb database: {}",
+                source.display()
+            ))
+        })?
+    })();
+    std::fs::remove_dir_all(&validation_dir).ok();
     result
 }
 
