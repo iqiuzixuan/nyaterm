@@ -6302,6 +6302,7 @@ dependencies = [
  "tracing",
  "unicode-normalization",
  "uuid",
+ "windows-sys 0.61.2",
  "zeroize",
  "zmodem2",
 ]

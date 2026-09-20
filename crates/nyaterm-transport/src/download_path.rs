@@ -1,8 +1,11 @@
 //! Download target name validation and local path boundary checks.
 
 use std::fs::{self, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::{Component, Path, PathBuf};
+
+#[cfg(windows)]
+mod windows;
 
 /// Unlike Path::exists, treat dangling links as occupied and propagate probe errors.
 pub(crate) fn target_exists(target: &Path) -> io::Result<bool> {
@@ -130,6 +133,59 @@ pub(crate) struct DownloadTemporary {
     replace_existing: bool,
 }
 
+struct NewTargetGuard {
+    path: PathBuf,
+    file: Option<fs::File>,
+    committed: bool,
+}
+
+impl NewTargetGuard {
+    fn create(target: &Path) -> io::Result<Self> {
+        let file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(target)?;
+        Ok(Self {
+            path: target.to_path_buf(),
+            file: Some(file),
+            committed: false,
+        })
+    }
+
+    fn file_mut(&mut self) -> &mut fs::File {
+        self.file
+            .as_mut()
+            .expect("new download target file must remain open until commit")
+    }
+
+    fn commit(mut self) -> io::Result<()> {
+        self.file_mut().sync_all()?;
+        self.file.take();
+        self.committed = true;
+        Ok(())
+    }
+}
+
+impl Drop for NewTargetGuard {
+    fn drop(&mut self) {
+        if self.committed {
+            return;
+        }
+        self.file.take();
+        let _ = fs::remove_file(&self.path);
+    }
+}
+
+fn populate_new_target<R: Read>(source: &mut R, target: &Path) -> anyhow::Result<()> {
+    use anyhow::Context as _;
+    let mut destination = NewTargetGuard::create(target)?;
+    io::copy(source, destination.file_mut())
+        .context("download commit failed while populating new target")?;
+    destination
+        .commit()
+        .context("failed to sync committed download")
+}
+
 impl DownloadTemporary {
     /// Copy the resume prefix during preparation, before entering the download loop.
     /// Any preparation failure leaves the original file intact.
@@ -166,11 +222,19 @@ impl DownloadTemporary {
             path,
             replace_existing,
         };
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create_new(true)
-            .open(&temporary.path)?;
+        #[cfg(not(windows))]
+        let file = {
+            let mut options = OpenOptions::new();
+            options.read(true).write(true).create_new(true);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt as _;
+                options.mode(0o600);
+            }
+            options.open(&temporary.path)?
+        };
+        #[cfg(windows)]
+        let file = windows::create_private_file(&temporary.path)?;
         Ok((temporary, file))
     }
 
@@ -204,16 +268,7 @@ impl DownloadTemporary {
                 .context("failed to sync committed download")?;
         } else {
             let mut source = fs::File::open(&self.path)?;
-            let mut destination = OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(target)?;
-            use anyhow::Context as _;
-            io::copy(&mut source, &mut destination)
-                .context("download commit failed; target may contain partial data")?;
-            destination
-                .sync_all()
-                .context("failed to sync committed download")?;
+            populate_new_target(&mut source, target)?;
         }
         Ok(())
     }
@@ -409,6 +464,37 @@ mod tests {
         Ok(())
     }
 
+    struct FailingReader {
+        first: Option<&'static [u8]>,
+    }
+
+    impl std::io::Read for FailingReader {
+        fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+            if let Some(bytes) = self.first.take() {
+                let length = bytes.len().min(buffer.len());
+                buffer[..length].copy_from_slice(&bytes[..length]);
+                return Ok(length);
+            }
+            Err(std::io::Error::other("injected read failure"))
+        }
+    }
+
+    #[test]
+    fn failed_new_target_commit_removes_partial_final_file() -> anyhow::Result<()> {
+        let root =
+            std::env::temp_dir().join(format!("nyaterm-commit-cleanup-{}", nyaterm_core::uuid()));
+        std::fs::create_dir(&root)?;
+        let target = root.join("download");
+        let mut source = FailingReader {
+            first: Some(b"partial"),
+        };
+        assert!(super::populate_new_target(&mut source, &target).is_err());
+        assert!(!target.exists());
+        assert_eq!(std::fs::read_dir(&root)?.count(), 0);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
     #[tokio::test]
     async fn failed_resume_preparation_preserves_source_and_cleans_temporary() -> anyhow::Result<()>
     {
@@ -429,7 +515,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn temporary_prefix_is_dropped_without_committing() -> anyhow::Result<()> {
+    async fn temporary_prefix_is_private_and_dropped_without_committing() -> anyhow::Result<()> {
         let root =
             std::env::temp_dir().join(format!("nyaterm-download-prefix-{}", nyaterm_core::uuid()));
         std::fs::create_dir(&root)?;
@@ -438,6 +524,11 @@ mod tests {
         let (temporary, file) = super::DownloadTemporary::prepare_async(&root, &target, 6).await?;
         let path = temporary.path.clone();
         assert_eq!(path.parent(), Some(root.as_path()));
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            assert_eq!(std::fs::metadata(&path)?.permissions().mode() & 0o077, 0);
+        }
         assert_eq!(std::fs::read(&path)?, b"prefix");
         drop(file);
         drop(temporary);
