@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -642,10 +643,14 @@ impl RemoteFileService {
         match self.backend()? {
             RemoteFileBackendKind::Sftp => self.sftp()?.download_file(&remote_path, local_path),
             kind => {
+                let download_root = crate::download_path::root_for_target(&local_path);
+                let properties =
+                    shell_properties(&self.shell(kind), &RemoteFilePath::new(&remote_path))?;
+                ensure_supported_download_source(properties.file_type)?;
                 let bytes = self
                     .shell(kind)
                     .exec_ok(format!("cat -- {}", shell_quote(&remote_path)), None)?;
-                fs::write(&local_path, &bytes)?;
+                crate::download_path::staged_write_file(download_root, &local_path, &bytes)?;
                 Ok(SftpTransferSummary {
                     remote_path,
                     local_path,
@@ -701,12 +706,15 @@ impl RemoteFileService {
                 ),
             kind => {
                 control.wait_if_paused_blocking()?;
+                let download_root = crate::download_path::root_for_target(&local_path);
+                let properties = shell_properties(&self.shell(kind), &remote_path)?;
+                ensure_supported_download_source(properties.file_type)?;
                 let bytes = self.shell(kind).exec_ok(
                     format!("cat -- {}", shell_quote(&remote_path.display_path)),
                     None,
                 )?;
                 control.wait_if_paused_blocking()?;
-                fs::write(&local_path, &bytes)?;
+                crate::download_path::staged_write_file(download_root, &local_path, &bytes)?;
                 progress(SftpTransferProgress {
                     remote_path: remote_path.display_path.clone(),
                     local_path: local_path.clone(),
@@ -769,6 +777,7 @@ impl RemoteFileService {
                     progress,
                 ),
             kind => {
+                let download_root = crate::download_path::root_for_target(&local_path);
                 let target = resolve_shell_download_target(
                     &remote_path.display_path,
                     &local_path,
@@ -790,6 +799,7 @@ impl RemoteFileService {
                     &target,
                     &control,
                     &mut progress,
+                    download_root,
                 )?;
                 Ok(SftpTransferSummary {
                     remote_path: remote_path.display_path,
@@ -1305,23 +1315,32 @@ fn download_shell_path<F>(
     local_path: &Path,
     control: &SftpTransferControl,
     progress: &mut F,
+    download_root: &Path,
 ) -> anyhow::Result<u64>
 where
     F: FnMut(SftpTransferProgress),
 {
     control.wait_if_paused_blocking()?;
+    crate::download_path::ensure_no_symlink(download_root, local_path)?;
     let properties = shell_properties(&service.shell(kind), &RemoteFilePath::new(remote_path))?;
+    ensure_supported_download_source(properties.file_type)?;
     if properties.is_directory() {
         fs::create_dir_all(local_path)?;
+        crate::download_path::ensure_no_symlink(download_root, local_path)?;
         let mut bytes = 0;
+        let mut target_keys = HashSet::new();
         for entry in list_shell_dir(
             &service.shell(kind),
             &RemoteFilePath::new(remote_path),
             kind,
         )? {
-            if entry.is_symlink() {
+            crate::download_path::validate_name(&entry.name)?;
+            if entry.is_symlink() || entry.file_type == SftpFileType::Other {
+                // Skip links and special files without blocking regular files in the directory.
                 continue;
             }
+            ensure_unique_download_name(&mut target_keys, &entry.name)?;
+            ensure_supported_download_source(entry.file_type)?;
             bytes += download_shell_path(
                 service,
                 kind,
@@ -1329,6 +1348,7 @@ where
                 &local_path.join(&entry.name),
                 control,
                 progress,
+                download_root,
             )?;
         }
         Ok(bytes)
@@ -1340,7 +1360,7 @@ where
         if let Some(parent) = local_path.parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::write(local_path, &bytes)?;
+        crate::download_path::staged_write_file(download_root, local_path, &bytes)?;
         progress(SftpTransferProgress {
             remote_path: remote_path.to_string(),
             local_path: local_path.to_path_buf(),
@@ -1351,6 +1371,25 @@ where
         });
         Ok(bytes.len() as u64)
     }
+}
+
+fn ensure_supported_download_source(file_type: SftpFileType) -> anyhow::Result<()> {
+    match file_type {
+        SftpFileType::File | SftpFileType::Directory => Ok(()),
+        SftpFileType::Symlink => anyhow::bail!("symbolic links are not supported in downloads"),
+        SftpFileType::Other => anyhow::bail!("remote source is not a regular file or directory"),
+    }
+}
+
+fn ensure_unique_download_name(
+    target_keys: &mut HashSet<String>,
+    name: &str,
+) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        target_keys.insert(crate::download_path::target_key(name)),
+        "recursive download contains conflicting local names"
+    );
+    Ok(())
 }
 
 fn upload_shell_path<F>(
@@ -2073,7 +2112,8 @@ mod tests {
     };
 
     use super::{
-        BackendProbeStage, RemoteFileBackendKind, ensure_safe_delete_target, format_permissions,
+        BackendProbeStage, RemoteFileBackendKind, ensure_safe_delete_target,
+        ensure_supported_download_source, ensure_unique_download_name, format_permissions,
         parse_enhanced_listing, parse_normal_listing, select_backend_with_probe,
         symbolic_permissions_to_mode,
     };
@@ -2102,6 +2142,20 @@ mod tests {
             assert!(ensure_safe_delete_target(path).is_err(), "{path}");
         }
         assert!(ensure_safe_delete_target("/tmp/file").is_ok());
+    }
+
+    #[test]
+    fn downloads_reject_symlink_sources_and_conflicting_names() {
+        assert!(ensure_supported_download_source(SftpFileType::File).is_ok());
+        assert!(ensure_supported_download_source(SftpFileType::Directory).is_ok());
+        assert!(ensure_supported_download_source(SftpFileType::Symlink).is_err());
+        assert!(ensure_supported_download_source(SftpFileType::Other).is_err());
+
+        let mut target_keys = std::collections::HashSet::new();
+        assert!(ensure_unique_download_name(&mut target_keys, "report.txt").is_ok());
+        assert!(ensure_unique_download_name(&mut target_keys, "report.txt").is_err());
+        #[cfg(any(target_os = "macos", windows))]
+        assert!(ensure_unique_download_name(&mut target_keys, "REPORT.TXT").is_err());
     }
 
     #[test]
