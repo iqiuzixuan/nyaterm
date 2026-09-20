@@ -396,9 +396,15 @@ fn default_current_page() -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use serde_json::json;
 
-    use super::*;
+    use super::{
+        DEVICE_WINDOW_MANIFEST_VERSION, DeviceWindowManifest, DeviceWindowState, MainWindowState,
+        RestorableWorkspacePaneNode, WorkspaceId, WorkspaceManifestValidationError,
+        WorkspaceRestoreManifest, WorkspaceRestoreState,
+    };
     use crate::MainWindowBounds;
 
     #[test]
