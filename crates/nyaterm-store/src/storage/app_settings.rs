@@ -15,8 +15,9 @@ use super::{
 use nyaterm_core::{
     AppSettingsSummary, CredentialCrypto, DEFAULT_RECORDING_PATH_TEMPLATE,
     DEFAULT_TERMINAL_TIMESTAMP_FORMAT, ExistingFileBehavior, RecordingMode,
-    RecordingRotationPolicy, SearchEngineConfig, TransferBrowserViewMode, default_panel_open_mode,
-    default_search_engines, normalize_panel_open_mode,
+    RecordingRotationPolicy, SearchEngineConfig, TransferBrowserViewMode, WorkspaceId,
+    WorkspaceRestoreManifest, WorkspaceRestoreState, WorkspaceSessionState, WorkspaceUiState,
+    default_panel_open_mode, default_search_engines, normalize_panel_open_mode,
 };
 
 impl ConnectionStore {
@@ -1482,6 +1483,114 @@ impl ConnectionStore {
         set_nested_json_value(&mut value, &["ui", "workspace_pane_layout"], encoded);
         self.save_settings_value(&value)?;
         Ok(())
+    }
+
+    pub fn load_workspace_restore_manifest(
+        &self,
+    ) -> Result<WorkspaceRestoreManifest, StorageError> {
+        let value = self.load_settings_value()?;
+        if let Some(raw) = json_path(&value, &["ui", "workspaces"])
+            && !raw.is_null()
+        {
+            let manifest: WorkspaceRestoreManifest = serde_json::from_value(raw.clone())?;
+            manifest
+                .validate()
+                .map_err(|error| StorageError::InvalidData(error.to_string()))?;
+            return Ok(manifest);
+        }
+
+        let settings = self.load_app_settings_summary()?;
+        let workspace = WorkspaceRestoreState {
+            id: WorkspaceId::legacy(),
+            revision: 0,
+            sessions: WorkspaceSessionState {
+                open_tabs: self.load_open_tabs()?,
+                terminal_window_layout: self.load_terminal_window_layout()?,
+                workspace_pane_layout: self.load_workspace_pane_layout()?,
+                extra: Default::default(),
+            },
+            ui: WorkspaceUiState {
+                left_panel_width: settings.ui_left_panel_width,
+                right_panel_width: settings.ui_right_panel_width,
+                bottom_panel_height: settings.ui_quick_cmd_height,
+                active_left_panel: settings.ui_active_left_panel,
+                active_right_panel: settings.ui_active_right_panel,
+                left_panel_collapsed: settings.ui_left_panel_collapsed,
+                right_panel_collapsed: settings.ui_right_panel_collapsed,
+                ..WorkspaceUiState::default()
+            },
+            extra: Default::default(),
+        };
+        Ok(WorkspaceRestoreManifest::single(workspace))
+    }
+
+    pub fn save_workspace_restore_manifest(
+        &self,
+        manifest: &WorkspaceRestoreManifest,
+    ) -> Result<(), StorageError> {
+        manifest
+            .validate()
+            .map_err(|error| StorageError::InvalidData(error.to_string()))?;
+        let mut value = self.load_settings_value()?;
+        set_nested_json_value(
+            &mut value,
+            &["ui", "workspaces"],
+            serde_json::to_value(manifest)?,
+        );
+
+        if let Some(workspace) = manifest.most_recent() {
+            set_nested_json_value(
+                &mut value,
+                &["ui", "open_tabs"],
+                serde_json::to_value(&workspace.sessions.open_tabs)?,
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "terminal_window_layout"],
+                serde_json::to_value(&workspace.sessions.terminal_window_layout)?,
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "workspace_pane_layout"],
+                serde_json::to_value(&workspace.sessions.workspace_pane_layout)?,
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "left_width"],
+                serde_json::Value::from(workspace.ui.left_panel_width),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "right_width"],
+                serde_json::Value::from(workspace.ui.right_panel_width),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "quick_cmd_height"],
+                serde_json::Value::from(workspace.ui.bottom_panel_height),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "active_left_panel"],
+                serde_json::to_value(&workspace.ui.active_left_panel)?,
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "active_right_panel"],
+                serde_json::to_value(&workspace.ui.active_right_panel)?,
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "left_panel_collapsed"],
+                serde_json::Value::Bool(workspace.ui.left_panel_collapsed),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "right_panel_collapsed"],
+                serde_json::Value::Bool(workspace.ui.right_panel_collapsed),
+            );
+        }
+        self.save_settings_value(&value)
     }
 
     pub fn save_screen_lock_settings(

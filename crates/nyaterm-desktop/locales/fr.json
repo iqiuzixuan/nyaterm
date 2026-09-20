@@ -1,6 +1,7 @@
 {
   "tray": {
     "show": "Afficher NyaTerm",
+    "newWindow": "Nouvelle fenêtre",
     "newConnection": "Nouvelle connexion",
     "push": "Envoyer vers le cloud",
     "pull": "Récupérer du cloud",
@@ -2689,6 +2690,8 @@
     "locked": "Verrouillé",
     "lockedCloseBlocked": "Déverrouillez cet onglet avant de le fermer",
     "lockedTabsSkipped": "Les onglets verrouillés ont été ignorés",
+    "moveToWindow": "Déplacer vers",
+    "moveToNewWindow": "Déplacer vers une nouvelle fenêtre",
     "multiplexSsh": "Réutiliser la connexion SSH",
     "multiplexSshFailed": "Échec de la réutilisation du canal SSH",
     "multiplexSshWithCommand": "Réutiliser la connexion SSH et exécuter la commande",

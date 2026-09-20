@@ -286,7 +286,19 @@ impl NyaTermApp {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let open_sessions = self.session.ordered_sessions().len();
+        self.handle_window_close_request_with_count(
+            self.session.ordered_sessions().len(),
+            window,
+            cx,
+        );
+    }
+
+    pub(crate) fn handle_window_close_request_with_count(
+        &mut self,
+        open_sessions: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if self.settings.summary().confirm_on_close && open_sessions > 0 {
             // Reuse the close-all confirmation as the quit-with-sessions gate.
             // A title-bar close control can also produce the native window-close

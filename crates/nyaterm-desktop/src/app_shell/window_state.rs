@@ -1,7 +1,11 @@
 use gpui::{App, Bounds, DisplayId, Pixels, WindowBounds, point, px, size};
-use nyaterm_core::{AppRuntime, MainWindowState};
+use nyaterm_core::{
+    AppRuntime, DeviceWindowManifest, MainWindowState, WorkspaceId, WorkspaceRestoreManifest,
+    WorkspaceRestoreState,
+};
 use nyaterm_store::{
-    BootstrapSnapshot, LoadBootstrap, LoadMainWindowState, StoreConfig, StoreRuntime, StoreTask,
+    BootstrapSnapshot, LoadBootstrap, LoadDeviceWindowManifest, LoadMainWindowState,
+    LoadWorkspaceRestoreManifest, StoreConfig, StoreRuntime, StoreTask,
 };
 
 const DEFAULT_MAIN_WINDOW_WIDTH: f32 = 1280.;
@@ -12,8 +16,12 @@ pub struct AppShellStartup {
     pub(super) pending_bootstrap: Option<StoreTask<BootstrapSnapshot>>,
     pub(super) recovery: Option<StartupRecovery>,
     main_window_state: Option<MainWindowState>,
+    pub(super) workspace_id: WorkspaceId,
+    pub(super) workspace_restore: WorkspaceRestoreManifest,
+    pub(super) device_windows: DeviceWindowManifest,
 }
 
+#[derive(Clone)]
 pub(super) struct StartupRecovery {
     pub category: String,
     pub message: String,
@@ -40,6 +48,7 @@ impl AppShellStartup {
         }) {
             Ok(runtime) => runtime,
             Err(error) => {
+                let workspace_id = WorkspaceId::new();
                 return Self {
                     store_runtime: None,
                     pending_bootstrap: None,
@@ -48,7 +57,55 @@ impl AppShellStartup {
                         message: error.to_string(),
                     }),
                     main_window_state: None,
+                    workspace_id,
+                    workspace_restore: WorkspaceRestoreManifest::single(
+                        WorkspaceRestoreState::empty(workspace_id),
+                    ),
+                    device_windows: DeviceWindowManifest::empty(),
                 };
+            }
+        };
+
+        let workspace_restore = match store_runtime
+            .blocking_client()
+            .request(0, LoadWorkspaceRestoreManifest)
+        {
+            Ok(event) => match event.outcome {
+                Ok(manifest) => manifest,
+                Err(error) => {
+                    return Self::recovery_with_runtime(
+                        store_runtime,
+                        error.category(),
+                        error.user_message(),
+                    );
+                }
+            },
+            Err(error) => {
+                return Self::recovery_with_runtime(
+                    store_runtime,
+                    "request_submit",
+                    &error.to_string(),
+                );
+            }
+        };
+        let workspace_id = workspace_restore
+            .most_recent()
+            .map(|workspace| workspace.id)
+            .unwrap_or_default();
+        let device_windows = match store_runtime
+            .blocking_client()
+            .request(0, LoadDeviceWindowManifest(workspace_id))
+        {
+            Ok(event) => event.outcome.unwrap_or_else(|error| {
+                tracing::warn!(
+                    category = error.category(),
+                    "window manifest could not be restored"
+                );
+                DeviceWindowManifest::empty()
+            }),
+            Err(error) => {
+                tracing::warn!(category = %error, "window manifest request failed");
+                DeviceWindowManifest::empty()
             }
         };
 
@@ -78,6 +135,9 @@ impl AppShellStartup {
                 pending_bootstrap: Some(task),
                 recovery: None,
                 main_window_state,
+                workspace_id,
+                workspace_restore,
+                device_windows,
             },
             Err(error) => Self {
                 store_runtime: None,
@@ -87,8 +147,92 @@ impl AppShellStartup {
                     message: error.to_string(),
                 }),
                 main_window_state,
+                workspace_id,
+                workspace_restore,
+                device_windows,
             },
         }
+    }
+
+    fn recovery_with_runtime(store_runtime: StoreRuntime, category: &str, message: &str) -> Self {
+        let workspace_id = WorkspaceId::new();
+        Self {
+            store_runtime: Some(store_runtime),
+            pending_bootstrap: None,
+            recovery: Some(StartupRecovery {
+                category: category.to_string(),
+                message: message.to_string(),
+            }),
+            main_window_state: None,
+            workspace_id,
+            workspace_restore: WorkspaceRestoreManifest::single(WorkspaceRestoreState::empty(
+                workspace_id,
+            )),
+            device_windows: DeviceWindowManifest::empty(),
+        }
+    }
+
+    pub fn workspace_id(&self) -> WorkspaceId {
+        self.workspace_id
+    }
+
+    pub fn restored_workspace_ids(&self) -> Vec<WorkspaceId> {
+        let mut ids = self.device_windows.window_order.clone();
+        for workspace in &self.workspace_restore.workspaces {
+            if !ids.contains(&workspace.id) {
+                ids.push(workspace.id);
+            }
+        }
+        if ids.is_empty() {
+            ids.push(self.workspace_id);
+        }
+        ids
+    }
+
+    pub fn shared_store_runtime(&self) -> Option<StoreRuntime> {
+        self.store_runtime.clone()
+    }
+
+    pub(super) fn take_pending_bootstrap(&mut self) -> Option<StoreTask<BootstrapSnapshot>> {
+        self.pending_bootstrap.take()
+    }
+
+    pub fn for_workspace(&self, workspace_id: WorkspaceId) -> Self {
+        let main_window_state = self.device_windows.state_for(workspace_id).cloned();
+        let Some(store_runtime) = self.store_runtime.clone() else {
+            return Self {
+                store_runtime: None,
+                pending_bootstrap: None,
+                recovery: Some(StartupRecovery {
+                    category: "runtime_missing".to_string(),
+                    message: "storage runtime is unavailable".to_string(),
+                }),
+                main_window_state,
+                workspace_id,
+                workspace_restore: self.workspace_restore.clone(),
+                device_windows: self.device_windows.clone(),
+            };
+        };
+        Self {
+            store_runtime: Some(store_runtime),
+            pending_bootstrap: None,
+            recovery: self.recovery.clone(),
+            main_window_state,
+            workspace_id,
+            workspace_restore: self.workspace_restore.clone(),
+            device_windows: self.device_windows.clone(),
+        }
+    }
+
+    pub fn for_new_workspace(&self, workspace_id: WorkspaceId) -> Self {
+        let mut startup = self.for_workspace(workspace_id);
+        startup
+            .workspace_restore
+            .workspaces
+            .push(WorkspaceRestoreState::empty(workspace_id));
+        startup.workspace_restore.most_recent_workspace_id = Some(workspace_id);
+        startup.main_window_state = None;
+        startup
     }
 
     pub fn main_window_placement(&self, cx: &App) -> MainWindowPlacement {

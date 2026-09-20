@@ -588,7 +588,12 @@ impl NyaTermApp {
             LoadBootstrap,
             move |this, event, cx| match event.outcome {
                 Ok(snapshot) => {
-                    this.apply_store_refresh(snapshot, cx);
+                    this.apply_store_refresh(snapshot.clone(), cx);
+                    this.replace_shared_snapshot(
+                        snapshot,
+                        crate::app_shell::SharedStateDomain::All,
+                        cx,
+                    );
                     this.rebase_open_settings_draft(cx);
                     this.settings.update_store_status(success_message, true);
                     this.request_settings_panel_refresh(cx);
@@ -616,7 +621,12 @@ impl NyaTermApp {
             LoadBootstrap,
             |this, event, cx| match event.outcome {
                 Ok(snapshot) => {
-                    this.apply_store_refresh(snapshot, cx);
+                    this.apply_store_refresh(snapshot.clone(), cx);
+                    this.replace_shared_snapshot(
+                        snapshot,
+                        crate::app_shell::SharedStateDomain::All,
+                        cx,
+                    );
                     cx.notify();
                 }
                 Err(error) => {
@@ -631,6 +641,16 @@ impl NyaTermApp {
     }
 
     fn apply_store_refresh(&mut self, snapshot: BootstrapSnapshot, cx: &mut Context<Self>) {
+        let mut shared_settings = snapshot.settings;
+        let local_settings = self.settings.summary();
+        shared_settings.ui_left_panel_width = local_settings.ui_left_panel_width;
+        shared_settings.ui_right_panel_width = local_settings.ui_right_panel_width;
+        shared_settings.ui_quick_cmd_height = local_settings.ui_quick_cmd_height;
+        shared_settings.ui_active_left_panel = local_settings.ui_active_left_panel.clone();
+        shared_settings.ui_active_right_panel = local_settings.ui_active_right_panel.clone();
+        shared_settings.ui_left_panel_collapsed = local_settings.ui_left_panel_collapsed;
+        shared_settings.ui_right_panel_collapsed = local_settings.ui_right_panel_collapsed;
+        self.update_custom_icons(snapshot.custom_icons, cx);
         self.connection_state
             .replace_loaded(snapshot.connections, snapshot.connection_groups);
         self.security.replace_catalog(
@@ -652,8 +672,7 @@ impl NyaTermApp {
         );
         self.settings
             .replace_keyword_config(snapshot.keyword_highlights);
-        self.apply_gpui_settings(snapshot.settings, cx);
-        self.apply_ui_layout_from_settings();
+        self.apply_gpui_settings(shared_settings, cx);
         self.translation.replace_settings(
             snapshot.translation_settings,
             TranslationSecretDraft::default(),
@@ -679,5 +698,143 @@ impl NyaTermApp {
         // the entire catalog, so refresh its lightweight tree explicitly.
         self.refresh_notes(cx);
         self.request_settings_panel_refresh(cx);
+    }
+
+    pub(crate) fn apply_shared_state(
+        &mut self,
+        snapshot: BootstrapSnapshot,
+        event: crate::app_shell::SharedStateEvent,
+        cx: &mut Context<Self>,
+    ) {
+        use crate::app_shell::SharedStateDomain;
+
+        let has_clean_settings_draft =
+            self.shell.has_settings_draft() && !self.settings_draft_dirty();
+        let settings_blocked = self.settings_draft_dirty()
+            && matches!(
+                event.domain,
+                SharedStateDomain::Settings
+                    | SharedStateDomain::Ai
+                    | SharedStateDomain::Translation
+                    | SharedStateDomain::CloudSync
+                    | SharedStateDomain::All
+            );
+        if settings_blocked {
+            self.shell.set_status(format!(
+                "shared settings changed at revision {}; reload before applying",
+                event.revision
+            ));
+        }
+
+        if matches!(
+            event.domain,
+            SharedStateDomain::Connections | SharedStateDomain::All
+        ) {
+            self.update_custom_icons(snapshot.custom_icons.clone(), cx);
+            self.connection_state.replace_loaded(
+                snapshot.connections.clone(),
+                snapshot.connection_groups.clone(),
+            );
+            self.start_workspace
+                .sync_group_options(&snapshot.connection_groups, cx);
+        }
+        if matches!(
+            event.domain,
+            SharedStateDomain::Security | SharedStateDomain::All
+        ) {
+            self.security.replace_catalog(
+                snapshot.ssh_keys.clone(),
+                snapshot.otp_entries.clone(),
+                snapshot.saved_passwords.clone(),
+                snapshot.saved_credentials.clone(),
+            );
+        }
+        if matches!(
+            event.domain,
+            SharedStateDomain::Tunnels | SharedStateDomain::All
+        ) {
+            self.tunnel_state.replace_loaded_catalog(
+                snapshot.tunnels.clone(),
+                snapshot.tunnel_groups.clone(),
+                snapshot.proxies.clone(),
+                snapshot.proxy_groups.clone(),
+            );
+        }
+        if matches!(
+            event.domain,
+            SharedStateDomain::Commands | SharedStateDomain::All
+        ) {
+            self.commands.replace_loaded(
+                snapshot.quick_commands.clone(),
+                snapshot.quick_command_categories.clone(),
+                snapshot.command_history.clone(),
+            );
+        }
+        if !settings_blocked
+            && matches!(
+                event.domain,
+                SharedStateDomain::Settings | SharedStateDomain::All
+            )
+        {
+            let mut settings = snapshot.settings.clone();
+            let local = self.settings.summary();
+            settings.ui_left_panel_width = local.ui_left_panel_width;
+            settings.ui_right_panel_width = local.ui_right_panel_width;
+            settings.ui_quick_cmd_height = local.ui_quick_cmd_height;
+            settings.ui_active_left_panel = local.ui_active_left_panel.clone();
+            settings.ui_active_right_panel = local.ui_active_right_panel.clone();
+            settings.ui_left_panel_collapsed = local.ui_left_panel_collapsed;
+            settings.ui_right_panel_collapsed = local.ui_right_panel_collapsed;
+            self.settings
+                .replace_keyword_config(snapshot.keyword_highlights.clone());
+            self.apply_gpui_settings(settings, cx);
+            self.recording
+                .set_memory_limit(self.settings.summary().recording_memory_limit_bytes as usize);
+            self.transfer
+                .set_duplicate_policy(SftpDuplicatePolicy::from_legacy_value(
+                    &self.settings.summary().transfer_duplicate_strategy,
+                ));
+        }
+        if !settings_blocked
+            && matches!(event.domain, SharedStateDomain::Ai | SharedStateDomain::All)
+        {
+            self.ai.replace_settings_config(snapshot.ai_settings, true);
+            self.sync_ai_drafts_from_active_profile();
+        }
+        if !settings_blocked
+            && matches!(
+                event.domain,
+                SharedStateDomain::Translation | SharedStateDomain::All
+            )
+        {
+            self.translation.replace_settings(
+                snapshot.translation_settings,
+                TranslationSecretDraft::default(),
+            );
+        }
+        if !settings_blocked
+            && matches!(
+                event.domain,
+                SharedStateDomain::CloudSync | SharedStateDomain::All
+            )
+        {
+            self.cloud_sync
+                .replace_loaded(snapshot.cloud_sync_settings, snapshot.cloud_sync_state);
+        }
+        if has_clean_settings_draft
+            && matches!(
+                event.domain,
+                SharedStateDomain::Settings
+                    | SharedStateDomain::Ai
+                    | SharedStateDomain::Translation
+                    | SharedStateDomain::CloudSync
+                    | SharedStateDomain::All
+            )
+        {
+            self.rebase_open_settings_draft(cx);
+        }
+        self.flush_connection_panel_snapshot(cx);
+        self.request_settings_panel_refresh(cx);
+        cx.notify();
     }
 }

@@ -13,12 +13,12 @@ use super::{
     DO, DockerService, ForwardedTcpIpDispatch, IAC, LocalSessionConfig, OPT_SUPPRESS_GO_AHEAD,
     PrimarySessionGate, QueuedTransportWriter, RemoteGpuService, RemoteNpuService,
     RemoteStatsService, SESSION_EVENT_QUEUE_OUTPUT_EVENT_LIMIT, SESSION_EVENT_QUEUE_OUTPUT_LIMIT,
-    SerialSessionConfig, SessionError, SessionEvent, SessionEventQueue, SessionManager,
-    SftpService, SftpSettings, SshAlgorithmListKind, SshAlgorithmMode, SshAlgorithmPreferences,
-    SshAlgorithmRisk, SshAlgorithmValidationError, SshCommand, SshKeyAuthConfig, SshProxyConfig,
-    SshPtyDimensions, SshSessionConfig, SshSessionProfile, TelnetSessionConfig, WILL, cipher,
-    defaults_from_preferred, drain_deferred_ssh_open_commands, expand_proxy_command,
-    forwarded_tcpip_sender_for, has_password_prompt, has_username_prompt,
+    SerialSessionConfig, SessionError, SessionEvent, SessionEventConsumerId, SessionEventQueue,
+    SessionManager, SftpService, SftpSettings, SshAlgorithmListKind, SshAlgorithmMode,
+    SshAlgorithmPreferences, SshAlgorithmRisk, SshAlgorithmValidationError, SshCommand,
+    SshKeyAuthConfig, SshProxyConfig, SshPtyDimensions, SshSessionConfig, SshSessionProfile,
+    TelnetSessionConfig, WILL, cipher, defaults_from_preferred, drain_deferred_ssh_open_commands,
+    expand_proxy_command, forwarded_tcpip_sender_for, has_password_prompt, has_username_prompt,
     is_process_list_unsupported, kex, local_pty_size, mac, normalize_process_signal,
     parse_process_output, register_x11_sender, remap_del_to_bs, resolve_preferred_algorithms,
     run_local_command, ssh_client_config, ssh_host_identifier, supported_ssh_algorithms,
@@ -2178,6 +2178,46 @@ fn session_event_queue_keeps_sessions_separate() {
         &drain.events[2],
         SessionEvent::Output { session_id, data } if session_id == "a" && data == b"a2"
     ));
+}
+
+#[test]
+fn session_event_consumers_only_drain_assigned_sessions_and_follow_reassignment() {
+    let queue = SessionEventQueue::new();
+    let first = SessionEventConsumerId(1);
+    let second = SessionEventConsumerId(2);
+    queue.assign_consumer("a", first);
+    queue.assign_consumer("b", second);
+    queue.push(SessionEvent::Output {
+        session_id: "a".to_string(),
+        data: b"a1".to_vec(),
+    });
+    queue.push(SessionEvent::Output {
+        session_id: "b".to_string(),
+        data: b"b1".to_vec(),
+    });
+
+    let first_drain =
+        queue.drain_blocking_for_consumer_with_output_budget(first, 8, Some(1024), Duration::ZERO);
+    assert!(matches!(
+        first_drain.events.as_slice(),
+        [SessionEvent::Output { session_id, data }]
+            if session_id == "a" && data == b"a1"
+    ));
+
+    queue.assign_consumer("b", first);
+    let reassigned =
+        queue.drain_blocking_for_consumer_with_output_budget(first, 8, Some(1024), Duration::ZERO);
+    assert!(matches!(
+        reassigned.events.as_slice(),
+        [SessionEvent::Output { session_id, data }]
+            if session_id == "b" && data == b"b1"
+    ));
+    assert!(
+        queue
+            .drain_blocking_for_consumer_with_output_budget(second, 8, Some(1024), Duration::ZERO,)
+            .events
+            .is_empty()
+    );
 }
 
 #[test]

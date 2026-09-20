@@ -7,7 +7,7 @@ use crate::models::{
 use crate::terminal::initial_terminal_screen;
 use gpui::{AppContext as _, Context};
 use nyaterm_core::{AppRuntime, uuid};
-use nyaterm_store::{BootstrapSnapshot, StoreBlockingClient, StoreUiClient};
+use nyaterm_store::BootstrapSnapshot;
 #[cfg(test)]
 use nyaterm_store::{LoadBootstrap, StoreConfig, StoreRuntime};
 use nyaterm_terminal::TerminalOutputDecoder;
@@ -15,7 +15,7 @@ use nyaterm_transport::{SessionManager, SftpDuplicatePolicy};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use super::NyaTermApp;
+use super::{NyaTermApp, NyaTermStoreClients};
 use crate::features::ai::{
     AiFeatureFocus, AiFeatureInit, AiFeatureState, AiPanel, ai_active_profile_drafts,
 };
@@ -52,15 +52,42 @@ use crate::features::update::UpdateFeatureState;
 use crate::models::panel_collapsed_from_persistence;
 use crate::terminal::INITIAL_TERMINAL_BANNER;
 impl NyaTermApp {
-    pub fn from_bootstrap(
+    pub(crate) fn from_bootstrap(
         runtime: AppRuntime,
         stores: crate::entities::UiStoreHandles,
-        bootstrap: BootstrapSnapshot,
-        store_ui: StoreUiClient,
-        store_blocking: StoreBlockingClient,
+        process_state: gpui::Entity<crate::app_shell::ProcessStateStore>,
+        workspace_init: crate::app_shell::WorkspaceInitSnapshot,
+        store_clients: NyaTermStoreClients,
+        session_manager: Arc<SessionManager>,
         cx: &mut Context<Self>,
     ) -> Self {
         nyaterm_core::warm_terminal_input_tracker();
+        let NyaTermStoreClients {
+            ui: store_ui,
+            blocking: store_blocking,
+        } = store_clients;
+        let workspace_id = workspace_init.workspace_id;
+        let mut bootstrap = process_state.read(cx).snapshot().clone();
+        if let Some(workspace) = workspace_init.state.as_ref() {
+            bootstrap.open_tabs = workspace.sessions.open_tabs.clone();
+            bootstrap.settings.ui_left_panel_width = workspace.ui.left_panel_width;
+            bootstrap.settings.ui_right_panel_width = workspace.ui.right_panel_width;
+            bootstrap.settings.ui_quick_cmd_height = workspace.ui.bottom_panel_height;
+            bootstrap.settings.ui_active_left_panel = workspace.ui.active_left_panel.clone();
+            bootstrap.settings.ui_active_right_panel = workspace.ui.active_right_panel.clone();
+            bootstrap.settings.ui_left_panel_collapsed = workspace.ui.left_panel_collapsed;
+            bootstrap.settings.ui_right_panel_collapsed = workspace.ui.right_panel_collapsed;
+        } else {
+            bootstrap.open_tabs.clear();
+            let ui = nyaterm_core::WorkspaceUiState::default();
+            bootstrap.settings.ui_left_panel_width = ui.left_panel_width;
+            bootstrap.settings.ui_right_panel_width = ui.right_panel_width;
+            bootstrap.settings.ui_quick_cmd_height = ui.bottom_panel_height;
+            bootstrap.settings.ui_active_left_panel = ui.active_left_panel;
+            bootstrap.settings.ui_active_right_panel = ui.active_right_panel;
+            bootstrap.settings.ui_left_panel_collapsed = ui.left_panel_collapsed;
+            bootstrap.settings.ui_right_panel_collapsed = ui.right_panel_collapsed;
+        }
         let BootstrapSnapshot {
             database_path,
             custom_icons,
@@ -87,6 +114,7 @@ impl NyaTermApp {
             ai_message_count,
             ai_audit_count,
             open_tabs,
+            ..
         } = bootstrap;
         let mut settings = settings;
         // Localized child views cache placeholders while they are constructed, so
@@ -184,7 +212,6 @@ impl NyaTermApp {
         terminal_output_decoder.set_encoding(&settings.interaction_default_encoding);
         let mut terminal_screen = initial_terminal_screen();
         terminal_screen.set_encoding(&settings.interaction_default_encoding);
-        let session_manager = Arc::new(SessionManager::new());
         let terminal_frame_pipeline = TerminalFramePipeline::spawn(recording_writer);
         let session_event_bridge = SessionEventBridge::spawn(
             Arc::clone(&session_manager),
@@ -216,6 +243,10 @@ impl NyaTermApp {
 
         let blocking_jobs = crate::blocking_jobs::BlockingJobScheduler::new();
         let mut app = Self {
+            workspace_id,
+            workspace_revision: 0,
+            desktop_controller: None,
+            process_state,
             blocking_jobs: blocking_jobs.clone(),
             stores,
             store_ui,
@@ -431,8 +462,22 @@ impl NyaTermApp {
             .expect("receive test bootstrap")
             .outcome
             .expect("load test bootstrap");
-        let mut app =
-            Self::from_bootstrap(runtime, stores, bootstrap, store_ui, store_blocking, cx);
+        let workspace_id = bootstrap
+            .workspace_restore
+            .most_recent()
+            .map(|workspace| workspace.id)
+            .unwrap_or_default();
+        let process_state = cx.new(|_| crate::app_shell::ProcessStateStore::new(bootstrap));
+        let workspace_init = process_state.read(cx).workspace_init(workspace_id);
+        let mut app = Self::from_bootstrap(
+            runtime,
+            stores,
+            process_state,
+            workspace_init,
+            NyaTermStoreClients::new(store_ui, store_blocking),
+            Arc::new(SessionManager::new()),
+            cx,
+        );
         app._test_config_dir = Some(test_config_dir);
         app
     }

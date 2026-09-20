@@ -1,6 +1,6 @@
 //! Authoritative application settings and grouped state for the settings experience.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use gpui::FocusHandle;
@@ -24,6 +24,7 @@ pub(in crate::features) struct SettingsFeatureState {
     /// Compatibility-sensitive values loaded and persisted through `nyaterm-core`.
     summary: AppSettingsSummary,
     keyword_config: KeywordHighlightConfig,
+    keyword_persistence_dirty: bool,
     master_password: SettingsMasterPasswordState,
     store_status: StoreStatus,
     search_engines: SearchEngineSettingsState,
@@ -32,6 +33,7 @@ pub(in crate::features) struct SettingsFeatureState {
     keybindings: KeybindingSettingsState,
     prompts: SettingsPromptState,
     persistence: HashMap<SettingsPersistenceDomain, SettingsPersistenceSlot>,
+    draft_dirty_domains: HashSet<SettingsPersistenceDomain>,
     panel_refresh_requested: bool,
 }
 
@@ -200,6 +202,7 @@ impl SettingsFeatureState {
         Self {
             summary,
             keyword_config,
+            keyword_persistence_dirty: false,
             master_password,
             store_status: StoreStatus {
                 path: store_path,
@@ -229,6 +232,7 @@ impl SettingsFeatureState {
             },
             prompts: SettingsPromptState::default(),
             persistence: HashMap::new(),
+            draft_dirty_domains: HashSet::new(),
             panel_refresh_requested: false,
         }
     }
@@ -326,6 +330,39 @@ impl SettingsFeatureState {
                 dirty: false,
             })
             .dirty = true;
+    }
+
+    pub(in crate::features) fn mark_draft_domain_dirty(
+        &mut self,
+        domain: SettingsPersistenceDomain,
+    ) {
+        self.draft_dirty_domains.insert(domain);
+    }
+
+    pub(in crate::features) fn clear_draft_dirty_domains(&mut self) {
+        self.draft_dirty_domains.clear();
+    }
+
+    pub(in crate::features) fn draft_dirty_domains(&self) -> Vec<SettingsPersistenceDomain> {
+        const DOMAINS: [SettingsPersistenceDomain; 13] = [
+            SettingsPersistenceDomain::Diagnostics,
+            SettingsPersistenceDomain::General,
+            SettingsPersistenceDomain::Interaction,
+            SettingsPersistenceDomain::ScreenLock,
+            SettingsPersistenceDomain::HostKey,
+            SettingsPersistenceDomain::Recording,
+            SettingsPersistenceDomain::Transfer,
+            SettingsPersistenceDomain::Terminal,
+            SettingsPersistenceDomain::QuickCommands,
+            SettingsPersistenceDomain::Appearance,
+            SettingsPersistenceDomain::UiLayout,
+            SettingsPersistenceDomain::Keybindings,
+            SettingsPersistenceDomain::FileExplorer,
+        ];
+        DOMAINS
+            .into_iter()
+            .filter(|domain| self.draft_dirty_domains.contains(domain))
+            .collect()
     }
 
     pub(in crate::features) fn dirty_persistence_domains(&self) -> Vec<SettingsPersistenceDomain> {
@@ -711,6 +748,23 @@ impl SettingsFeatureState {
 
     pub(in crate::features) fn keyword_config(&self) -> &KeywordHighlightConfig {
         &self.keyword_config
+    }
+
+    pub(in crate::features) fn keyword_persistence_dirty(&self) -> bool {
+        self.keyword_persistence_dirty
+    }
+
+    pub(in crate::features) fn mark_keyword_persistence_dirty(&mut self) {
+        self.keyword_persistence_dirty = true;
+    }
+
+    pub(in crate::features) fn finish_keyword_persistence(
+        &mut self,
+        saved: &KeywordHighlightConfig,
+    ) {
+        if &self.keyword_config == saved {
+            self.keyword_persistence_dirty = false;
+        }
     }
 
     pub(in crate::features) fn replace_keyword_config(&mut self, config: KeywordHighlightConfig) {

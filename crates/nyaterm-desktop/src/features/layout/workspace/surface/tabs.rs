@@ -608,7 +608,11 @@ impl NyaTermApp {
             // the whole target uses the theme hover surface and the insertion
             // edge uses the focus/drag border color.
             let drag_target_bg = self.shell_surface_color(palette.hover);
+            let drop_workspace_id = self.workspace_id;
             let drag_payload = SessionTabDragPayload {
+                source_workspace_id: self.workspace_id,
+                root_tab_id: session.id.clone(),
+                source_revision: self.workspace_revision(),
                 session_id: session.id.clone(),
                 order_index: tab_index,
                 display_name: display_name.clone(),
@@ -651,6 +655,12 @@ impl NyaTermApp {
                     cx.new(|_| SessionTabDragPreview::new(payload.clone(), position))
                 })
                 .drag_over::<SessionTabDragPayload>(move |this, payload, _, _| {
+                    if payload.source_workspace_id != drop_workspace_id {
+                        return this
+                            .bg(drag_target_bg)
+                            .border_l_2()
+                            .border_color(rgb(palette.focus_ring));
+                    }
                     let Some(insert_after) = tab_drop_insert_after(payload.order_index, tab_index)
                     else {
                         return this;
@@ -676,6 +686,16 @@ impl NyaTermApp {
                 ))
                 .on_drop(
                     cx.listener(move |this, payload: &SessionTabDragPayload, _, cx| {
+                        if payload.source_workspace_id != this.workspace_id {
+                            this.request_tab_tree_move(
+                                payload,
+                                nyaterm_core::MoveTabPlacement::BeforeTab(
+                                    drop_target_session_id.clone(),
+                                ),
+                                cx,
+                            );
+                            return;
+                        }
                         let Some(insert_after) =
                             tab_drop_insert_after(payload.order_index, tab_index)
                         else {
@@ -875,7 +895,8 @@ impl NyaTermApp {
             transient_cursor += 1;
         }
 
-        if session_count > 1 {
+        if session_count > 0 {
+            let drop_workspace_id = self.workspace_id;
             tabs = tabs.child(
                 div()
                     .id("session-tab-drop-end")
@@ -886,7 +907,9 @@ impl NyaTermApp {
                     .border_color(rgb(palette.border))
                     .hover(move |this| this.bg(shell_hover_bg))
                     .drag_over::<SessionTabDragPayload>(move |this, payload, _, _| {
-                        if payload.order_index + 1 >= session_count {
+                        if payload.source_workspace_id == drop_workspace_id
+                            && payload.order_index + 1 >= session_count
+                        {
                             this
                         } else {
                             this.bg(shell_hover_bg)
@@ -900,16 +923,39 @@ impl NyaTermApp {
                         },
                     ))
                     .on_drop(cx.listener(|this, payload: &SessionTabDragPayload, _, cx| {
-                        this.reorder_session_to_end(payload.session_id.clone(), cx);
+                        if payload.source_workspace_id == this.workspace_id {
+                            this.reorder_session_to_end(payload.session_id.clone(), cx);
+                        } else {
+                            this.request_tab_tree_move(
+                                payload,
+                                nyaterm_core::MoveTabPlacement::Append,
+                                cx,
+                            );
+                        }
                     })),
             );
         } else {
             tabs = tabs.child(
                 div()
+                    .id("session-tab-drop-empty")
                     .h_full()
                     .flex_1()
                     .border_b_1()
-                    .border_color(rgb(palette.border)),
+                    .border_color(rgb(palette.border))
+                    .drag_over::<SessionTabDragPayload>(move |this, _, _, _| {
+                        this.bg(shell_hover_bg)
+                            .border_l_2()
+                            .border_color(rgb(palette.focus_ring))
+                    })
+                    .on_drop(cx.listener(|this, payload: &SessionTabDragPayload, _, cx| {
+                        if payload.source_workspace_id != this.workspace_id {
+                            this.request_tab_tree_move(
+                                payload,
+                                nyaterm_core::MoveTabPlacement::Append,
+                                cx,
+                            );
+                        }
+                    })),
             );
         }
 

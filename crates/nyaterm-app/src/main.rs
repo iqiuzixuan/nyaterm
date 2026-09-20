@@ -3,12 +3,11 @@
 mod single_instance;
 
 use anyhow::Context as _;
-use gpui::{App, AppContext, TitlebarOptions, WindowOptions, point, px};
+use gpui::{App, AppContext};
 use nyaterm_app::assets;
 use nyaterm_core::app_identity::AppFlavor;
 use nyaterm_core::{ActivationRequest, AppRuntime, LOG_FILE_PREFIX, LOG_FILE_SUFFIX};
-use nyaterm_desktop::{AppShell, AppShellStartup};
-use nyaterm_ui::nya_root;
+use nyaterm_desktop::{AppShellStartup, DesktopController, DesktopControllerGlobal};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -23,7 +22,7 @@ fn main() -> anyhow::Result<()> {
         *uuid::Uuid::new_v4().as_bytes(),
         std::env::args_os().skip(1),
     );
-    let mut instance_owner = match acquire(runtime.config_dir(), initial_activation)? {
+    let mut instance_owner = match acquire(runtime.config_dir(), initial_activation.clone())? {
         SingleInstanceOutcome::Owner(owner) => owner,
         SingleInstanceOutcome::Forwarded => return Ok(()),
     };
@@ -54,40 +53,16 @@ fn main() -> anyhow::Result<()> {
         let flavor = AppFlavor::current();
         cx.set_app_identity(flavor.application_identifier(), flavor.display_name());
         gpui_component::init(cx);
+        cx.set_quit_mode(gpui::QuitMode::Explicit);
         nyaterm_desktop::init(cx);
         let startup = AppShellStartup::prepare(&runtime);
-        let placement = startup.main_window_placement(cx);
-        let app_runtime = runtime.clone();
-
-        cx.open_window(
-            WindowOptions {
-                app_id: Some(flavor.desktop_id().to_string()),
-                titlebar: Some(TitlebarOptions {
-                    title: Some(flavor.display_name().into()),
-                    appears_transparent: true,
-                    traffic_light_position: cfg!(target_os = "macos")
-                        .then(|| point(px(9.), px(11.))),
-                }),
-                #[cfg(target_os = "linux")]
-                window_decorations: Some(gpui::WindowDecorations::Client),
-                window_bounds: Some(placement.window_bounds),
-                display_id: placement.display_id,
-                ..Default::default()
-            },
-            move |window, cx| {
-                let shell = cx.new(|cx| AppShell::new(app_runtime, activation_rx, startup, cx));
-                let close_shell = shell.clone();
-                window.on_window_should_close(cx, move |window, cx| {
-                    close_shell.update(cx, |shell, cx| shell.request_window_close(window, cx));
-                    false
-                });
-                shell.update(cx, |shell, cx| {
-                    shell.start_after_window_open(window, cx);
-                });
-                cx.new(|cx| nya_root(shell, window, cx))
-            },
-        )
-        .expect("failed to open NyaTerm window");
+        let controller = cx.new(|cx| DesktopController::new(runtime.clone(), startup, cx));
+        cx.set_global(DesktopControllerGlobal(controller.clone()));
+        controller
+            .update(cx, |controller, cx| {
+                controller.launch(initial_activation, activation_rx, cx)
+            })
+            .expect("failed to open NyaTerm windows");
 
         cx.activate(true);
     });

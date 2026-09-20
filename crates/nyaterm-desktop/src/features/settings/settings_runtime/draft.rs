@@ -11,6 +11,7 @@ impl NyaTermApp {
         if self.shell.has_settings_draft() {
             return;
         }
+        self.settings.clear_draft_dirty_domains();
         let (translation_settings, translation_secret_draft) =
             self.translation.settings_draft_snapshot();
         let (cloud_sync_settings, cloud_sync_secret_draft) =
@@ -20,6 +21,7 @@ impl NyaTermApp {
         let master_password = self.settings.master_password();
         self.shell
             .set_settings_draft_snapshot(SettingsDraftSnapshot {
+                revisions: self.process_state.read(cx).settings_draft_revisions(),
                 settings: self.settings.summary().clone(),
                 ai_settings,
                 ai_model_draft,
@@ -75,6 +77,18 @@ impl NyaTermApp {
         self.shell
             .set_status("settings draft changed; apply to persist".to_string());
         cx.notify();
+        true
+    }
+
+    pub(in crate::features) fn defer_settings_domain_persistence(
+        &mut self,
+        domain: crate::features::settings::SettingsPersistenceDomain,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.defer_settings_persistence(cx) {
+            return false;
+        }
+        self.settings.mark_draft_domain_dirty(domain);
         true
     }
 
@@ -224,11 +238,60 @@ impl NyaTermApp {
         }
 
         let settings = self.settings.summary().clone();
+        let base_settings = self
+            .shell
+            .settings_draft_snapshot()
+            .expect("settings draft checked above")
+            .settings
+            .clone();
+        let base = self
+            .shell
+            .settings_draft_snapshot()
+            .expect("settings draft checked above")
+            .clone();
+        let settings_domains = self.settings.draft_dirty_domains();
+        let settings_changed = !settings_domains.is_empty();
+        let keyword_changed = self.settings.keyword_config() != &base.keyword_highlights;
+        let ai_changed = !self.ai.settings_draft_matches(
+            &base.ai_settings,
+            &base.ai_model_draft,
+            &base.ai_base_url_draft,
+            &base.ai_secret_draft,
+        );
+        let cloud_changed = !self
+            .cloud_sync
+            .settings_draft_matches(&base.cloud_sync_settings, &base.cloud_sync_secret_draft);
+        let translation_changed = !self
+            .translation
+            .settings_draft_matches(&base.translation_settings, &base.translation_secret_draft);
+        let master_password = self.settings.master_password();
+        let master_password_changed = base.master_password_enabled != master_password.enabled
+            || base.master_password_draft.expose_secret() != master_password.draft;
+        let revisions = self.process_state.read(cx).settings_draft_revisions();
+        let settings_revision_conflict =
+            (settings_changed || keyword_changed || master_password_changed)
+                && revisions.settings != base.revisions.settings;
+        let ai_revision_conflict = ai_changed && revisions.ai != base.revisions.ai;
+        let cloud_revision_conflict =
+            cloud_changed && revisions.cloud_sync != base.revisions.cloud_sync;
+        let translation_revision_conflict =
+            translation_changed && revisions.translation != base.revisions.translation;
+        if settings_revision_conflict
+            || ai_revision_conflict
+            || cloud_revision_conflict
+            || translation_revision_conflict
+        {
+            let message = "settings changed in another window; reload before applying".to_string();
+            self.settings.update_store_status(message.clone(), false);
+            self.shell.set_status(message);
+            self.request_settings_panel_refresh(cx);
+            cx.notify();
+            return;
+        }
         let ai_settings = self.pending_ai_settings();
         let cloud_sync_settings = self.cloud_sync.pending_settings();
         let translation_settings = self.translation.pending_settings();
         let keyword_highlights = self.settings.keyword_config().clone();
-        let master_password = self.settings.master_password();
         let master_password_update = if master_password.draft.is_empty() {
             (self.settings.summary().has_master_password && !master_password.enabled)
                 .then_some(None)
@@ -240,36 +303,122 @@ impl NyaTermApp {
         self.submit_store_request(
             0,
             store_request(StoreDomain::Settings, move |store| {
+                let conflict = || {
+                    nyaterm_store::StorageError::InvalidData(
+                        "settings changed in another window; reload before applying".to_string(),
+                    )
+                };
+                let mut shared_settings = settings.clone();
+                if settings_changed {
+                    let persisted_settings = store.load_app_settings_summary()?;
+                    shared_settings.ui_left_panel_width = persisted_settings.ui_left_panel_width;
+                    shared_settings.ui_right_panel_width = persisted_settings.ui_right_panel_width;
+                    shared_settings.ui_quick_cmd_height = persisted_settings.ui_quick_cmd_height;
+                    shared_settings.ui_active_left_panel =
+                        persisted_settings.ui_active_left_panel.clone();
+                    shared_settings.ui_active_right_panel =
+                        persisted_settings.ui_active_right_panel.clone();
+                    shared_settings.ui_left_panel_collapsed =
+                        persisted_settings.ui_left_panel_collapsed;
+                    shared_settings.ui_right_panel_collapsed =
+                        persisted_settings.ui_right_panel_collapsed;
+                    let mut persisted = persisted_settings;
+                    // These fields are workspace-local projections, not shared settings.
+                    persisted.ui_left_panel_width = base_settings.ui_left_panel_width;
+                    persisted.ui_right_panel_width = base_settings.ui_right_panel_width;
+                    persisted.ui_quick_cmd_height = base_settings.ui_quick_cmd_height;
+                    persisted.ui_active_left_panel = base_settings.ui_active_left_panel.clone();
+                    persisted.ui_active_right_panel = base_settings.ui_active_right_panel.clone();
+                    persisted.ui_left_panel_collapsed = base_settings.ui_left_panel_collapsed;
+                    persisted.ui_right_panel_collapsed = base_settings.ui_right_panel_collapsed;
+                    if persisted != base_settings {
+                        return Err(conflict());
+                    }
+                }
+                if keyword_changed && store.load_keyword_highlights()? != base.keyword_highlights {
+                    return Err(conflict());
+                }
+                if ai_changed && store.load_ai_settings()? != base.ai_settings {
+                    return Err(conflict());
+                }
+                if cloud_changed && store.load_cloud_sync_settings()? != base.cloud_sync_settings {
+                    return Err(conflict());
+                }
+                if translation_changed
+                    && store.load_translation_settings()? != base.translation_settings
+                {
+                    return Err(conflict());
+                }
                 if let Some(next_password) = master_password_update.as_ref() {
                     store.save_master_password(next_password.as_deref())?;
                 }
-                store.save_appearance_settings(&settings)?;
-                store.save_terminal_settings(&settings)?;
-                store.save_interaction_settings(&settings)?;
-                store.save_general_settings(&settings)?;
-                // The header-status mode and visibility are edited on the General tab
-                // but stored by the UI-layout writer, which is otherwise driven by
-                // layout gestures through `persist_ui_layout`. Without this the draft's
-                // choice is never written, and the `load_app_settings_summary` below
-                // hands the stale value straight back to `apply_gpui_settings`.
-                store.save_ui_layout_settings(&settings)?;
-                store.save_diagnostics_settings(&settings)?;
-                store.save_screen_lock_settings(&settings)?;
-                store.save_recording_settings(&settings)?;
-                store.save_transfer_settings(&settings)?;
-                store.save_host_key_policy(&settings.host_key_policy)?;
-                store.save_keybindings(&settings.keybindings)?;
-                let saved_keyword_highlights =
-                    store.save_keyword_highlights(&keyword_highlights)?;
-                let saved_translation_settings =
-                    store.save_translation_settings(translation_settings)?;
-                let saved_cloud_sync_settings =
-                    store.save_cloud_sync_settings(cloud_sync_settings)?;
-                let saved_ai_settings = store.save_ai_settings(ai_settings)?;
-                if !settings.startup_restore_window_layout {
+                for domain in settings_domains {
+                    match domain {
+                        crate::features::settings::SettingsPersistenceDomain::Diagnostics => {
+                            store.save_diagnostics_settings(&shared_settings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::General => {
+                            store.save_general_settings(&shared_settings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::Interaction => {
+                            store.save_interaction_settings(&shared_settings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::ScreenLock => {
+                            store.save_screen_lock_settings(&shared_settings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::HostKey => {
+                            store.save_host_key_policy(&shared_settings.host_key_policy)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::Recording => {
+                            store.save_recording_settings(&shared_settings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::Transfer => {
+                            store.save_transfer_settings(&shared_settings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::Terminal => {
+                            store.save_terminal_settings(&shared_settings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::QuickCommands => {
+                            store.save_quick_command_ui_settings(&shared_settings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::Appearance => {
+                            store.save_appearance_settings(&shared_settings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::UiLayout => {
+                            store.save_ui_layout_settings(&shared_settings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::Keybindings => {
+                            store.save_keybindings(&shared_settings.keybindings)?;
+                        }
+                        crate::features::settings::SettingsPersistenceDomain::FileExplorer => {
+                            store.save_file_explorer_favorite_dirs(&shared_settings)?;
+                        }
+                    }
+                }
+                if settings_changed && !settings.startup_restore_window_layout {
                     store.save_terminal_window_layout(None)?;
                     store.save_workspace_pane_layout(None)?;
                 }
+                let saved_keyword_highlights = if keyword_changed {
+                    store.save_keyword_highlights(&keyword_highlights)?
+                } else {
+                    store.load_keyword_highlights()?
+                };
+                let saved_translation_settings = if translation_changed {
+                    store.save_translation_settings(translation_settings)?
+                } else {
+                    store.load_translation_settings()?
+                };
+                let saved_cloud_sync_settings = if cloud_changed {
+                    store.save_cloud_sync_settings(cloud_sync_settings)?
+                } else {
+                    store.load_cloud_sync_settings()?
+                };
+                let saved_ai_settings = if ai_changed {
+                    store.save_ai_settings(ai_settings)?
+                } else {
+                    store.load_ai_settings()?
+                };
                 Ok((
                     store.load_app_settings_summary()?,
                     saved_keyword_highlights,
@@ -286,7 +435,9 @@ impl NyaTermApp {
                     saved_cloud_sync_settings,
                     saved_ai_settings,
                 )) => {
-                    this.apply_gpui_settings(saved_settings, cx);
+                    this.apply_gpui_settings(saved_settings.clone(), cx);
+                    this.publish_shared_settings(saved_settings, cx);
+                    this.request_shared_state_refresh(crate::app_shell::SharedStateDomain::All, cx);
                     this.settings.rebase_master_password();
                     this.ai.replace_settings_config(saved_ai_settings, true);
                     this.cloud_sync
@@ -317,6 +468,7 @@ impl NyaTermApp {
                     this.invalidate_terminal_cell_metrics(cx);
                     this.refresh_visible_terminal_surfaces(cx);
                     this.shell.clear_settings_draft_snapshot();
+                    this.settings.clear_draft_dirty_domains();
                     this.settings.update_store_status("settings applied", true);
                     this.shell.set_status("settings applied".to_string());
                     if close_after_apply {
@@ -374,6 +526,7 @@ impl NyaTermApp {
             self.sync_ai_drafts_from_active_profile();
             self.refresh_visible_terminal_surfaces(cx);
         }
+        self.settings.clear_draft_dirty_domains();
         self.finish_settings_page(cx);
         self.request_settings_panel_refresh(cx);
     }
@@ -383,6 +536,7 @@ impl NyaTermApp {
             self.apply_settings_draft(true, cx);
         } else {
             self.shell.clear_settings_draft_snapshot();
+            self.settings.clear_draft_dirty_domains();
             self.finish_settings_page(cx);
         }
         self.request_settings_panel_refresh(cx);
@@ -607,5 +761,60 @@ mod tests {
             ("host".to_string(), true),
             "apply must write the header back on, not leave it hidden on disk"
         );
+    }
+
+    #[test]
+    fn stale_draft_cannot_overwrite_settings_saved_by_another_window() {
+        let mut cx = TestAppContext::single();
+        let app = app(&mut cx);
+        cx.update_entity(&app, |app, cx| {
+            app.begin_settings_draft(cx);
+            app.set_header_status_mode(HeaderStatusMode::Host, cx);
+            let mut other_window = app.settings.summary().clone();
+            other_window.ui_header_status_mode = "session".to_string();
+            other_window.confirm_on_close = !other_window.confirm_on_close;
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, move |store| {
+                    store.save_general_settings(&other_window)
+                })
+                .expect("external save");
+            app.apply_settings_draft(false, cx);
+        });
+        cx.run_until_parked();
+        assert_eq!(stored_header_status(&app, &mut cx).0, "session");
+        cx.update_entity(&app, |app, _| {
+            assert!(
+                app.shell.has_settings_draft(),
+                "the rejected draft must survive"
+            );
+        });
+    }
+
+    #[test]
+    fn applying_unrelated_settings_does_not_rewrite_updated_keyword_catalog() {
+        let mut cx = TestAppContext::single();
+        let app = app(&mut cx);
+        cx.update_entity(&app, |app, cx| {
+            app.begin_settings_draft(cx);
+            app.set_header_status_mode(HeaderStatusMode::Host, cx);
+            let mut external = app.settings.keyword_config().clone();
+            external.enabled = !external.enabled;
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, move |store| {
+                    store.save_keyword_highlights(&external)
+                })
+                .expect("external keyword save");
+            app.apply_settings_draft(false, cx);
+        });
+        cx.run_until_parked();
+        let saved = cx.update_entity(&app, |app, _| {
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, |store| {
+                    store.load_keyword_highlights()
+                })
+                .expect("load keyword catalog")
+        });
+        assert!(saved.enabled);
+        assert_eq!(stored_header_status(&app, &mut cx).0, "host");
     }
 }
