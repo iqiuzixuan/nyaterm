@@ -9,7 +9,7 @@ use std::sync::{
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use anyhow::{Context as _, anyhow, bail};
+use anyhow::{Context as _, bail};
 use nyaterm_core::{
     ACTIVATION_QUEUE_CAPACITY, ActivationAck, ActivationAckStatus, ActivationQueueError,
     ActivationReceiver, ActivationRequest, ActivationSender, MAX_ACTIVATION_FRAME_BYTES,
@@ -81,8 +81,7 @@ pub(crate) fn acquire(
         let lock_file = open_private_file(&lock_path)?;
         match lock_file.try_lock() {
             Ok(()) => {
-                return start_owner(lock_file, endpoint_path, initial_request)
-                    .map(SingleInstanceOutcome::Owner);
+                return start_owner(lock_file, endpoint_path).map(SingleInstanceOutcome::Owner);
             }
             Err(std::fs::TryLockError::WouldBlock) => {}
             Err(std::fs::TryLockError::Error(error)) => {
@@ -104,11 +103,7 @@ pub(crate) fn acquire(
     }
 }
 
-fn start_owner(
-    lock_file: File,
-    endpoint_path: PathBuf,
-    initial_request: ActivationRequest,
-) -> anyhow::Result<SingleInstanceOwner> {
+fn start_owner(lock_file: File, endpoint_path: PathBuf) -> anyhow::Result<SingleInstanceOwner> {
     let _ = std::fs::remove_file(&endpoint_path);
     let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
         .context("bind NyaTerm activation listener")?;
@@ -120,9 +115,6 @@ fn start_owner(
     write_endpoint(&endpoint_path, address, auth_token)?;
 
     let (activation_tx, activation_rx) = activation_channel(ACTIVATION_QUEUE_CAPACITY);
-    activation_tx
-        .try_send(initial_request)
-        .map_err(|_| anyhow!("failed to enqueue initial activation"))?;
     let stop = Arc::new(AtomicBool::new(false));
     let listener_stop = Arc::clone(&stop);
     let listener_activation_tx = activation_tx.clone();
@@ -319,6 +311,8 @@ mod tests {
     use std::net::{Shutdown, TcpStream};
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    use futures::FutureExt as _;
+
     use nyaterm_core::{
         ActivationAck, ActivationAckStatus, ActivationRequest, RawActivationArg,
         decode_activation_ack, encode_activation_request,
@@ -393,10 +387,7 @@ mod tests {
             panic!("first process must own the instance");
         };
         let mut receiver = owner.take_activation_receiver();
-        assert_eq!(
-            futures::executor::block_on(receiver.recv()),
-            Some(request(1))
-        );
+        assert!(receiver.recv().now_or_never().is_none());
         assert!(matches!(
             acquire(&root, request(2)).unwrap(),
             SingleInstanceOutcome::Forwarded
@@ -421,10 +412,6 @@ mod tests {
             panic!("first process must own the instance");
         };
         let mut receiver = owner.take_activation_receiver();
-        assert_eq!(
-            futures::executor::block_on(receiver.recv()),
-            Some(request(1))
-        );
         let endpoint = read_endpoint(&owner.endpoint_path).unwrap().unwrap();
 
         let mut wrong_token = endpoint.auth_token;

@@ -22,7 +22,7 @@ fn main() -> anyhow::Result<()> {
         *uuid::Uuid::new_v4().as_bytes(),
         std::env::args_os().skip(1),
     );
-    let mut instance_owner = match acquire(runtime.config_dir(), initial_activation)? {
+    let mut instance_owner = match acquire(runtime.config_dir(), initial_activation.clone())? {
         SingleInstanceOutcome::Owner(owner) => owner,
         SingleInstanceOutcome::Forwarded => return Ok(()),
     };
@@ -59,7 +59,9 @@ fn main() -> anyhow::Result<()> {
         let controller = cx.new(|cx| DesktopController::new(runtime.clone(), startup, cx));
         cx.set_global(DesktopControllerGlobal(controller.clone()));
         controller
-            .update(cx, |controller, cx| controller.launch(activation_rx, cx))
+            .update(cx, |controller, cx| {
+                controller.launch(initial_activation, activation_rx, cx)
+            })
             .expect("failed to open NyaTerm windows");
 
         cx.activate(true);

@@ -620,9 +620,11 @@ impl AppShell {
     }
 
     fn quit_after_worker_shutdown(&mut self, cx: &mut Context<Self>) {
-        self.controller
-            .update(cx, |controller, cx| controller.shutdown_all_workspaces(cx));
-        cx.quit();
+        let controller = self.controller.downgrade();
+        cx.defer(move |cx| {
+            let _ = controller.update(cx, |controller, cx| controller.shutdown_all_workspaces(cx));
+            cx.quit();
+        });
     }
 
     fn begin_shutdown(&mut self, cx: &mut Context<Self>) {
@@ -667,8 +669,14 @@ impl AppShell {
                 return;
             }
         };
+        let current_snapshot = app.update(cx, |app, _| app.capture_workspace_close_snapshot());
         let restore_task = match self.controller.update(cx, |controller, cx| {
-            controller.submit_process_restore_snapshot(self.workspace_id, latest_window_state, cx)
+            controller.submit_process_restore_snapshot(
+                self.workspace_id,
+                current_snapshot,
+                latest_window_state,
+                cx,
+            )
         }) {
             Ok(task) => task,
             Err(error) => {

@@ -106,6 +106,7 @@ impl DesktopController {
 
     pub fn launch(
         &mut self,
+        initial_activation: ActivationRequest,
         activation_rx: ActivationReceiver,
         cx: &mut Context<Self>,
     ) -> anyhow::Result<()> {
@@ -119,6 +120,7 @@ impl DesktopController {
             let startup = self.startup.for_workspace(workspace_id);
             self.open_workspace_with_startup(startup, None, false, cx)?;
         }
+        let _ = self.activate_and_deliver(self.most_recent_workspace_id, initial_activation, cx);
         self.launch_initial_bootstrap(cx);
         if let Some(recent) = self.most_recent_workspace_id
             && let Some(entry) = self.windows.get(&recent)
@@ -1137,23 +1139,26 @@ impl DesktopController {
         Ok(tasks)
     }
 
-    pub fn submit_process_restore_snapshot(
+    pub(crate) fn submit_process_restore_snapshot(
         &mut self,
         current_workspace_id: WorkspaceId,
+        current_snapshot: WorkspaceCloseSnapshot,
         current_state: Option<MainWindowState>,
         cx: &mut Context<Self>,
     ) -> Result<StoreTask<()>, StoreSubmitError> {
         let mut device_windows = self.device_windows.clone();
-        let mut workspace_snapshots: Vec<WorkspaceCloseSnapshot> = Vec::new();
+        let mut workspace_snapshots = vec![current_snapshot];
         for (workspace_id, entry) in &self.windows {
-            if let Some(app) = entry
-                .shell
-                .update(cx, |shell, _| shell.app.clone())
-                .ok()
-                .flatten()
-            {
-                workspace_snapshots
-                    .push(app.update(cx, |app, _| app.capture_workspace_close_snapshot()));
+            if *workspace_id != current_workspace_id {
+                if let Some(app) = entry
+                    .shell
+                    .update(cx, |shell, _| shell.app.clone())
+                    .ok()
+                    .flatten()
+                {
+                    workspace_snapshots
+                        .push(app.update(cx, |app, _| app.capture_workspace_close_snapshot()));
+                }
             }
             let state = if *workspace_id == current_workspace_id {
                 current_state.clone()
