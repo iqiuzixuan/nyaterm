@@ -93,7 +93,7 @@ impl NyaTermApp {
                 self.open_terminal_search(window, cx);
             }
             NativeMenuCommand::TerminalClear => {
-                self.clear_terminal(cx);
+                self.send_terminal_clear_screen(cx);
             }
             NativeMenuCommand::TerminalSelectAll => {
                 self.select_all_terminal(cx);
@@ -295,7 +295,7 @@ impl NyaTermApp {
                 .icon("icons/fe/delete.svg")
                 .shortcut(self.display_shortcut_for("terminal.clear", "Ctrl+L"))
                 .on_click(cx.listener(|this, _, _, cx| {
-                    this.clear_terminal(cx);
+                    this.send_terminal_clear_screen(cx);
                 })),
             NyaMenuItem::action(t!("menu.refitTerminals"))
                 .icon("icons/menu/fit.svg")

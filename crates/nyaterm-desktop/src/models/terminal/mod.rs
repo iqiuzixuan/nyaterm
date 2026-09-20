@@ -1008,28 +1008,30 @@ impl TerminalViewState {
         }
     }
 
-    pub(crate) fn clear(&mut self) {
+    pub(crate) fn clear_presentation_except_input(
+        &mut self,
+        revision: u64,
+        snapshot: &TerminalSnapshot,
+    ) {
         self.output.clear();
-        self.screen.clear();
+        for row in snapshot
+            .rows()
+            .iter()
+            .filter(|row| !row.text.trim().is_empty())
+        {
+            if !self.output.is_empty() && !row.wrapped {
+                self.output.push('\n');
+            }
+            append_terminal_ui_output_tail(&mut self.output, &row.text);
+        }
         self.frame_snapshot = None;
         self.frame_action_links = None;
         self.clear_terminal_query_caches();
-        self.protocol_state = TerminalProtocolState::default();
-        self.output_decoder.reset_decoder();
-        self.recording_decoder.reset_decoder();
-        self.screen_revision = self.screen_revision.saturating_add(1);
-        self.grid_resize_pending = false;
         self.render_cache.clear();
+        self.screen_revision = revision;
         self.has_unread = false;
         self.scroll_offset = 0;
         self.has_new_while_scrolled = false;
-        self.performance_mode = TerminalPerformanceMode::Normal;
-        self.performance_overlay = None;
-        self.performance_overlay_until = None;
-        self.skipped_output_chars = 0;
-        self.output_burst_bytes = 0;
-        self.render_degraded = true;
-        self.render_degraded_calm_since = None;
     }
 
     pub(crate) fn clamp_scroll_offset(&mut self) {
@@ -1394,6 +1396,14 @@ impl TerminalFramePipeline {
         });
     }
 
+    pub(crate) fn clear_session_except_input(&self, session_id: impl Into<String>) {
+        let _ = self
+            .command_tx
+            .send(TerminalFrameCommand::ClearExceptInput {
+                session_id: session_id.into(),
+            });
+    }
+
     pub(crate) fn take_session_for_transfer(
         &self,
         session_id: impl Into<String>,
@@ -1652,6 +1662,9 @@ enum TerminalFrameCommand {
     RemoveSession {
         session_id: String,
     },
+    ClearExceptInput {
+        session_id: String,
+    },
     TakeSession {
         session_id: String,
         response_tx: std::sync::mpsc::SyncSender<Option<TerminalFrameSession>>,
@@ -1704,6 +1717,7 @@ enum TerminalFrameSnapshotPurpose {
 pub(crate) enum TerminalFrameEvent {
     Output(TerminalFrameOutputEvent),
     Snapshot(TerminalFrameSnapshotEvent),
+    ClearExceptInput(TerminalFrameSnapshotEvent),
     Search(TerminalFrameSearchEvent),
 }
 
@@ -1711,7 +1725,7 @@ impl TerminalFrameEvent {
     pub(crate) fn session_id(&self) -> &str {
         match self {
             Self::Output(event) => &event.session_id,
-            Self::Snapshot(event) => &event.session_id,
+            Self::Snapshot(event) | Self::ClearExceptInput(event) => &event.session_id,
             Self::Search(event) => &event.session_id,
         }
     }
@@ -1936,7 +1950,9 @@ impl TerminalFrameEventQueue {
 fn terminal_frame_event_wake_interest(event: &TerminalFrameEvent) -> u8 {
     match event {
         TerminalFrameEvent::Output(_) => TERMINAL_FRAME_EVENT_WAKE_OUTPUT,
-        TerminalFrameEvent::Snapshot(_) => TERMINAL_FRAME_EVENT_WAKE_SNAPSHOT,
+        TerminalFrameEvent::Snapshot(_) | TerminalFrameEvent::ClearExceptInput(_) => {
+            TERMINAL_FRAME_EVENT_WAKE_SNAPSHOT
+        }
         TerminalFrameEvent::Search(_) => TERMINAL_FRAME_EVENT_WAKE_SEARCH,
     }
 }
@@ -2066,7 +2082,13 @@ fn compact_terminal_frame_event_queue(
         return;
     }
     let mut replaced = Vec::new();
-    let mut index = 0usize;
+    let mut index = queue
+        .iter()
+        .rposition(|event| {
+            matches!(event, TerminalFrameEvent::ClearExceptInput(frame)
+            if frame.session_id == incoming.session_id)
+        })
+        .map_or(0, |index| index + 1);
     while index < queue.len() {
         let replace = matches!(queue.get(index), Some(TerminalFrameEvent::Output(queued))
             if queued.session_id == incoming.session_id
@@ -2108,7 +2130,9 @@ fn terminal_frame_event_can_drop_under_pressure(event: &TerminalFrameEvent) -> b
         TerminalFrameEvent::Output(frame) => {
             terminal_frame_output_event_can_drop_under_pressure(frame)
         }
-        TerminalFrameEvent::Snapshot(_) | TerminalFrameEvent::Search(_) => false,
+        TerminalFrameEvent::Snapshot(_)
+        | TerminalFrameEvent::ClearExceptInput(_)
+        | TerminalFrameEvent::Search(_) => false,
     }
 }
 
@@ -3085,6 +3109,29 @@ fn run_terminal_frame_processor(
                 }
                 sessions.remove(&session_id);
                 snapshot_priority.remove(&session_id);
+            }
+            TerminalFrameCommand::ClearExceptInput { session_id } => {
+                if let Some(stale) = cancel_selected_occurrence_search_job_for_session(
+                    &mut selected_occurrence_search_jobs,
+                    &session_id,
+                    "selected occurrence search was cancelled by terminal clear",
+                ) {
+                    push_terminal_frame_worker_event(
+                        &event_queue,
+                        TerminalFrameEvent::Search(stale),
+                    );
+                }
+                if let Some(session) = sessions.get_mut(&session_id) {
+                    let started_at = Instant::now();
+                    session.screen.clear_except_input();
+                    session.revision = session.revision.saturating_add(1);
+                    session.action_link_cache = None;
+                    let event = session.resized_live_snapshot_event(session_id, started_at);
+                    push_terminal_frame_worker_event(
+                        &event_queue,
+                        TerminalFrameEvent::ClearExceptInput(event),
+                    );
+                }
             }
             TerminalFrameCommand::TakeSession {
                 session_id,

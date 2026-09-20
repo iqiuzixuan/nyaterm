@@ -474,15 +474,16 @@ impl NyaTermApp {
 
     pub(in crate::features) fn clear_terminal(&mut self, cx: &mut Context<Self>) {
         self.clear_terminal_selection(cx);
-        if let Some(session_id) = self.session.active_id()
-            && let Some(view) = self.terminal.view.views.get_mut(session_id)
-        {
-            view.clear();
+        self.terminal.menus.actions_open = false;
+        if let Some(session_id) = self.session.active_id() {
+            self.terminal
+                .view
+                .frame_pipeline
+                .clear_session_except_input(session_id.to_string());
+            self.terminal.view.frame_pipeline.arm_event_wakes();
+            self.shell
+                .set_status("terminal clear requested".to_string());
         }
-        self.terminal.view.output.clear();
-        self.terminal.view.output_decoder.reset_decoder();
-        self.terminal.view.screen.clear();
-        self.shell.set_status("terminal cleared".to_string());
         cx.notify();
     }
 

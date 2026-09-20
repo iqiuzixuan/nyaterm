@@ -990,7 +990,9 @@ fn terminal_frame_pipeline_background_chunks_are_deterministic_after_priority_sn
         .into_iter()
         .find_map(|event| match event {
             TerminalFrameEvent::Snapshot(event) => Some(event),
-            TerminalFrameEvent::Output(_) | TerminalFrameEvent::Search(_) => None,
+            TerminalFrameEvent::Output(_)
+            | TerminalFrameEvent::ClearExceptInput(_)
+            | TerminalFrameEvent::Search(_) => None,
         })
         .expect("visible priority request should emit a snapshot");
     let expected = terminal_frame_snapshot_with_scroll_window(&reference, 0, true);
@@ -1015,6 +1017,77 @@ fn terminal_frame_pipeline_background_chunks_are_deterministic_after_priority_sn
             .map(|row| row.signature)
             .collect::<Vec<_>>()
     );
+}
+
+#[test]
+fn clear_except_input_is_ordered_between_output_frames() {
+    let pipeline = TerminalFramePipeline::default();
+    pipeline.submit_output(
+        "clear-session",
+        b"old\r\nprompt> \x1b]133;B\x07draft".to_vec(),
+        "UTF-8",
+        1000,
+    );
+    pipeline.clear_session_except_input("clear-session");
+    pipeline.submit_output("clear-session", b"!".to_vec(), "UTF-8", 1000);
+    pipeline.flush_for_test();
+
+    let mut events = VecDeque::new();
+    pipeline.drain_events_into(&mut events, usize::MAX);
+    let clear_index = events
+        .iter()
+        .position(|event| matches!(event, TerminalFrameEvent::ClearExceptInput(_)))
+        .expect("clear must emit an authoritative snapshot");
+    let TerminalFrameEvent::ClearExceptInput(clear) = &events[clear_index] else {
+        unreachable!();
+    };
+    assert_eq!(clear.snapshot.scrollback_len, 0);
+    let cleared_text = clear
+        .snapshot
+        .rows()
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<String>();
+    assert!(cleared_text.contains("prompt> draft"));
+    assert!(!cleared_text.contains("old"));
+    let later = events
+        .iter()
+        .skip(clear_index + 1)
+        .find_map(|event| match event {
+            TerminalFrameEvent::Output(frame) => Some(frame),
+            _ => None,
+        })
+        .expect("post-clear output must remain after the clear event");
+    assert!(!later.visible_text.contains("old"));
+    let later_text = later
+        .snapshot
+        .as_ref()
+        .expect("live output snapshot")
+        .rows()
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<String>();
+    assert!(later_text.contains("draft!"));
+    assert!(!later_text.contains("old"));
+}
+
+#[test]
+fn clear_presentation_keeps_terminal_protocol_and_stream_state() {
+    let mut view = TerminalViewState::new();
+    view.screen.advance(b"\x1b[?2004hprompt> draft");
+    view.protocol_state = TerminalProtocolState::from_screen(&view.screen);
+    view.output = "old output".to_string();
+    view.scroll_offset = 3;
+    let before = view.protocol_state;
+    let snapshot = view.screen.snapshot();
+
+    view.clear_presentation_except_input(42, &snapshot);
+
+    assert_eq!(view.protocol_state, before);
+    assert!(view.screen.bracketed_paste());
+    assert_eq!(view.output, "prompt> draft");
+    assert_eq!(view.scroll_offset, 0);
+    assert_eq!(view.screen_revision, 42);
 }
 
 #[test]
