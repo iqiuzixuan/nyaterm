@@ -926,6 +926,7 @@
     "cmCopyPath": "Copy Path",
     "cmDelete": "Delete",
     "cmDownload": "Download...",
+    "cmDownloadToDirectory": "Download to Folder...",
     "cmMove": "Move to...",
     "cmSendTo": "Send to session",
     "cmOpen": "Open",

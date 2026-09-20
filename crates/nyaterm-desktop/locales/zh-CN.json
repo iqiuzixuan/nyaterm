@@ -925,6 +925,7 @@
     "cmCopyPath": "复制路径",
     "cmDelete": "删除",
     "cmDownload": "下载...",
+    "cmDownloadToDirectory": "下载到指定目录...",
     "cmMove": "移动到...",
     "cmSendTo": "发送到会话",
     "cmOpen": "打开",

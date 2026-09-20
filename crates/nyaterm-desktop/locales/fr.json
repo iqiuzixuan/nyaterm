@@ -878,6 +878,7 @@
     "cmCopyPath": "Copier le chemin",
     "cmDelete": "Supprimer",
     "cmDownload": "Télécharger…",
+    "cmDownloadToDirectory": "Télécharger vers un dossier…",
     "cmMove": "Déplacer vers…",
     "cmSendTo": "Envoyer à la session",
     "cmOpen": "Ouvrir",

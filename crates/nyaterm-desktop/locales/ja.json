@@ -881,6 +881,7 @@
     "cmCopyPath": "パスをコピー",
     "cmDelete": "削除",
     "cmDownload": "ダウンロード...",
+    "cmDownloadToDirectory": "指定フォルダーにダウンロード...",
     "cmMove": "移動...",
     "cmSendTo": "セッションに送信",
     "cmOpen": "開く",

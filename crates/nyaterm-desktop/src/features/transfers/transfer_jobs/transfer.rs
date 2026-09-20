@@ -28,13 +28,21 @@ impl NyaTermApp {
         local_path: PathBuf,
         _window: &mut Window,
         cx: &mut Context<Self>,
-    ) {
+    ) -> bool {
         if self.session.active_ssh_config_owned().is_none() {
             self.shell
                 .set_status("start an SSH session first".to_string());
             self.ensure_panel_open(NavItem::Transfers);
             cx.notify();
-            return;
+            return false;
+        }
+        if self.session.active_file_browser_backend()
+            != Some(nyaterm_transport::FileBrowserBackendKind::Remote)
+        {
+            self.shell
+                .set_status("source session is unavailable".to_string());
+            cx.notify();
+            return false;
         }
 
         let duplicate_policy = self.transfer.duplicate_policy();
@@ -46,7 +54,7 @@ impl NyaTermApp {
             Err(error) => {
                 self.shell.set_status(error.to_string());
                 cx.notify();
-                return;
+                return false;
             }
         };
         let session = SftpJobSession {
@@ -60,6 +68,7 @@ impl NyaTermApp {
             SftpPathTransferOptions::new(duplicate_policy, duplicate_resolver, transfer_options),
             cx,
         );
+        true
     }
 
     pub(in crate::features) fn enqueue_sftp_download_job_for_target(
