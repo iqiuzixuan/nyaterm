@@ -4,8 +4,14 @@ use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Component, Path, PathBuf};
 
-#[cfg(windows)]
-mod windows;
+/// Unlike Path::exists, treat dangling links as occupied and propagate probe errors.
+pub(crate) fn target_exists(target: &Path) -> io::Result<bool> {
+    match fs::symlink_metadata(target) {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error),
+    }
+}
 
 /// Reject existing symbolic links between the trusted download root and the target.
 ///
@@ -121,6 +127,7 @@ pub(crate) fn root_for_target(target: &Path) -> &Path {
 /// to avoid deleting a file owned by someone else.
 pub(crate) struct DownloadTemporary {
     path: PathBuf,
+    replace_existing: bool,
 }
 
 impl DownloadTemporary {
@@ -151,31 +158,33 @@ impl DownloadTemporary {
     }
 
     pub(crate) fn create(root: &Path, target: &Path) -> anyhow::Result<(Self, fs::File)> {
+        let replace_existing = existing_file_permissions(root, target)?.is_some();
         let path =
             root_for_target(target).join(format!(".nyaterm-download-{}", nyaterm_core::uuid()));
         ensure_no_symlink(root, &path)?;
-        #[cfg(not(windows))]
-        let file = {
-            let mut options = OpenOptions::new();
-            options.read(true).write(true).create_new(true);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::OpenOptionsExt as _;
-                // The original may be 0600; the default umask must not broaden temporary access.
-                options.mode(0o600);
-            }
-            options.open(&path)?
+        let temporary = Self {
+            path,
+            replace_existing,
         };
-        #[cfg(windows)]
-        let file = windows::create_private_file(&path)?;
-        Ok((Self { path }, file))
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(&temporary.path)?;
+        Ok((temporary, file))
     }
 
-    /// Write existing targets through their original inode to preserve ACLs and ownership;
-    /// this branch does not provide atomic visibility. The root and its ancestors must be
-    /// user-controlled; path checks do not protect against concurrent directory replacement.
+    /// Write existing targets through their original inode to preserve local permissions and
+    /// ownership. New targets are created normally in the destination directory and populated
+    /// from the temporary file without replacing a name that appeared during the transfer. The
+    /// root and its ancestors must be user-controlled because path checks do not protect against
+    /// concurrent directory replacement.
     fn commit(self, root: &Path, target: &Path) -> anyhow::Result<()> {
         let permissions = writable_file_permissions(root, target)?;
+        anyhow::ensure!(
+            self.replace_existing || permissions.is_none(),
+            "download target appeared during transfer"
+        );
         ensure_no_symlink(root, &self.path)?;
         if let Some(permissions) = permissions {
             let mut source = fs::File::open(&self.path)?;
@@ -187,10 +196,24 @@ impl DownloadTemporary {
             // Clear special permission bits before writing, using the same file handle throughout.
             sanitize_existing_permissions(&destination, permissions)?;
             destination.set_len(0)?;
-            io::copy(&mut source, &mut destination)?;
-            destination.sync_all()?;
+            use anyhow::Context as _;
+            io::copy(&mut source, &mut destination)
+                .context("download commit failed; target may contain partial data")?;
+            destination
+                .sync_all()
+                .context("failed to sync committed download")?;
         } else {
-            fs::rename(&self.path, target)?;
+            let mut source = fs::File::open(&self.path)?;
+            let mut destination = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(target)?;
+            use anyhow::Context as _;
+            io::copy(&mut source, &mut destination)
+                .context("download commit failed; target may contain partial data")?;
+            destination
+                .sync_all()
+                .context("failed to sync committed download")?;
         }
         Ok(())
     }
@@ -210,8 +233,8 @@ impl Drop for DownloadTemporary {
     }
 }
 
-/// Stage contents in a private temporary file, then commit. Preserve existing inodes;
-/// rename new files within the same directory.
+/// Stage contents in a temporary file in the destination directory, then commit while preserving
+/// existing inodes and the operating system's normal creation permissions for new targets.
 pub(crate) fn staged_write_file(root: &Path, target: &Path, contents: &[u8]) -> anyhow::Result<()> {
     writable_file_permissions(root, target)?;
     let (temporary, mut file) = DownloadTemporary::create(root, target)?;
@@ -230,6 +253,23 @@ pub fn file_name(remote_path: &str) -> anyhow::Result<&str> {
         .unwrap_or("");
     validate_name(name)?;
     Ok(name)
+}
+
+/// Ignore non-downloadable directory entries before interpreting their local names.
+/// Explicit downloads use separate source validation and still reject these types.
+pub(crate) fn validate_directory_entry(
+    name: &str,
+    file_type: crate::SftpFileType,
+) -> anyhow::Result<bool> {
+    if !matches!(
+        file_type,
+        crate::SftpFileType::File | crate::SftpFileType::Directory
+    ) || matches!(name, "." | "..")
+    {
+        return Ok(false);
+    }
+    validate_name(name)?;
+    Ok(true)
 }
 
 /// Validate that a name is a single normal local filesystem component.
@@ -290,6 +330,85 @@ pub fn target_key(name: &str) -> String {
 mod tests {
     use std::path::Path;
 
+    #[test]
+    fn ignored_directory_entries_do_not_block_regular_downloads() -> anyhow::Result<()> {
+        use crate::SftpFileType;
+        let root = std::env::temp_dir().join(format!(
+            "nyaterm-filtered-download-{}",
+            nyaterm_core::uuid()
+        ));
+        std::fs::create_dir(&root)?;
+        for (name, kind) in [
+            ("bad\\link", SftpFileType::Symlink),
+            ("bad\\special", SftpFileType::Other),
+            ("CON", SftpFileType::Symlink),
+            ("regular", SftpFileType::File),
+        ] {
+            if super::validate_directory_entry(name, kind)? {
+                super::staged_write_file(&root, &root.join(name), b"contents")?;
+            }
+        }
+        assert_eq!(std::fs::read(root.join("regular"))?, b"contents");
+        assert_eq!(std::fs::read_dir(&root)?.count(), 1);
+        assert!(super::validate_directory_entry("bad\\file", SftpFileType::File).is_err());
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn commit_does_not_overwrite_a_target_created_during_download() -> anyhow::Result<()> {
+        use std::io::Write as _;
+        let root =
+            std::env::temp_dir().join(format!("nyaterm-commit-conflict-{}", nyaterm_core::uuid()));
+        std::fs::create_dir(&root)?;
+        let target = root.join("download");
+        let (temporary, mut file) = super::DownloadTemporary::create(&root, &target)?;
+        let temporary_path = temporary.path.clone();
+        file.write_all(b"download")?;
+        drop(file);
+        std::fs::write(&target, b"other writer")?;
+        assert!(temporary.commit(&root, &target).is_err());
+        assert_eq!(std::fs::read(&target)?, b"other writer");
+        assert!(!temporary_path.exists());
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn new_downloads_use_normal_creation_permissions() -> anyhow::Result<()> {
+        use std::os::unix::fs::PermissionsExt as _;
+
+        let root =
+            std::env::temp_dir().join(format!("nyaterm-final-mode-{}", nyaterm_core::uuid()));
+        std::fs::create_dir(&root)?;
+        let reference = root.join("reference");
+        std::fs::write(&reference, b"normal")?;
+        let expected = std::fs::metadata(&reference)?.permissions().mode() & 0o777;
+        let target = root.join("download");
+        super::staged_write_file(&root, &target, b"downloaded")?;
+        assert_eq!(
+            std::fs::metadata(&target)?.permissions().mode() & 0o777,
+            expected
+        );
+
+        let target = root.join("async-download");
+        let (temporary, mut file) =
+            super::DownloadTemporary::prepare_async(&root, &target, 0).await?;
+        use tokio::io::AsyncWriteExt as _;
+        file.write_all(b"downloaded").await?;
+        file.flush().await?;
+        drop(file);
+        temporary.commit_async(&root, &target).await?;
+        assert_eq!(
+            std::fs::metadata(&target)?.permissions().mode() & 0o777,
+            expected
+        );
+        assert_eq!(std::fs::read(&target)?, b"downloaded");
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
     #[tokio::test]
     async fn failed_resume_preparation_preserves_source_and_cleans_temporary() -> anyhow::Result<()>
     {
@@ -309,18 +428,16 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(unix)]
     #[tokio::test]
-    async fn temporary_prefix_is_private_and_dropped_without_committing() -> anyhow::Result<()> {
-        use std::os::unix::fs::PermissionsExt as _;
+    async fn temporary_prefix_is_dropped_without_committing() -> anyhow::Result<()> {
         let root =
-            std::env::temp_dir().join(format!("nyaterm-private-prefix-{}", nyaterm_core::uuid()));
+            std::env::temp_dir().join(format!("nyaterm-download-prefix-{}", nyaterm_core::uuid()));
         std::fs::create_dir(&root)?;
         let target = root.join("partial");
         std::fs::write(&target, b"prefix")?;
         let (temporary, file) = super::DownloadTemporary::prepare_async(&root, &target, 6).await?;
         let path = temporary.path.clone();
-        assert_eq!(std::fs::metadata(&path)?.permissions().mode() & 0o077, 0);
+        assert_eq!(path.parent(), Some(root.as_path()));
         assert_eq!(std::fs::read(&path)?, b"prefix");
         drop(file);
         drop(temporary);
@@ -401,10 +518,10 @@ mod tests {
             std::env::temp_dir().join(format!("nyaterm-async-commit-{}", nyaterm_core::uuid()));
         std::fs::create_dir_all(&root)?;
         let target = root.join("result.txt");
+        std::fs::write(&target, b"old")?;
         let (temporary, mut file) = super::DownloadTemporary::create(&root, &target)?;
         let temporary_path = temporary.path.clone();
         use std::io::Write as _;
-        std::fs::write(&target, b"old")?;
         file.write_all(b"new")?;
         drop(file);
         #[cfg(unix)]

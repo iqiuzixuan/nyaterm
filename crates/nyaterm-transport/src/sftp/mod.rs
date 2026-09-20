@@ -4,7 +4,7 @@
 //! remain unchanged; downloads additionally validate remote names, local path boundaries,
 //! and symbolic links to prevent server-controlled names from redirecting local writes.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::{
     Arc, Mutex as StdMutex, OnceLock,
@@ -2852,7 +2852,6 @@ where
     let (expected_bytes, item_count_total) =
         remote_directory_transfer_totals_bytes(sftp, raw_path.clone(), control).await?;
     let mut files = Vec::new();
-    let mut target_keys = HashSet::new();
     let mut item_count_completed = 0_u64;
     let mut pending = vec![(raw_path, remote_path.to_string(), local_path.to_path_buf())];
     while let Some((remote_dir_raw, remote_dir, local_dir)) = pending.pop() {
@@ -2861,25 +2860,17 @@ where
         crate::download_path::ensure_no_symlink(download_root, &local_dir)?;
         for entry in sftp.read_dir_bytes(remote_dir_raw).await? {
             control.wait_if_paused().await?;
+            let file_type = entry.file_type();
             let name = codec.decode_path_lossy(entry.file_name_bytes());
-            if name == "." || name == ".." {
+            if !crate::download_path::validate_directory_entry(
+                &name,
+                attrs_to_sftp_file_type(&entry.metadata()),
+            )? {
                 continue;
             }
-            crate::download_path::validate_name(&name)?;
             let remote_child = remote_join(&remote_dir, &name);
             let remote_child_raw = entry.path_bytes();
             let local_child = local_dir.join(&name);
-            let file_type = entry.file_type();
-            if file_type == russh_sftp::protocol::FileType::Symlink {
-                // Skip links without blocking regular files in the same directory.
-                continue;
-            }
-            anyhow::ensure!(
-                target_keys.insert(crate::download_path::target_key(
-                    &local_child.to_string_lossy()
-                )),
-                "selected remote items have conflicting local names"
-            );
             match file_type {
                 russh_sftp::protocol::FileType::Dir => {
                     if let Some(local_child) =
@@ -4345,19 +4336,27 @@ mod tests {
             SftpTransferOptions::default(),
         );
 
-        for raw_path in [
+        for (index, raw_path) in [
             b"/remote/\xff.txt".as_slice(),
             b"/remote/\xfe.txt".as_slice(),
-        ] {
-            resolve_local_download_target(SftpLocalDownloadTargetContext {
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let result = resolve_local_download_target(SftpLocalDownloadTargetContext {
                 remote_path: "/remote/�.txt",
                 remote_path_raw: raw_path,
                 local_path: &target,
                 is_directory: false,
                 path_options: &options,
-            })
-            .expect("resolve lossy remote path")
-            .expect("overwrite target");
+            });
+            if index == 0 {
+                assert_eq!(result.expect("first source"), Some(target.clone()));
+            } else {
+                // Distinct raw names still ask independently, but cannot overwrite
+                // a target already reserved for another source in the same batch.
+                assert!(result.unwrap_err().to_string().contains("reserved"));
+            }
         }
         let retry_options = options.with_transfer_options(SftpTransferOptions::default());
         resolve_local_download_target(SftpLocalDownloadTargetContext {

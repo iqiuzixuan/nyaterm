@@ -778,11 +778,13 @@ impl RemoteFileService {
                 ),
             kind => {
                 let download_root = crate::download_path::root_for_target(&local_path);
+                let properties = shell_properties(&self.shell(kind), &remote_path)?;
+                ensure_supported_download_source(properties.file_type)?;
                 let target = resolve_shell_download_target(
                     &remote_path.display_path,
                     &local_path,
-                    options.duplicate_policy(),
-                    options.duplicate_resolver(),
+                    properties.is_directory(),
+                    &options,
                 )?;
                 let Some(target) = target else {
                     return Ok(SftpTransferSummary {
@@ -1334,9 +1336,7 @@ where
             &RemoteFilePath::new(remote_path),
             kind,
         )? {
-            crate::download_path::validate_name(&entry.name)?;
-            if entry.is_symlink() || entry.file_type == SftpFileType::Other {
-                // Skip links and special files without blocking regular files in the directory.
+            if !crate::download_path::validate_directory_entry(&entry.name, entry.file_type)? {
                 continue;
             }
             ensure_unique_download_name(&mut target_keys, &entry.name)?;
@@ -1446,23 +1446,46 @@ where
 fn resolve_shell_download_target(
     remote_path: &str,
     requested: &Path,
-    policy: SftpDuplicatePolicy,
-    resolver: Option<&dyn crate::SftpDuplicateResolver>,
+    is_directory: bool,
+    options: &SftpPathTransferOptions,
 ) -> anyhow::Result<Option<PathBuf>> {
-    if !requested.exists() {
+    let key = crate::sftp_transfer_types::SftpDuplicateCacheKey::Download {
+        remote_path: remote_path.as_bytes().to_vec(),
+        local_path: requested.to_path_buf(),
+        is_directory,
+    };
+    if !crate::download_path::target_exists(requested)?
+        && options.reserve_download_target(requested, &key)?
+    {
         return Ok(Some(requested.to_path_buf()));
     }
     match duplicate_decision(
-        policy,
-        resolver,
+        options.duplicate_policy(),
+        options.duplicate_resolver(),
         SftpTransferDirection::Download,
         remote_path,
         &requested.to_string_lossy(),
-        requested.is_dir(),
+        is_directory,
     )? {
-        SftpDuplicateDecision::Overwrite => Ok(Some(requested.to_path_buf())),
+        SftpDuplicateDecision::Overwrite => {
+            anyhow::ensure!(
+                options.reserve_download_target(requested, &key)?,
+                "download target is reserved by another item in this batch"
+            );
+            Ok(Some(requested.to_path_buf()))
+        }
         SftpDuplicateDecision::Skip => Ok(None),
-        SftpDuplicateDecision::Rename => Ok(Some(unique_local_path(requested))),
+        SftpDuplicateDecision::Rename => {
+            for index in 1..=999 {
+                let candidate = local_conflict_candidate(requested, index);
+                if !crate::download_path::target_exists(&candidate)?
+                    && options.reserve_download_target(&candidate, &key)?
+                {
+                    return Ok(Some(candidate));
+                }
+            }
+            anyhow::bail!("unable to find a non-conflicting local download path")
+        }
     }
 }
 
@@ -1518,20 +1541,24 @@ fn duplicate_decision(
 
 fn unique_local_path(path: &Path) -> PathBuf {
     for index in 1.. {
-        let candidate = path.with_file_name(format!(
-            "{} ({index}){}",
-            path.file_stem()
-                .and_then(|value| value.to_str())
-                .unwrap_or("file"),
-            path.extension()
-                .and_then(|value| value.to_str())
-                .map_or(String::new(), |value| format!(".{value}"))
-        ));
+        let candidate = local_conflict_candidate(path, index);
         if !candidate.exists() {
             return candidate;
         }
     }
     unreachable!()
+}
+
+fn local_conflict_candidate(path: &Path, index: usize) -> PathBuf {
+    path.with_file_name(format!(
+        "{} ({index}){}",
+        path.file_stem()
+            .and_then(|value| value.to_str())
+            .unwrap_or("file"),
+        path.extension()
+            .and_then(|value| value.to_str())
+            .map_or(String::new(), |value| format!(".{value}"))
+    ))
 }
 
 fn unique_remote_path(
@@ -2156,6 +2183,42 @@ mod tests {
         assert!(ensure_unique_download_name(&mut target_keys, "report.txt").is_err());
         #[cfg(any(target_os = "macos", windows))]
         assert!(ensure_unique_download_name(&mut target_keys, "REPORT.TXT").is_err());
+    }
+
+    #[test]
+    fn shell_download_jobs_reserve_renamed_targets_before_commit() -> anyhow::Result<()> {
+        for names in [["foo", "foo (1)"], ["foo (1)", "foo"]] {
+            let root = std::env::temp_dir()
+                .join(format!("nyaterm-shell-reserved-{}", nyaterm_core::uuid()));
+            std::fs::create_dir(&root)?;
+            std::fs::write(root.join("foo"), b"existing")?;
+            let options = crate::SftpPathTransferOptions::new(
+                crate::SftpDuplicatePolicy::Rename,
+                None,
+                crate::SftpTransferOptions::default(),
+            );
+            let mut targets = Vec::new();
+            for name in names {
+                let target = super::resolve_shell_download_target(
+                    name,
+                    &root.join(name),
+                    false,
+                    &options.clone_for_download_batch(),
+                )?
+                .expect("selected target");
+                targets.push((name, target));
+            }
+            assert_ne!(targets[0].1, targets[1].1);
+            for (name, target) in &targets {
+                crate::download_path::staged_write_file(&root, target, name.as_bytes())?;
+            }
+            assert_eq!(std::fs::read(root.join("foo"))?, b"existing");
+            for (name, target) in targets {
+                assert_eq!(std::fs::read(target)?, name.as_bytes());
+            }
+            std::fs::remove_dir_all(root)?;
+        }
+        Ok(())
     }
 
     #[test]

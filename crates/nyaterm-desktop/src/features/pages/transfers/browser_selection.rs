@@ -589,8 +589,14 @@ impl NyaTermApp {
             }
         };
         let mut started = 0;
+        let path_options = self.sftp_download_path_options();
         for (remote_path, local_path) in targets {
-            if self.start_sftp_download_job_for_target(remote_path, local_path, window, cx) {
+            if self.start_sftp_download_job_for_target(
+                remote_path,
+                local_path,
+                path_options.clone_for_download_batch(),
+                cx,
+            ) {
                 started += 1;
             }
         }

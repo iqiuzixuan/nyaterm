@@ -432,7 +432,7 @@ impl NyaTermApp {
                         session.clone(),
                         remote_path,
                         local_path,
-                        path_options.clone(),
+                        path_options.clone_for_download_batch(),
                         cx,
                     );
                 }

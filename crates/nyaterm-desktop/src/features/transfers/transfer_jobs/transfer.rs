@@ -22,11 +22,23 @@ use super::helpers::{
 };
 
 impl NyaTermApp {
+    /// Use clone_for_download_batch on these options for sibling downloads.
+    pub(in crate::features) fn sftp_download_path_options(&self) -> SftpPathTransferOptions {
+        let duplicate_policy = self.transfer.duplicate_policy();
+        let duplicate_resolver = (duplicate_policy == SftpDuplicatePolicy::Ask)
+            .then(|| self.session.prompt_duplicate_broker() as Arc<dyn SftpDuplicateResolver>);
+        SftpPathTransferOptions::new(
+            duplicate_policy,
+            duplicate_resolver,
+            self.sftp_transfer_options(),
+        )
+    }
+
     pub(in crate::features) fn start_sftp_download_job_for_target(
         &mut self,
         remote_path: RemoteFilePath,
         local_path: PathBuf,
-        _window: &mut Window,
+        path_options: SftpPathTransferOptions,
         cx: &mut Context<Self>,
     ) -> bool {
         if self.session.active_ssh_config_owned().is_none() {
@@ -45,10 +57,6 @@ impl NyaTermApp {
             return false;
         }
 
-        let duplicate_policy = self.transfer.duplicate_policy();
-        let duplicate_resolver = (duplicate_policy == SftpDuplicatePolicy::Ask)
-            .then(|| self.session.prompt_duplicate_broker() as Arc<dyn SftpDuplicateResolver>);
-        let transfer_options = self.sftp_transfer_options();
         let service = match self.active_remote_file_service() {
             Ok(service) => service,
             Err(error) => {
@@ -65,7 +73,7 @@ impl NyaTermApp {
             session,
             remote_path,
             local_path,
-            SftpPathTransferOptions::new(duplicate_policy, duplicate_resolver, transfer_options),
+            path_options,
             cx,
         );
         true
