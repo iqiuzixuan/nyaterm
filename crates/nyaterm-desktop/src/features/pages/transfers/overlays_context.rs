@@ -302,6 +302,14 @@ impl NyaTermApp {
                             this.defer_transfer_panel_snapshot_flush(cx);
                         }))
                 }
+                Node::Action(Action::DownloadToDirectory) => {
+                    NyaMenuItem::action(t!("fileExplorer.cmDownloadToDirectory"))
+                        .icon("icons/fe/download.svg")
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            this.start_selected_sftp_download_to_directory(window, cx);
+                            this.defer_transfer_panel_snapshot_flush(cx);
+                        }))
+                }
                 Node::Action(Action::Rename) => NyaMenuItem::action(t!("fileExplorer.cmRename"))
                     .icon("icons/session/rename.svg")
                     .disabled(selection_count != 1)

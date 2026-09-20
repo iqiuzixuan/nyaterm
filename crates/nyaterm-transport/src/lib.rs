@@ -1,4 +1,5 @@
 pub mod connection_attempt;
+pub mod download_path;
 pub mod network_route;
 use std::collections::{HashMap, VecDeque};
 use std::future::Future;

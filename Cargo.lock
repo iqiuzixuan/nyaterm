@@ -6300,6 +6300,7 @@ dependencies = [
  "tokio",
  "tokio-socks",
  "tracing",
+ "unicode-normalization",
  "uuid",
  "zeroize",
  "zmodem2",

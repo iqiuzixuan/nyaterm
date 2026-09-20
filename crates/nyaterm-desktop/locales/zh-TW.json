@@ -879,6 +879,7 @@
     "cmCopyPath": "複製路徑",
     "cmDelete": "刪除",
     "cmDownload": "下載...",
+    "cmDownloadToDirectory": "下載到指定目錄...",
     "cmMove": "移動到...",
     "cmSendTo": "傳送到會話",
     "cmOpen": "開啟",

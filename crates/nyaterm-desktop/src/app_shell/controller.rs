@@ -1149,16 +1149,15 @@ impl DesktopController {
         let mut device_windows = self.device_windows.clone();
         let mut workspace_snapshots = vec![current_snapshot];
         for (workspace_id, entry) in &self.windows {
-            if *workspace_id != current_workspace_id {
-                if let Some(app) = entry
+            if *workspace_id != current_workspace_id
+                && let Some(app) = entry
                     .shell
                     .update(cx, |shell, _| shell.app.clone())
                     .ok()
                     .flatten()
-                {
-                    workspace_snapshots
-                        .push(app.update(cx, |app, _| app.capture_workspace_close_snapshot()));
-                }
+            {
+                workspace_snapshots
+                    .push(app.update(cx, |app, _| app.capture_workspace_close_snapshot()));
             }
             let state = if *workspace_id == current_workspace_id {
                 current_state.clone()

@@ -29,6 +29,7 @@ tracing.workspace = true
 time.workspace = true
 tokio.workspace = true
 tokio-socks.workspace = true
+unicode-normalization.workspace = true
 uuid.workspace = true
 zeroize.workspace = true
 zmodem2.workspace = true
