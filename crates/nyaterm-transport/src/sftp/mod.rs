@@ -4107,8 +4107,7 @@ mod tests {
 
     #[tokio::test]
     async fn local_directory_upload_inventory_preserves_nested_paths_sizes_and_mtime() {
-        let dir =
-            std::env::temp_dir().join(format!("nyaterm-upload-inventory-{}", uuid::Uuid::new_v4()));
+        let dir = nyaterm_core::test_support::TestTempDir::new("nyaterm-upload-inventory");
         let nested = dir.join("nested");
         std::fs::create_dir_all(&nested).expect("nested dir");
         std::fs::write(dir.join("root.txt"), b"root").expect("root file");
@@ -4135,8 +4134,6 @@ mod tests {
         assert_eq!(files[1].size, 4);
         assert!(files[1].modified_at.is_some());
         assert_eq!(inventory.total_bytes, 9);
-
-        std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 
     #[test]
@@ -4176,8 +4173,7 @@ mod tests {
 
     #[test]
     fn transfer_resume_offset_requires_partial_local_file() {
-        let dir =
-            std::env::temp_dir().join(format!("nyaterm-resume-test-{}", uuid::Uuid::new_v4()));
+        let dir = nyaterm_core::test_support::TestTempDir::new("nyaterm-resume-test");
         std::fs::create_dir_all(&dir).expect("temp dir");
         let file = dir.join("partial.bin");
         let enabled = SftpTransferOptions::default().with_resume_broken_transfer(true);
@@ -4190,8 +4186,6 @@ mod tests {
         assert_eq!(transfer_resume_offset(&file, Some(10), &enabled), 4);
         assert_eq!(transfer_resume_offset(&file, Some(4), &enabled), 0);
         assert_eq!(transfer_resume_offset(&file, Some(3), &enabled), 0);
-
-        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]
@@ -4222,7 +4216,7 @@ mod tests {
 
     #[test]
     fn local_download_target_applies_skip_and_rename_policy() {
-        let dir = std::env::temp_dir().join(format!("nyaterm-sftp-{}", uuid::Uuid::new_v4()));
+        let dir = nyaterm_core::test_support::TestTempDir::new("nyaterm-sftp");
         std::fs::create_dir_all(&dir).expect("temp dir");
         let target = dir.join("archive.tar.gz");
         std::fs::write(&target, b"existing").expect("target");
@@ -4268,13 +4262,11 @@ mod tests {
         .expect("retry rename")
         .expect("retry target");
         assert_ne!(retried, renamed, "重试不能覆盖已经占用的 Rename 目标");
-
-        std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 
     #[test]
     fn local_download_target_rechecks_a_new_conflict_after_an_implicit_target() {
-        let dir = std::env::temp_dir().join(format!("nyaterm-sftp-{}", uuid::Uuid::new_v4()));
+        let dir = nyaterm_core::test_support::TestTempDir::new("nyaterm-sftp");
         std::fs::create_dir_all(&dir).expect("temp dir");
         let target = dir.join("archive.txt");
         let options = SftpPathTransferOptions::new(
@@ -4307,8 +4299,6 @@ mod tests {
             .expect("rechecked conflict"),
             None
         );
-
-        std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 
     #[test]
@@ -4325,7 +4315,7 @@ mod tests {
             }
         }
 
-        let dir = std::env::temp_dir().join(format!("nyaterm-sftp-{}", uuid::Uuid::new_v4()));
+        let dir = nyaterm_core::test_support::TestTempDir::new("nyaterm-sftp");
         std::fs::create_dir_all(&dir).expect("temp dir");
         let target = dir.join("archive.txt");
         std::fs::write(&target, b"existing").expect("target");
@@ -4369,8 +4359,6 @@ mod tests {
         .expect("resolve retry path")
         .expect("reuse overwrite decision");
         assert_eq!(calls.load(Ordering::Relaxed), 2);
-
-        std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 
     #[test]

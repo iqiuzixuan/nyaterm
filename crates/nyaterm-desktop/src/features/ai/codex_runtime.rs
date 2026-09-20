@@ -370,7 +370,7 @@ mod tests {
 
     #[test]
     fn fake_app_server_streams_resumes_and_cancels() {
-        let script = fake_codex_script(false);
+        let (_script_dir, script) = fake_codex_script(false);
         let (settings, request) = fixture_request(&script);
         let cancel = Arc::new(AtomicBool::new(false));
         let first = run_codex_app_server_with_environment(
@@ -402,9 +402,8 @@ mod tests {
         )
         .expect("fake Codex resume");
         assert_eq!(resumed.thread_id, "thread-existing");
-        let _ = std::fs::remove_dir_all(script.parent().unwrap());
 
-        let hanging_script = fake_codex_script(true);
+        let (_hanging_dir, hanging_script) = fake_codex_script(true);
         let (settings, request) = fixture_request(&hanging_script);
         let cancel = Arc::new(AtomicBool::new(false));
         let cancel_worker = cancel.clone();
@@ -427,7 +426,6 @@ mod tests {
             .unwrap_err()
         });
         assert!(error.contains("cancelled"));
-        let _ = std::fs::remove_dir_all(hanging_script.parent().unwrap());
     }
 
     fn fixture_request(path: &std::path::Path) -> (AiSettings, AiChatRequest) {
@@ -469,10 +467,11 @@ mod tests {
         ])
     }
 
-    fn fake_codex_script(hang: bool) -> std::path::PathBuf {
-        let directory =
-            std::env::temp_dir().join(format!("nyaterm-fake-codex-{}", uuid::Uuid::new_v4()));
-        std::fs::create_dir_all(&directory).unwrap();
+    fn fake_codex_script(
+        hang: bool,
+    ) -> (nyaterm_core::test_support::TestTempDir, std::path::PathBuf) {
+        let directory = nyaterm_core::test_support::TestTempDir::new("nyaterm-fake-codex");
+        std::fs::create_dir_all(directory.path()).unwrap();
         #[cfg(windows)]
         let path = directory.join("codex.cmd");
         #[cfg(not(windows))]
@@ -503,6 +502,6 @@ mod tests {
             use std::os::unix::fs::PermissionsExt;
             std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
         }
-        path
+        (directory, path)
     }
 }

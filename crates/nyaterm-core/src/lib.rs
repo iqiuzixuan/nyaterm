@@ -23,6 +23,8 @@ pub mod secret;
 pub mod session_import;
 pub mod ssh_keys;
 pub mod terminal;
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_support;
 pub mod terminal_file_drop {
     pub use super::terminal::file_drop::*;
 }

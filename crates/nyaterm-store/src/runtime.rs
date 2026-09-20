@@ -844,32 +844,21 @@ impl StoreRequest for FlushBarrier {
 
 #[cfg(test)]
 mod tests {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
     use super::{
         FlushBarrier, LoadBootstrap, LoadMainWindowState, SaveMainWindowState, StoreClientError,
         StoreConfig, StoreDomain, StoreOperationError, StoreRuntime,
     };
     use nyaterm_core::{MainWindowBounds, MainWindowState};
 
-    fn temp_dir(label: &str) -> PathBuf {
-        std::env::temp_dir().join(format!(
-            "nyaterm-store-runtime-{label}-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("clock")
-                .as_nanos()
-        ))
+    fn temp_dir(label: &str) -> nyaterm_core::test_support::TestTempDir {
+        nyaterm_core::test_support::TestTempDir::new(&format!("nyaterm-store-runtime-{label}"))
     }
-
-    use std::path::PathBuf;
 
     #[test]
     fn bootstrap_and_barrier_run_on_the_store_worker() {
         let config_dir = temp_dir("bootstrap");
         let runtime = StoreRuntime::spawn(StoreConfig {
-            config_dir: config_dir.clone(),
+            config_dir: config_dir.path().to_path_buf(),
             portable_key_path: None,
         })
         .expect("spawn runtime");
@@ -893,7 +882,7 @@ mod tests {
     fn request_ids_are_monotonic_across_clients() {
         let config_dir = temp_dir("request-ids");
         let runtime = StoreRuntime::spawn(StoreConfig {
-            config_dir: config_dir.clone(),
+            config_dir: config_dir.path().to_path_buf(),
             portable_key_path: None,
         })
         .expect("spawn runtime");
@@ -928,7 +917,7 @@ mod tests {
     fn request_fn_returns_typed_operation_failures() {
         let config_dir = temp_dir("request-fn");
         let runtime = StoreRuntime::spawn(StoreConfig {
-            config_dir: config_dir.clone(),
+            config_dir: config_dir.path().to_path_buf(),
             portable_key_path: None,
         })
         .expect("spawn runtime");
@@ -954,7 +943,7 @@ mod tests {
     fn flush_barrier_retains_failures_until_the_domain_succeeds() {
         let config_dir = temp_dir("barrier-failure");
         let runtime = StoreRuntime::spawn(StoreConfig {
-            config_dir: config_dir.clone(),
+            config_dir: config_dir.path().to_path_buf(),
             portable_key_path: None,
         })
         .expect("spawn runtime");
@@ -1013,7 +1002,7 @@ mod tests {
     fn shutdown_rejects_normal_clients_but_accepts_the_final_barrier() {
         let config_dir = temp_dir("shutdown-rejection");
         let runtime = StoreRuntime::spawn(StoreConfig {
-            config_dir: config_dir.clone(),
+            config_dir: config_dir.path().to_path_buf(),
             portable_key_path: None,
         })
         .expect("spawn runtime");
@@ -1050,7 +1039,7 @@ mod tests {
     fn shutdown_window_state_write_completes_before_the_barrier() {
         let config_dir = temp_dir("window-state-shutdown");
         let runtime = StoreRuntime::spawn(StoreConfig {
-            config_dir: config_dir.clone(),
+            config_dir: config_dir.path().to_path_buf(),
             portable_key_path: None,
         })
         .expect("spawn runtime");

@@ -277,7 +277,8 @@ fn local_session_info_preserves_working_dir() {
         return;
     }
 
-    let dir = std::env::temp_dir().join(format!("nyaterm-local-{}", uuid::Uuid::new_v4()));
+    let dir_guard = nyaterm_core::test_support::TestTempDir::new("nyaterm-local");
+    let dir = dir_guard.path().to_path_buf();
     std::fs::create_dir_all(&dir).expect("temp dir");
     let manager = SessionManager::new();
     let info = manager
@@ -306,7 +307,8 @@ fn local_background_command_uses_working_dir_and_exit_code() {
         return;
     }
 
-    let dir = std::env::temp_dir().join(format!("nyaterm-local-bg-{}", uuid::Uuid::new_v4()));
+    let dir_guard = nyaterm_core::test_support::TestTempDir::new("nyaterm-local-bg");
+    let dir = dir_guard.path().to_path_buf();
     std::fs::create_dir_all(&dir).expect("temp dir");
     let output = run_local_command(
         "printf ready > marker.txt; printf output; exit 7",
@@ -1170,7 +1172,9 @@ fn run_uploaded_shell_history_probe(
     let probe_id = uuid::Uuid::new_v4().simple().to_string();
     let remote_dir = std::env::temp_dir().join(format!(".nyaterm_inj_{probe_id}"));
     let remote_path = remote_dir.join("script.sh");
-    let state_dir = std::env::temp_dir().join(format!("nyaterm-history-probe-{probe_id}"));
+    let state_dir_guard =
+        nyaterm_core::test_support::TestTempDir::new(&format!("nyaterm-history-probe-{probe_id}"));
+    let state_dir = state_dir_guard.path().to_path_buf();
     std::fs::create_dir(&remote_dir).expect("create uploaded integration probe directory");
     std::fs::create_dir(&state_dir).expect("create shell history probe state directory");
 

@@ -177,8 +177,7 @@ mod tests {
 
     #[test]
     fn staged_updates_require_the_current_flavor_bundle_and_all_helpers() {
-        let stage =
-            std::env::temp_dir().join(format!("nyaterm-update-test-{}", nyaterm_core::uuid()));
+        let stage = nyaterm_core::test_support::TestTempDir::new("nyaterm-update-test");
         for flavor in [AppFlavor::Stable, AppFlavor::Preview] {
             assert!(staged_macos_bundle(&stage, flavor).is_err());
             let bundle = stage.join(flavor.macos_bundle_name());
@@ -191,6 +190,5 @@ mod tests {
             std::fs::write(binaries.join("nyaterm-mcp"), b"test").unwrap();
             assert_eq!(staged_macos_bundle(&stage, flavor).unwrap(), bundle);
         }
-        std::fs::remove_dir_all(stage).unwrap();
     }
 }

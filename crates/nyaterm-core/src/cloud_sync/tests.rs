@@ -1817,14 +1817,9 @@ fn local_connection(id: &str, name: &str, shell: &str) -> SavedConnection {
     }
 }
 
-fn unique_temp_dir(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "nyaterm-cloud-sync-{name}-{}-{}",
-        std::process::id(),
-        uuid::Uuid::new_v4()
-    ));
-    let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(&dir).expect("create temp dir");
+fn unique_temp_dir(name: &str) -> crate::test_support::TestTempDir {
+    let dir = crate::test_support::TestTempDir::new(&format!("nyaterm-cloud-sync-{name}"));
+    std::fs::create_dir_all(dir.path()).expect("create temp dir");
     dir
 }
 

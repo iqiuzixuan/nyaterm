@@ -187,18 +187,12 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
 
-    struct TestDirectory(PathBuf);
+    struct TestDirectory(nyaterm_core::test_support::TestTempDir);
     impl TestDirectory {
         fn new() -> Self {
-            let path =
-                std::env::temp_dir().join(format!("nyaterm-export-{}", uuid::Uuid::new_v4()));
-            fs::create_dir(&path).expect("temporary directory");
+            let path = nyaterm_core::test_support::TestTempDir::new("nyaterm-export");
+            fs::create_dir(path.path()).expect("temporary directory");
             Self(path)
-        }
-    }
-    impl Drop for TestDirectory {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.0);
         }
     }
     fn snapshot() -> NotesSnapshot {

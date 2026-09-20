@@ -394,8 +394,8 @@ mod tests {
     #[test]
     fn discovery_is_flavor_local_and_portable_markers_take_priority() {
         use nyaterm_core::app_identity::AppFlavor;
-        let root = std::env::temp_dir().join(format!("nyaterm-mcp-path-{}", uuid::Uuid::new_v4()));
-        std::fs::create_dir_all(&root).unwrap();
+        let root = nyaterm_core::test_support::TestTempDir::new("nyaterm-mcp-path");
+        std::fs::create_dir_all(root.path()).unwrap();
         let executable = root.join("nyaterm-mcp");
         let home = root.join("home");
         for flavor in [AppFlavor::Stable, AppFlavor::Preview] {
@@ -415,7 +415,6 @@ mod tests {
             }
             std::fs::remove_file(root.join(marker)).unwrap();
         }
-        std::fs::remove_dir_all(root).unwrap();
     }
 
     use std::sync::Arc;

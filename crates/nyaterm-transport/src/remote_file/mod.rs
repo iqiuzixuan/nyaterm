@@ -2223,8 +2223,8 @@ mod tests {
 
     #[test]
     fn local_copy_applies_skip_and_rename_duplicate_policies() {
-        let root = std::env::temp_dir().join(format!("nyaterm-file-copy-{}", uuid::Uuid::new_v4()));
-        std::fs::create_dir_all(&root).unwrap();
+        let root = nyaterm_core::test_support::TestTempDir::new("nyaterm-file-copy");
+        std::fs::create_dir_all(root.path()).unwrap();
         let source = root.join("source.txt");
         let target = root.join("target.txt");
         std::fs::write(&source, "source").unwrap();
@@ -2249,7 +2249,6 @@ mod tests {
             std::fs::read_to_string(root.join("target (1).txt")).unwrap(),
             "source"
         );
-        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]

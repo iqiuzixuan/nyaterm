@@ -1,7 +1,6 @@
-use std::path::PathBuf;
-
 use aes_gcm::{Aes256Gcm, Key, KeyInit, aead::Aead};
 use base64::{Engine, engine::general_purpose::STANDARD as B64};
+use nyaterm_core::test_support::TestTempDir;
 use nyaterm_core::{
     AiExecutionProfile, AssetAccelerator, AssetAcceleratorType, AssetDeviceType, AssetMetadata,
     CloudSyncSettings, CloudSyncState, CommandHistoryEntry, ConnectionAuth, ConnectionType,
@@ -360,7 +359,8 @@ fn round_trips_sessions_in_redb_compatible_tables() {
 fn exports_and_imports_native_redb_backup() {
     let source_dir = unique_temp_dir("backup-source");
     let target_dir = unique_temp_dir("backup-target");
-    let backup_path = unique_temp_dir("backup-output").join("nyaterm.redb");
+    let backup_dir = unique_temp_dir("backup-output");
+    let backup_path = backup_dir.join("nyaterm.redb");
     let source_store = ConnectionStore::open(&source_dir).expect("source store");
     let config = SessionsConfig {
         custom_icons: Vec::new(),
@@ -444,7 +444,8 @@ fn exports_and_imports_native_redb_backup() {
 fn exports_and_imports_portable_snapshot() {
     let source_dir = unique_temp_dir("portable-source");
     let target_dir = unique_temp_dir("portable-target");
-    let snapshot_path = unique_temp_dir("portable-output").join("nyaterm.nya");
+    let snapshot_dir = unique_temp_dir("portable-output");
+    let snapshot_path = snapshot_dir.join("nyaterm.nya");
 
     let source_store = ConnectionStore::open(&source_dir).expect("source store");
     source_store
@@ -670,7 +671,8 @@ fn encrypted_portable_snapshot_requires_master_password() {
     let source_dir = unique_temp_dir("portable-encrypted-source");
     let target_dir = unique_temp_dir("portable-encrypted-target");
     let wrong_target_dir = unique_temp_dir("portable-encrypted-wrong-target");
-    let snapshot_path = unique_temp_dir("portable-encrypted-output").join("nyaterm.nya");
+    let snapshot_dir = unique_temp_dir("portable-encrypted-output");
+    let snapshot_path = snapshot_dir.join("nyaterm.nya");
 
     let source_store = ConnectionStore::open(&source_dir).expect("source store");
     source_store
@@ -828,7 +830,8 @@ fn legacy_tauri_snapshot_reencrypts_settings_and_rewraps_master_key() {
     const VAULT_SECRET: &str = "synthetic-vault-secret";
 
     let source_dir = unique_temp_dir("legacy-tauri-portable-source");
-    let snapshot_path = unique_temp_dir("legacy-tauri-portable-output").join("legacy.nya");
+    let snapshot_dir = unique_temp_dir("legacy-tauri-portable-output");
+    let snapshot_path = snapshot_dir.join("legacy.nya");
     let source = ConnectionStore::open(&source_dir).expect("source store");
     source
         .save_master_password(Some(SNAPSHOT_PASSWORD))
@@ -4419,13 +4422,8 @@ fn command_history_uses_legacy_table_and_normalizes_entries() {
     std::fs::remove_dir_all(dir).ok();
 }
 
-pub(super) fn unique_temp_dir(name: &str) -> PathBuf {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
-    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-    let dir = std::env::temp_dir().join(format!("nyaterm-core-{name}-{}-{n}", std::process::id()));
-    std::fs::remove_dir_all(&dir).ok();
-    dir
+pub(super) fn unique_temp_dir(name: &str) -> TestTempDir {
+    TestTempDir::new(&format!("nyaterm-core-{name}"))
 }
 
 fn encrypt_for_test(plaintext: &[u8], key: &Key<Aes256Gcm>) -> String {
