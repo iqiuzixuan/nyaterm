@@ -1,6 +1,7 @@
 {
   "tray": {
     "show": "NyaTerm を表示",
+    "newWindow": "新しいウィンドウ",
     "newConnection": "新しい接続",
     "push": "クラウドへ送信",
     "pull": "クラウドから取得",
@@ -2697,6 +2698,8 @@
     "locked": "ロック中",
     "lockedCloseBlocked": "閉じる前にこのタブのロックを解除してください",
     "lockedTabsSkipped": "ロックされたタブはスキップされました",
+    "moveToWindow": "移動先",
+    "moveToNewWindow": "新しいウィンドウに移動",
     "multiplexSsh": "SSH 接続を再利用",
     "multiplexSshFailed": "SSH チャネルの再利用に失敗しました",
     "multiplexSshWithCommand": "SSH 接続を再利用してコマンドを実行",

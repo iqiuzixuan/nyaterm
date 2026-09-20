@@ -1,6 +1,7 @@
 {
   "tray": {
     "show": "NyaTerm 표시",
+    "newWindow": "새 창",
     "newConnection": "새 연결",
     "push": "클라우드에 보내기",
     "pull": "클라우드에서 가져오기",
@@ -2688,6 +2689,8 @@
     "locked": "잠김",
     "lockedCloseBlocked": "이 탭을 닫으려면 먼저 잠금을 해제하세요",
     "lockedTabsSkipped": "잠긴 탭은 건너뛰었습니다",
+    "moveToWindow": "이동할 창",
+    "moveToNewWindow": "새 창으로 이동",
     "multiplexSsh": "SSH 연결 재사용",
     "multiplexSshFailed": "SSH 채널을 재사용하지 못했습니다",
     "multiplexSshWithCommand": "SSH 연결 재사용 및 명령 실행",

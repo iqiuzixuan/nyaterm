@@ -1,6 +1,7 @@
 {
   "tray": {
     "show": "Show NyaTerm",
+    "newWindow": "New Window",
     "newConnection": "New connection",
     "push": "Push cloud sync",
     "pull": "Pull cloud sync",
@@ -2736,6 +2737,8 @@
     "locked": "Locked",
     "lockedCloseBlocked": "Unlock this tab before closing it",
     "lockedTabsSkipped": "Locked tabs were skipped",
+    "moveToWindow": "Move to",
+    "moveToNewWindow": "Move to New Window",
     "multiplexSsh": "Reuse SSH Connection",
     "multiplexSshFailed": "Failed to reuse SSH channel",
     "multiplexSshWithCommand": "Reuse SSH Connection and Run Command",

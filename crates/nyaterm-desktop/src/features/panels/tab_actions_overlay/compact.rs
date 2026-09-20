@@ -63,7 +63,16 @@ impl NyaTermApp {
         let show_session_group = menu_groups.contains(&TabActionMenuGroup::Session);
         let show_split_group = menu_groups.contains(&TabActionMenuGroup::Split);
         let (viewport_w, viewport_h) = self.shell.viewport_size();
-        let menu_visible_height = tab_actions_menu_visible_height(policy, viewport_h);
+        let targets = self
+            .desktop_controller
+            .as_ref()
+            .and_then(gpui::WeakEntity::upgrade)
+            .map(|controller| controller.read(cx).workspace_targets(self.workspace_id))
+            .unwrap_or_default();
+        let menu_visible_height = (tab_actions_menu_visible_height(policy, viewport_h)
+            + (targets.len() + 1) as f32 * 28.
+            + 9.)
+            .min((viewport_h - 16.).max(0.));
         let (menu_x, menu_y) = if let Some((x, y)) = self.session.dialog_tab_actions_anchor() {
             clamp_tab_actions_position(
                 x,
@@ -162,6 +171,36 @@ impl NyaTermApp {
         let explain_session_id = session_id.clone();
         let analyze_session_id = session_id.clone();
         let secure_attention_session_id = session_id.clone();
+        let mut move_window_rows = div().flex_col().child(tab_menu_separator(palette));
+        let new_window_tab_id = tab_root_id.clone();
+        move_window_rows = move_window_rows.child(tab_menu_item(
+            palette,
+            "tab-ctx-move-new-window",
+            t!("tabCtx.moveToNewWindow"),
+            cx.listener(move |this, _, _, cx| {
+                this.close_tab_actions(cx);
+                this.move_tab_tree_to_new_window(new_window_tab_id.clone(), cx);
+            }),
+        ));
+        for (workspace_id, label) in targets {
+            let moved_tab_id = tab_root_id.clone();
+            move_window_rows = move_window_rows.child(tab_menu_item(
+                palette,
+                format!("tab-ctx-move-window-{workspace_id:?}"),
+                format!("{} {label}", t!("tabCtx.moveToWindow")),
+                cx.listener(move |this, _, _, cx| {
+                    this.close_tab_actions(cx);
+                    this.move_tab_tree_to_workspace(
+                        this.workspace_id,
+                        moved_tab_id.clone(),
+                        this.workspace_revision(),
+                        workspace_id,
+                        nyaterm_core::MoveTabPlacement::Append,
+                        cx,
+                    );
+                }),
+            ));
+        }
 
         let submenu_panel = active_submenu
             .filter(|submenu| policy.supports_submenu(*submenu))
@@ -446,6 +485,7 @@ impl NyaTermApp {
                                     this.copy_session_name(&copy_name_session_id, cx);
                                 }),
                             ))
+                            .child(move_window_rows)
                             .when(support.copy_ssh_host, |this| {
                                 this.child(tab_menu_item(
                                     palette,

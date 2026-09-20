@@ -9,10 +9,11 @@ use std::task::{Context, Poll};
 
 use futures::channel::oneshot;
 use nyaterm_core::{
-    AiSettings, AppSettingsSummary, CloudSyncSettings, CloudSyncState, CommandHistoryEntry, Group,
-    KeywordHighlightConfig, MainWindowState, OtpEntry, ProxyConfig, ProxyGroup, QuickCommand,
-    QuickCommandCategory, SavedConnection, SavedCredential, SavedPassword, SshKey,
-    TranslationSettings, TunnelConfig, TunnelGroup,
+    AiSettings, AppSettingsSummary, CloudSyncSettings, CloudSyncState, CommandHistoryEntry,
+    DeviceWindowManifest, Group, KeywordHighlightConfig, MainWindowState, OtpEntry, ProxyConfig,
+    ProxyGroup, QuickCommand, QuickCommandCategory, SavedConnection, SavedCredential,
+    SavedPassword, SshKey, TranslationSettings, TunnelConfig, TunnelGroup, WorkspaceId,
+    WorkspaceRestoreManifest,
 };
 
 use crate::storage::{ConnectionStore, StorageError};
@@ -419,6 +420,7 @@ impl fmt::Display for StoreClientError {
 
 impl std::error::Error for StoreClientError {}
 
+#[derive(Clone)]
 pub struct StoreRuntime {
     ui_client: StoreUiClient,
     blocking_client: StoreBlockingClient,
@@ -649,6 +651,7 @@ fn aggregate_barrier_failures(
     })
 }
 
+#[derive(Clone)]
 pub struct BootstrapSnapshot {
     pub database_path: PathBuf,
     pub connections: Vec<SavedConnection>,
@@ -675,6 +678,8 @@ pub struct BootstrapSnapshot {
     pub ai_message_count: usize,
     pub ai_audit_count: usize,
     pub open_tabs: Vec<nyaterm_core::RestorableOpenTab>,
+    pub workspace_restore: WorkspaceRestoreManifest,
+    pub device_windows: DeviceWindowManifest,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -707,6 +712,66 @@ impl StoreRequest for SaveMainWindowState {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct LoadWorkspaceRestoreManifest;
+
+impl StoreRequest for LoadWorkspaceRestoreManifest {
+    type Response = WorkspaceRestoreManifest;
+
+    fn domain(&self) -> StoreDomain {
+        StoreDomain::Sessions
+    }
+
+    fn execute(self, store: &ConnectionStore) -> Result<Self::Response, StorageError> {
+        store.load_workspace_restore_manifest()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SaveWorkspaceRestoreManifest(pub WorkspaceRestoreManifest);
+
+impl StoreRequest for SaveWorkspaceRestoreManifest {
+    type Response = ();
+
+    fn domain(&self) -> StoreDomain {
+        StoreDomain::Sessions
+    }
+
+    fn execute(self, store: &ConnectionStore) -> Result<Self::Response, StorageError> {
+        store.save_workspace_restore_manifest(&self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct LoadDeviceWindowManifest(pub WorkspaceId);
+
+impl StoreRequest for LoadDeviceWindowManifest {
+    type Response = DeviceWindowManifest;
+
+    fn domain(&self) -> StoreDomain {
+        StoreDomain::WindowState
+    }
+
+    fn execute(self, store: &ConnectionStore) -> Result<Self::Response, StorageError> {
+        store.load_device_window_manifest(self.0)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SaveDeviceWindowManifest(pub DeviceWindowManifest);
+
+impl StoreRequest for SaveDeviceWindowManifest {
+    type Response = ();
+
+    fn domain(&self) -> StoreDomain {
+        StoreDomain::WindowState
+    }
+
+    fn execute(self, store: &ConnectionStore) -> Result<Self::Response, StorageError> {
+        store.save_device_window_manifest(&self.0)
+    }
+}
+
 pub struct LoadBootstrap;
 
 impl StoreRequest for LoadBootstrap {
@@ -720,6 +785,16 @@ impl StoreRequest for LoadBootstrap {
         let sessions = store.load_sessions()?;
         let quick_commands = store.load_quick_commands()?;
         let ai_history = store.load_ai_history()?;
+        let workspace_restore = store.load_workspace_restore_manifest()?;
+        let legacy_workspace_id = workspace_restore
+            .most_recent()
+            .map(|workspace| workspace.id)
+            .unwrap_or_default();
+        let device_windows = store.load_device_window_manifest(legacy_workspace_id)?;
+        let open_tabs = workspace_restore
+            .most_recent()
+            .map(|workspace| workspace.sessions.open_tabs.clone())
+            .unwrap_or_default();
         Ok(BootstrapSnapshot {
             database_path: store.db_path().to_path_buf(),
             connections: sessions.connections,
@@ -745,7 +820,9 @@ impl StoreRequest for LoadBootstrap {
             ai_session_count: ai_history.sessions.len(),
             ai_message_count: ai_history.messages.len(),
             ai_audit_count: store.list_ai_audit_logs(None)?.len(),
-            open_tabs: store.load_open_tabs()?,
+            open_tabs,
+            workspace_restore,
+            device_windows,
         })
     }
 }

@@ -885,7 +885,10 @@ impl NyaTermApp {
     }
 
     fn save_appearance_settings(&mut self, cx: &mut Context<Self>) {
-        if self.defer_settings_persistence(cx) {
+        if self.defer_settings_domain_persistence(
+            crate::features::settings::SettingsPersistenceDomain::Appearance,
+            cx,
+        ) {
             self.refresh_visible_terminal_surfaces(cx);
             return;
         }

@@ -30,11 +30,17 @@ use super::update::UpdateFeatureState;
 
 mod construct;
 mod store_runtime;
+pub(crate) use store_runtime::WorkspaceCloseSnapshot;
 mod types;
 
 pub(in crate::features) use types::SettingsDraftSnapshot;
 
 pub struct NyaTermApp {
+    pub(in crate::features) workspace_id: nyaterm_core::WorkspaceId,
+    pub(in crate::features) workspace_revision: u64,
+    pub(in crate::features) desktop_controller:
+        Option<gpui::WeakEntity<crate::app_shell::DesktopController>>,
+    pub(in crate::features) process_state: gpui::Entity<crate::app_shell::ProcessStateStore>,
     pub(in crate::features) blocking_jobs: crate::blocking_jobs::BlockingJobScheduler,
     pub(in crate::features) stores: crate::entities::UiStoreHandles,
     pub(in crate::features) store_ui: StoreUiClient,
@@ -91,6 +97,7 @@ impl gpui::EventEmitter<NotesCatalogEvent> for NyaTermApp {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AppLifecycleEvent {
     ShutdownRequested,
+    NewWindowRequested,
 }
 
 impl gpui::EventEmitter<AppLifecycleEvent> for NyaTermApp {}

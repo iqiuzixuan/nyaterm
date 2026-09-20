@@ -3057,6 +3057,200 @@ fn terminal_window_layout_roundtrip() {
 }
 
 #[test]
+fn legacy_workspace_fields_migrate_and_new_manifest_dual_writes_recent_workspace() {
+    let dir = unique_temp_dir("workspace-manifest-migration");
+    let store = ConnectionStore::open(&dir).expect("store");
+    let legacy_tab =
+        nyaterm_core::RestorableOpenTab::with_leaf_root("legacy", "Local", None, None, None);
+    store
+        .save_open_tabs(std::slice::from_ref(&legacy_tab))
+        .unwrap();
+
+    let migrated = store.load_workspace_restore_manifest().unwrap();
+    assert_eq!(migrated.workspaces.len(), 1);
+    assert_eq!(
+        migrated.workspaces[0].id,
+        nyaterm_core::WorkspaceId::legacy()
+    );
+    assert_eq!(migrated.workspaces[0].sessions.open_tabs, vec![legacy_tab]);
+
+    let first_id = migrated.workspaces[0].id;
+    let second_id = nyaterm_core::WorkspaceId::new();
+    let mut second = nyaterm_core::WorkspaceRestoreState::empty(second_id);
+    let recent_tab = nyaterm_core::RestorableOpenTab::with_leaf_root(
+        "recent",
+        "SSH",
+        Some("connection-2".to_string()),
+        None,
+        None,
+    );
+    second.sessions.open_tabs.push(recent_tab.clone());
+    let manifest = nyaterm_core::WorkspaceRestoreManifest {
+        version: nyaterm_core::WORKSPACE_RESTORE_MANIFEST_VERSION,
+        workspaces: vec![migrated.workspaces[0].clone(), second],
+        most_recent_workspace_id: Some(second_id),
+        extra: Default::default(),
+    };
+    store.save_workspace_restore_manifest(&manifest).unwrap();
+
+    assert_eq!(store.load_open_tabs().unwrap(), vec![recent_tab]);
+    let loaded = store.load_workspace_restore_manifest().unwrap();
+    assert_eq!(loaded, manifest);
+    assert_eq!(loaded.workspaces[0].id, first_id);
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn device_window_manifest_roundtrips_and_projects_recent_window_to_legacy_key() {
+    let dir = unique_temp_dir("device-window-manifest");
+    let store = ConnectionStore::open(&dir).expect("store");
+    let first_id = nyaterm_core::WorkspaceId::new();
+    let second_id = nyaterm_core::WorkspaceId::new();
+    let first = MainWindowState::new(
+        None,
+        MainWindowBounds {
+            x: 0,
+            y: 0,
+            width: 900,
+            height: 700,
+        },
+        false,
+    );
+    let second = MainWindowState::new(
+        None,
+        MainWindowBounds {
+            x: 120,
+            y: 80,
+            width: 1280,
+            height: 800,
+        },
+        true,
+    );
+    let manifest = nyaterm_core::DeviceWindowManifest {
+        version: nyaterm_core::DEVICE_WINDOW_MANIFEST_VERSION,
+        windows: vec![
+            nyaterm_core::DeviceWindowState {
+                workspace_id: first_id,
+                window: first,
+                extra: Default::default(),
+            },
+            nyaterm_core::DeviceWindowState {
+                workspace_id: second_id,
+                window: second.clone(),
+                extra: Default::default(),
+            },
+        ],
+        window_order: vec![first_id, second_id],
+        most_recent_workspace_id: Some(second_id),
+        extra: Default::default(),
+    };
+    store.save_device_window_manifest(&manifest).unwrap();
+
+    assert_eq!(
+        store.load_device_window_manifest(first_id).unwrap(),
+        manifest
+    );
+    assert_eq!(store.load_main_window_state().unwrap(), Some(second));
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn restore_manifests_rollback_every_document_on_failure() {
+    use nyaterm_core::{
+        DeviceWindowManifest, DeviceWindowState, WorkspaceId, WorkspaceRestoreManifest,
+        WorkspaceRestoreState,
+    };
+
+    let dir = unique_temp_dir("restore-atomic-rollback");
+    let store = ConnectionStore::open(&dir).unwrap();
+    let first_id = WorkspaceId::new();
+    let second_id = WorkspaceId::new();
+    let first_window = MainWindowState::new(
+        None,
+        MainWindowBounds {
+            x: 10,
+            y: 20,
+            width: 900,
+            height: 700,
+        },
+        false,
+    );
+    let second_window = MainWindowState::new(
+        None,
+        MainWindowBounds {
+            x: 40,
+            y: 50,
+            width: 1100,
+            height: 800,
+        },
+        true,
+    );
+    let old_workspace = WorkspaceRestoreManifest::single(WorkspaceRestoreState::empty(first_id));
+    let old_device = DeviceWindowManifest {
+        version: nyaterm_core::DEVICE_WINDOW_MANIFEST_VERSION,
+        windows: vec![DeviceWindowState {
+            workspace_id: first_id,
+            window: first_window.clone(),
+            extra: Default::default(),
+        }],
+        window_order: vec![first_id],
+        most_recent_workspace_id: Some(first_id),
+        extra: Default::default(),
+    };
+    store
+        .save_restore_manifests_atomically(&old_workspace, &old_device)
+        .unwrap();
+    let old_settings = store.load_settings_value().unwrap();
+    let mut next_workspace = old_workspace.clone();
+    next_workspace
+        .workspaces
+        .push(WorkspaceRestoreState::empty(second_id));
+    next_workspace.most_recent_workspace_id = Some(second_id);
+    let mut next_device = old_device.clone();
+    next_device.windows.push(DeviceWindowState {
+        workspace_id: second_id,
+        window: second_window.clone(),
+        extra: Default::default(),
+    });
+    next_device.window_order.push(second_id);
+    next_device.most_recent_workspace_id = Some(second_id);
+
+    for document in 1..=3 {
+        assert!(
+            store
+                .save_restore_manifests_failing_after(&next_workspace, &next_device, document)
+                .is_err()
+        );
+        assert_eq!(store.load_settings_value().unwrap(), old_settings);
+        assert_eq!(
+            store.load_workspace_restore_manifest().unwrap(),
+            old_workspace
+        );
+        assert_eq!(
+            store.load_device_window_manifest(first_id).unwrap(),
+            old_device
+        );
+        assert_eq!(
+            store.load_main_window_state().unwrap(),
+            Some(first_window.clone())
+        );
+    }
+    store
+        .save_restore_manifests_atomically(&next_workspace, &next_device)
+        .unwrap();
+    assert_eq!(
+        store.load_workspace_restore_manifest().unwrap(),
+        next_workspace
+    );
+    assert_eq!(
+        store.load_device_window_manifest(first_id).unwrap(),
+        next_device
+    );
+    assert_eq!(store.load_main_window_state().unwrap(), Some(second_window));
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
 fn verifies_encrypted_master_password_from_settings() {
     let dir = unique_temp_dir("verify-master-password");
     let store = ConnectionStore::open(&dir).expect("store");
@@ -4880,6 +5074,29 @@ fn portable_snapshot_excludes_and_preserves_device_local_main_window_state() {
             true,
         ))
         .expect("save source window state");
+    let workspace_id = nyaterm_core::WorkspaceId::new();
+    source
+        .save_device_window_manifest(&nyaterm_core::DeviceWindowManifest {
+            version: nyaterm_core::DEVICE_WINDOW_MANIFEST_VERSION,
+            windows: vec![nyaterm_core::DeviceWindowState {
+                workspace_id,
+                window: MainWindowState::new(
+                    None,
+                    MainWindowBounds {
+                        x: 30,
+                        y: 40,
+                        width: 800,
+                        height: 600,
+                    },
+                    false,
+                ),
+                extra: Default::default(),
+            }],
+            window_order: vec![workspace_id],
+            most_recent_workspace_id: Some(workspace_id),
+            extra: Default::default(),
+        })
+        .expect("save device windows");
     let mut snapshot = source
         .build_raw_portable_snapshot(
             nyaterm_core::PortableSnapshotKind::Backup,

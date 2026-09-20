@@ -83,6 +83,7 @@ const SETTINGS_QUICK_COMMANDS: &str = "settings/doc/quick-command";
 const SETTINGS_CLOUD_SYNC_STATE: &str = "settings/doc/cloud-sync-state";
 const SETTINGS_REMOTE_FILE_BACKEND_CACHE: &str = "settings/doc/file-backend-cache";
 const SETTINGS_MAIN_WINDOW_STATE: &str = "settings/window_state";
+const SETTINGS_DEVICE_WINDOW_MANIFEST: &str = "settings/window_states_v2";
 const LEGACY_TEXT_CLOUD_SYNC_STATE: &str = "cloud-sync-state";
 const LEGACY_TEXT_REMOTE_FILE_BACKEND_CACHE: &str = "file-backend-cache";
 

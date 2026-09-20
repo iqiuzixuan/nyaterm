@@ -1435,6 +1435,63 @@ fn terminal_frame_event_queue_coalesces_pure_output_to_latest() {
 }
 
 #[test]
+fn terminal_frame_event_queue_moves_only_selected_sessions() {
+    let queue = TerminalFrameEventQueue::new(8);
+    let mut first = output_frame_with_sizes(1, 0);
+    first.session_id = "moved".into();
+    let mut second = output_frame_with_sizes(1, 0);
+    second.session_id = "kept".into();
+    queue.push(TerminalFrameEvent::Output(first));
+    queue.push(TerminalFrameEvent::Output(second));
+
+    let moved = queue.take_sessions(&["moved".into()]);
+    assert_eq!(moved.len(), 1);
+    assert_eq!(moved.front().unwrap().session_id(), "moved");
+    assert_eq!(queue.try_recv().unwrap().session_id(), "kept");
+    assert!(queue.try_recv().is_none());
+}
+
+#[test]
+fn terminal_frame_transfer_preserves_multiple_sessions_and_returns_rejected_batch() {
+    let source = TerminalFramePipeline::default();
+    let target = TerminalFramePipeline::default();
+    source.seed_session("first", "hello", "UTF-8", 1000);
+    source.seed_session("second", "world", "UTF-8", 1000);
+    let first = source.take_session_for_transfer("first").unwrap().unwrap();
+    let second = source.take_session_for_transfer("second").unwrap().unwrap();
+
+    target
+        .insert_sessions_from_transfer(vec![("first".into(), first), ("second".into(), second)])
+        .unwrap();
+    let first = target.take_session_for_transfer("first").unwrap().unwrap();
+    let second = target.take_session_for_transfer("second").unwrap().unwrap();
+    assert!(
+        first
+            .screen
+            .snapshot()
+            .rows()
+            .iter()
+            .any(|row| row.text.contains("hello"))
+    );
+    assert!(
+        second
+            .screen
+            .snapshot()
+            .rows()
+            .iter()
+            .any(|row| row.text.contains("world"))
+    );
+
+    target.command_tx.close();
+    let rejected = target
+        .insert_sessions_from_transfer(vec![("first".into(), first), ("second".into(), second)])
+        .unwrap_err();
+    assert_eq!(rejected.len(), 2);
+    assert_eq!(rejected[0].0, "first");
+    assert_eq!(rejected[1].0, "second");
+}
+
+#[test]
 fn terminal_frame_event_queue_wakes_once_after_interest_is_armed() {
     let (queue, mut wake_rx) = TerminalFrameEventQueue::new_with_wake(8);
 

@@ -14,6 +14,9 @@ use crate::theme::ThemePalette;
 
 #[derive(Clone, Debug)]
 pub(in crate::features) struct SessionTabDragPayload {
+    pub source_workspace_id: nyaterm_core::WorkspaceId,
+    pub root_tab_id: String,
+    pub source_revision: u64,
     pub session_id: String,
     pub order_index: usize,
     pub display_name: String,

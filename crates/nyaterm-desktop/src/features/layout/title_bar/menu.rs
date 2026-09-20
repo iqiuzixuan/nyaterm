@@ -13,6 +13,21 @@ use crate::models::{
 };
 
 impl NyaTermApp {
+    pub(crate) fn set_desktop_controller(
+        &mut self,
+        controller: gpui::WeakEntity<crate::app_shell::DesktopController>,
+    ) {
+        self.desktop_controller = Some(controller);
+    }
+    pub(crate) fn set_workspace_identity(
+        &mut self,
+        workspace_id: nyaterm_core::WorkspaceId,
+        revision: u64,
+    ) {
+        self.workspace_id = workspace_id;
+        self.workspace_revision = revision;
+    }
+
     pub(crate) fn set_title_menu_bar(&mut self, menu_bar: gpui::Entity<NyaAppMenuBar>) {
         self.shell.set_title_menu_bar(menu_bar);
     }
@@ -154,9 +169,15 @@ impl NyaTermApp {
 
     fn title_file_menu_items(&self, cx: &mut Context<Self>) -> Vec<NyaMenuItem> {
         vec![
+            NyaMenuItem::action("New Window")
+                .icon("icons/window/restore.svg")
+                .shortcut("Ctrl+Shift+N")
+                .on_click(cx.listener(|_, _, _, cx| {
+                    cx.emit(crate::features::AppLifecycleEvent::NewWindowRequested);
+                })),
             NyaMenuItem::action(t!("menu.newSession"))
                 .icon("icons/conn/add.svg")
-                .shortcut(self.display_shortcut_for("tab.newSession", "Ctrl+Shift+N"))
+                .shortcut(self.display_shortcut_for("tab.newSession", "Ctrl+Shift+T"))
                 .on_click(cx.listener(|this, _, window, cx| {
                     this.shell.close_open_tabs_menu();
                     this.shell.close_new_session_menu();

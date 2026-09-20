@@ -173,6 +173,15 @@ impl NyaTermApp {
             == Some(panel)
         {
             self.native_settings_panel = None;
+            if let Some(controller) = self
+                .desktop_controller
+                .as_ref()
+                .and_then(gpui::WeakEntity::upgrade)
+            {
+                controller.update(cx, |controller, _| {
+                    controller.release_settings_owner(self.workspace_id)
+                });
+            }
             self.request_settings_panel_refresh(cx);
         }
     }

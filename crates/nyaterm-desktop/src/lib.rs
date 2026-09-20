@@ -51,8 +51,11 @@ pub fn preload_i18n() -> Result<(), String> {
         .clone()
 }
 
-pub use app_shell::{AppShell, AppShellStartup, MainWindowPlacement};
+pub use app_shell::{
+    AppShell, AppShellStartup, DesktopController, DesktopControllerGlobal, MainWindowPlacement,
+};
 
 pub fn init(cx: &mut gpui::App) {
+    app_shell::init(cx);
     features::init(cx);
 }

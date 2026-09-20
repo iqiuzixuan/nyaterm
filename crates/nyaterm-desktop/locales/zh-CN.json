@@ -1,6 +1,7 @@
 {
   "tray": {
     "show": "显示 NyaTerm",
+    "newWindow": "新建窗口",
     "newConnection": "新建连接",
     "push": "推送云同步",
     "pull": "拉取云同步",
@@ -2735,6 +2736,8 @@
     "locked": "已锁定",
     "lockedCloseBlocked": "请先解锁此标签再关闭",
     "lockedTabsSkipped": "已跳过锁定的标签",
+    "moveToWindow": "移动到",
+    "moveToNewWindow": "移动到新窗口",
     "multiplexSsh": "复用 SSH 连接新建会话",
     "multiplexSshFailed": "SSH 通道复用失败",
     "multiplexSshWithCommand": "复用 SSH 连接并执行命令",

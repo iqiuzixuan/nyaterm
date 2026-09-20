@@ -406,6 +406,43 @@ fn browser_session_restore_preserves_the_raw_directory_token() {
 }
 
 #[test]
+fn transfer_moves_sftp_cache_and_invalidates_source_navigation() {
+    let cx = TestAppContext::single();
+    let mut source = transfer_state(&cx);
+    let mut target = transfer_state(&cx);
+    source.store_browser_session_cache(
+        "moved".to_string(),
+        TransferBrowserSessionCacheState {
+            entries: Arc::new(vec![file_entry("/srv/file.txt")]),
+            current_path: "/srv".to_string(),
+            current_raw_path_token: Some("raw-path".to_string()),
+            home_dir: "/home".to_string(),
+            history: VecDeque::from(["/srv".to_string()]),
+            history_index: 0,
+            visited_history: VecDeque::new(),
+        },
+    );
+    source
+        .browser
+        .navigation_jobs
+        .insert("moved".to_string(), "old-job".to_string());
+    let pending = source.prepare_browser_navigation("other", "/srv".to_string());
+    source
+        .browser
+        .pending_navigations
+        .insert("old-job".to_string(), pending);
+
+    let bundle = source.detach_sessions_for_transfer(&["moved".to_string()]);
+    assert!(!source.retains_transfer_session("moved"));
+    assert!(!source.browser.pending_navigations.contains_key("old-job"));
+    target.attach_sessions_from_transfer(bundle);
+    let cache = target.browser_session_cache("moved").expect("cache moved");
+    assert_eq!(cache.current_path, "/srv");
+    assert_eq!(cache.current_raw_path_token.as_deref(), Some("raw-path"));
+    assert_eq!(cache.entries.len(), 1);
+}
+
+#[test]
 fn browser_navigation_restores_the_stable_pending_snapshot() {
     let cx = TestAppContext::single();
     let mut transfer = transfer_state(&cx);

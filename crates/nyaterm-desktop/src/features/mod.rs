@@ -25,6 +25,7 @@ mod settings;
 mod shell;
 mod sync;
 mod sync_input;
+mod tab_transfer;
 mod terminal;
 #[cfg(test)]
 mod test_support;
@@ -49,8 +50,10 @@ pub(crate) fn init_protection_key_bindings(cx: &mut gpui::App) {
 
 pub(crate) use app_state::AppLifecycleEvent;
 pub use app_state::NyaTermApp;
+pub(crate) use app_state::WorkspaceCloseSnapshot;
 pub(in crate::features) use font_catalog::{
     FontAvailability, FontAvailabilityReason, FontCatalogEntry, FontCatalogKind,
     FontCatalogLoadState, FontCatalogPresentation, FontCatalogSnapshot, FontCatalogState,
     FontResolutionSource, FontResolutionStatus, font_names_fingerprint, normalize_font_family,
 };
+pub(crate) use shell::tray::{SystemTray, TraySnapshot, show_window as show_tray_window};

@@ -13,6 +13,24 @@ use crate::models::TransferJobStatus;
 
 impl NyaTermApp {
     pub(in crate::features) fn lock_app(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.apply_shared_screen_lock(true, window, cx);
+        self.broadcast_screen_lock(true, cx);
+    }
+
+    pub(crate) fn apply_shared_screen_lock(
+        &mut self,
+        locked: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if !locked {
+            self.security.deactivate_screen_lock();
+            self.ensure_idle_lock_clock(cx);
+            self.forget_text_inputs("lock-screen.password");
+            self.shell.set_status("screen unlocked".to_string());
+            cx.notify();
+            return;
+        }
         let lock_status = if self.settings.summary().has_master_password {
             t!("lockScreen.passwordPlaceholder").to_string()
         } else {
@@ -36,7 +54,20 @@ impl NyaTermApp {
         self.ensure_idle_lock_clock(cx);
         self.forget_text_inputs("lock-screen.password");
         self.shell.set_status("screen unlocked".to_string());
+        self.broadcast_screen_lock(false, cx);
         cx.notify();
+    }
+
+    fn broadcast_screen_lock(&self, locked: bool, cx: &mut Context<Self>) {
+        let Some(controller) = self.desktop_controller.clone() else {
+            return;
+        };
+        let workspace_id = self.workspace_id;
+        cx.defer(move |cx| {
+            let _ = controller.update(cx, |controller, cx| {
+                controller.set_screen_locked(locked, workspace_id, cx)
+            });
+        });
     }
 
     pub(in crate::features) fn submit_lock_unlock(&mut self, cx: &mut Context<Self>) {

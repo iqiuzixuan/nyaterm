@@ -53,7 +53,7 @@ pub(super) struct TerminalSearchState {
     pub(super) regex: bool,
     pub(super) whole_word: bool,
     /// Runtime-only per-session preference; missing sessions use the default `true`.
-    wrap_around_by_session: HashMap<String, bool>,
+    pub(super) wrap_around_by_session: HashMap<String, bool>,
     pub(super) active_index: usize,
     pub(super) history_pending_key: Option<RecordingHistorySearchKey>,
     pub(super) history_result: Option<RecordingHistorySearchEvent>,

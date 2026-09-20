@@ -1,6 +1,7 @@
 {
   "tray": {
     "show": "顯示 NyaTerm",
+    "newWindow": "新增視窗",
     "newConnection": "新增連線",
     "push": "推送雲端同步",
     "pull": "拉取雲端同步",
@@ -2688,6 +2689,8 @@
     "locked": "已鎖定",
     "lockedCloseBlocked": "請先解鎖此標籤再關閉",
     "lockedTabsSkipped": "已跳過鎖定的標籤",
+    "moveToWindow": "移動到",
+    "moveToNewWindow": "移動到新視窗",
     "multiplexSsh": "複用 SSH 連線建立工作階段",
     "multiplexSshFailed": "SSH 通道複用失敗",
     "multiplexSshWithCommand": "複用 SSH 連線並執行命令",
