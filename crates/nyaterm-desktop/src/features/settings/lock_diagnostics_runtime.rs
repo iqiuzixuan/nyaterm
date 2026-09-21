@@ -25,9 +25,14 @@ impl NyaTermApp {
     ) {
         if !locked {
             self.security.deactivate_screen_lock();
+            let restore_focus = self.security.take_screen_lock_restore_focus();
             self.ensure_idle_lock_clock(cx);
             self.forget_text_inputs("lock-screen.password");
             self.shell.set_status("screen unlocked".to_string());
+            if let Some(focus) = restore_focus {
+                window.focus(&focus, cx);
+            }
+            self.ensure_pending_focus_clock(cx);
             cx.notify();
             return;
         }
@@ -36,6 +41,7 @@ impl NyaTermApp {
         } else {
             String::new()
         };
+        self.security.remember_screen_lock_focus(window.focused(cx));
         self.security.activate_screen_lock(lock_status);
         self.forget_text_inputs("lock-screen.password");
         self.shell.set_status("screen locked".to_string());
@@ -50,11 +56,23 @@ impl NyaTermApp {
 
     pub(in crate::features) fn unlock_app(&mut self, cx: &mut Context<Self>) {
         self.security.deactivate_screen_lock();
+        let restore_focus = self.security.take_screen_lock_restore_focus();
         // Unlocking resets the idle timer, so the clock starts counting again.
         self.ensure_idle_lock_clock(cx);
         self.forget_text_inputs("lock-screen.password");
         self.shell.set_status("screen unlocked".to_string());
         self.broadcast_screen_lock(false, cx);
+        if let Some(focus) = restore_focus {
+            cx.spawn(async move |this, cx| {
+                let _ = this.update_in(cx, |this, window, cx| {
+                    if !this.security.screen_locked() {
+                        window.focus(&focus, cx);
+                    }
+                });
+            })
+            .detach();
+        }
+        self.ensure_pending_focus_clock(cx);
         cx.notify();
     }
 

@@ -1,6 +1,6 @@
 use rust_i18n::t;
 
-use std::time::Instant;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use gpui::Context;
 use nyaterm_core::{
@@ -13,6 +13,7 @@ use nyaterm_core::{
 use crate::blocking_jobs::{BlockingJobScheduler, JobRejected, JobTask};
 use crate::features::formatting::{cloud_sync_history_status, configured_cloud_sync_provider};
 use crate::features::{NyaTermApp, runtime_jobs::await_blocking_result};
+use nyaterm_store::StoreDomain;
 
 use super::super::{
     cleanup_provider_snapshots, pull_provider_snapshot, push_provider_snapshot,
@@ -601,13 +602,30 @@ fn schedule_cloud_sync_cleanup(
         .as_ref()
         .map(configured_cloud_sync_provider)
         .unwrap_or_else(|| "local_directory".to_string());
+    let latest_revision = latest.as_ref().map(|pointer| pointer.revision_id.clone());
     let task = scheduler.submit_task("cloud-sync-cleanup", move |_| {
-        if let Some(settings) = settings {
+        let result = if let Some(settings) = settings {
             cleanup_provider_snapshots(&local_store, &settings, &options, latest.as_ref())
         } else {
             let remote = LocalDirectoryRemote::new(options.remote_dir.clone());
             cleanup_sync_snapshots_with_remote(&local_store, &options, &remote, latest.as_ref())
+        };
+        // Persist the attempt only if a newer sync has not replaced this revision.
+        if let Some(revision) = latest_revision {
+            let attempted_at = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as u64;
+            let _ = local_store.request_fn(StoreDomain::CloudSync, move |store| {
+                let mut state = store.load_cloud_sync_state()?;
+                if state.last_applied_remote_revision.as_deref() == Some(&revision) {
+                    state.last_gc_attempt_at_ms = Some(attempted_at);
+                    store.save_cloud_sync_state(&state)?;
+                }
+                Ok(())
+            });
         }
+        result
     });
     cx.spawn(async move |_, _| {
         if await_cloud_sync_job(task).await.is_err() {

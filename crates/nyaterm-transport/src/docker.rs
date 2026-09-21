@@ -1109,11 +1109,10 @@ mod tests {
     use super::{
         COMPOSE_COMMAND_SETUP, DOCKER_COMPOSE_PROJECTS_SCRIPT, DOCKER_OVERVIEW_SCRIPT,
         DockerProbeClassification, build_compose_base_command, classify_docker_probe,
-        normalize_compose_action,
-        normalize_compose_service_action, normalize_container_action, parse_compose_projects,
-        parse_compose_services_output, parse_docker_container_details_output,
-        parse_docker_images_output, parse_docker_networks_output, parse_docker_overview_output,
-        parse_docker_volumes_output,
+        normalize_compose_action, normalize_compose_service_action, normalize_container_action,
+        parse_compose_projects, parse_compose_services_output,
+        parse_docker_container_details_output, parse_docker_images_output,
+        parse_docker_networks_output, parse_docker_overview_output, parse_docker_volumes_output,
     };
     use crate::RemoteCommandOutput;
 

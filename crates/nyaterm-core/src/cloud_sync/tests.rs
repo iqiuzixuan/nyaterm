@@ -898,6 +898,13 @@ fn cloud_sync_algorithm_uses_remote_backend_abstraction() {
         push_snapshot_with_remote(&source_options, &remote, &CloudSyncState::default(), false)
             .expect("push through memory remote");
     assert_eq!(push.status.provider, "memory");
+    assert_eq!(
+        push.state.last_validated_remote_revision,
+        push.pointer
+            .as_ref()
+            .map(|pointer| pointer.revision_id.clone())
+    );
+    assert!(push.state.last_full_validation_at_ms.is_some());
     assert!(
         remote
             .read_if_exists("nyaterm/sync/latest.redb")
@@ -909,6 +916,13 @@ fn cloud_sync_algorithm_uses_remote_backend_abstraction() {
         pull_snapshot_with_remote(&target_options, &remote, &CloudSyncState::default(), true)
             .expect("pull through memory remote");
     assert_eq!(pull.status.provider, "memory");
+    assert_eq!(
+        pull.state.last_validated_remote_revision,
+        pull.pointer
+            .as_ref()
+            .map(|pointer| pointer.revision_id.clone())
+    );
+    assert!(pull.state.last_full_validation_at_ms.is_some());
 
     let loaded = ConnectionStore::open(&target_dir)
         .expect("target store")
@@ -1703,6 +1717,7 @@ fn synced_state(revision_id: &str, payload_hash: &str) -> CloudSyncState {
         last_applied_remote_revision: Some(revision_id.to_string()),
         last_checked_at_ms: None,
         last_synced_at_ms: None,
+        ..CloudSyncState::default()
     }
 }
 
@@ -1713,6 +1728,28 @@ fn cloud_sync_settings_default_auto_pull_remote_changes_to_enabled() {
 
     assert!(settings.auto_pull_remote_changes);
     assert!(CloudSyncSettings::default().auto_pull_remote_changes);
+    assert_eq!(settings.sync_debounce_seconds, 60);
+    let explicit: CloudSyncSettings =
+        serde_json::from_str(r#"{"enabled":true,"sync_debounce_seconds":15}"#)
+            .expect("existing debounce setting deserialize");
+    assert_eq!(explicit.sync_debounce_seconds, 15);
+}
+
+#[test]
+fn legacy_cloud_sync_state_defaults_maintenance_fields() {
+    let state: CloudSyncState = serde_json::from_value(serde_json::json!({
+        "device_id": "device", "last_synced_payload_hash": "hash",
+        "last_applied_remote_revision": "revision",
+        "last_checked_at_ms": 10, "last_synced_at_ms": 20
+    }))
+    .expect("legacy cloud sync state");
+    assert!(state.last_validated_remote_revision.is_none());
+    assert!(state.last_full_validation_at_ms.is_none());
+    assert!(state.last_gc_attempt_at_ms.is_none());
+    assert_eq!(
+        serde_json::from_value::<CloudSyncState>(serde_json::to_value(&state).unwrap()).unwrap(),
+        state
+    );
 }
 
 #[test]

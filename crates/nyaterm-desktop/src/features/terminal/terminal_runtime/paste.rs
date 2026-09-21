@@ -10,6 +10,9 @@ impl NyaTermApp {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.security.screen_locked() {
+            return;
+        }
         let clipboard = cx.read_from_clipboard();
         if let Some(clipboard) = clipboard.as_ref() {
             if let Some(paths) = clipboard.entries().iter().find_map(|entry| match entry {
@@ -56,6 +59,9 @@ impl NyaTermApp {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.security.screen_locked() {
+            return;
+        }
         if text.is_empty() {
             self.shell.set_status("clipboard text is empty".to_string());
             cx.notify();
@@ -127,6 +133,9 @@ impl NyaTermApp {
         text: &str,
         cx: &mut Context<Self>,
     ) {
+        if self.security.screen_locked() {
+            return;
+        }
         if text.is_empty() {
             return;
         }

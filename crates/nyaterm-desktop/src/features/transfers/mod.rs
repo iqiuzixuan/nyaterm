@@ -191,7 +191,7 @@ pub(in crate::features) use state::transfer_browser_entry_is_visible;
 pub(in crate::features) use state::{
     PdfPageRequest, TransferEditorCloseAfterSave, TransferEditorCloseOutcome,
     TransferEditorDiscardOutcome, TransferFeatureFocus, TransferFeatureState,
-    TransferPreviewCloseOutcome,
+    TransferFileClipboard, TransferPreviewCloseOutcome,
 };
 pub(in crate::features) use transfer_widgets::{
     duplicate_decision_label, duplicate_policy_label, format_file_size,

@@ -302,6 +302,15 @@ impl NyaTermApp {
         let event_failed = matches!(&event.event, TransferJobEvent::Finished(Err(_)));
         let event_succeeded = matches!(&event.event, TransferJobEvent::Finished(Ok(_)));
         let event_finished = event_failed || event_succeeded;
+        if event_finished {
+            self.transfer.settle_cut_job(
+                &event_id,
+                matches!(
+                    &event.event,
+                    TransferJobEvent::Finished(Ok(TransferJobOutput::Sent { .. }))
+                ),
+            );
+        }
         let cleanup_internal_job = event_finished
             && !job.is_user_transfer()
             && (!matches!(&job.kind, TransferJobKind::OpenExternal { .. }) || event_failed);
@@ -587,6 +596,8 @@ impl NyaTermApp {
             }
             TransferJobEvent::Finished(Ok(TransferJobOutput::Sent {
                 source_path,
+                source_parent_path,
+                source_entries,
                 target_session_id,
                 target_path,
                 target_parent_path,
@@ -608,6 +619,28 @@ impl NyaTermApp {
                 job.summary = None;
                 job.progress = None;
                 job.control = None;
+                if let (Some(source_session_id), Some(parent)) =
+                    (job_session_id.as_deref(), source_parent_path.as_deref())
+                {
+                    if let Some(source_entries) = source_entries {
+                        self.transfer.refresh_browser_session_cache_listing(
+                            source_session_id,
+                            parent,
+                            source_entries.clone(),
+                        );
+                        if self.session.active_id() == Some(source_session_id)
+                            && transfer_event_paths_match(&self.transfer.browser.path, parent)
+                        {
+                            self.transfer.browser.entries = Arc::new(source_entries);
+                            self.transfer
+                                .retain_browser_selection(|selected| selected != source_path);
+                        }
+                    } else if self.session.active_id() == Some(source_session_id)
+                        && transfer_event_paths_match(&self.transfer.browser.path, parent)
+                    {
+                        self.refresh_transfer_browser(window, cx);
+                    }
+                }
                 // Refresh the target session's cached listing in place if it is
                 // showing the destination directory — never switch the active
                 // session, and never touch the source browser.

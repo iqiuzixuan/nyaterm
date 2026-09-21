@@ -432,7 +432,7 @@ impl NyaTermApp {
         self.start_sftp_list_job(Some(current_path), rollback, cx);
     }
 
-    pub(in crate::features::pages::transfers) fn refresh_transfer_browser(
+    pub(in crate::features) fn refresh_transfer_browser(
         &mut self,
         _window: &mut Window,
         cx: &mut Context<Self>,

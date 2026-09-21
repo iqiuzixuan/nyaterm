@@ -51,8 +51,27 @@ pub(crate) fn spawn_webdav_service_unavailable_server() -> (String, JoinHandle<(
             .expect("read timeout");
         let mut request = Vec::new();
         let mut buffer = [0; 1024];
+        let read_deadline = Instant::now() + Duration::from_secs(15);
         while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
-            let count = stream.read(&mut buffer).expect("request headers");
+            let count = match stream.read(&mut buffer) {
+                Ok(count) => count,
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::WouldBlock
+                            | std::io::ErrorKind::TimedOut
+                            | std::io::ErrorKind::Interrupted
+                    ) =>
+                {
+                    assert!(
+                        Instant::now() < read_deadline,
+                        "WebDAV request headers timed out"
+                    );
+                    std::thread::sleep(Duration::from_millis(5));
+                    continue;
+                }
+                Err(error) => panic!("mock request headers: {error}"),
+            };
             assert!(count > 0, "incomplete request");
             request.extend_from_slice(&buffer[..count]);
             assert!(request.len() < 16 * 1024, "oversized mock request");

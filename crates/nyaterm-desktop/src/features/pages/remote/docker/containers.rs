@@ -456,11 +456,17 @@ fn docker_container_action_menu(
 }
 
 fn can_start_docker_container(state: &str) -> bool {
-    matches!(state.trim().to_ascii_lowercase().as_str(), "created" | "exited")
+    matches!(
+        state.trim().to_ascii_lowercase().as_str(),
+        "created" | "exited"
+    )
 }
 
 fn can_stop_docker_container(state: &str) -> bool {
-    matches!(state.trim().to_ascii_lowercase().as_str(), "running" | "restarting")
+    matches!(
+        state.trim().to_ascii_lowercase().as_str(),
+        "running" | "restarting"
+    )
 }
 
 fn docker_menu_item(

@@ -167,6 +167,14 @@ impl NyaTermApp {
                 })),
             );
         }
+        items.push(NyaMenuItem::separator());
+        items.push(
+            NyaMenuItem::action(t!("menu.paste"))
+                .icon("icons/menu/paste.svg")
+                .on_click(cx.listener(|this, _, window, cx| {
+                    this.paste_transfer_file_clipboard(window, cx);
+                })),
+        );
         items
     }
 
@@ -228,6 +236,30 @@ impl NyaTermApp {
         let local_backend = self.session.active_file_browser_backend()
             == Some(nyaterm_transport::FileBrowserBackendKind::Local);
         let mut items = Vec::with_capacity(policy.len());
+
+        items.push(
+            NyaMenuItem::action(t!("menu.copy"))
+                .icon("icons/copy.svg")
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.capture_transfer_file_clipboard(false, cx);
+                })),
+        );
+        items.push(
+            NyaMenuItem::action(t!("menu.cut"))
+                .icon("icons/net/move.svg")
+                .disabled(local_backend)
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.capture_transfer_file_clipboard(true, cx);
+                })),
+        );
+        items.push(
+            NyaMenuItem::action(t!("menu.paste"))
+                .icon("icons/menu/paste.svg")
+                .on_click(cx.listener(|this, _, window, cx| {
+                    this.paste_transfer_file_clipboard(window, cx);
+                })),
+        );
+        items.push(NyaMenuItem::separator());
 
         for node in policy {
             if let Node::Action(action) = node {

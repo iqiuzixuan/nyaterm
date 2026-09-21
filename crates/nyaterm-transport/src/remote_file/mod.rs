@@ -1013,6 +1013,8 @@ pub struct FileCopySummary {
     pub bytes: u64,
     pub used_local_staging: bool,
     pub destination_path: String,
+    /// A conflict policy can return successfully without copying anything.
+    pub copied: bool,
 }
 
 impl FileCopyRequest {
@@ -1033,6 +1035,7 @@ impl FileCopyRequest {
                         bytes: 0,
                         used_local_staging: false,
                         destination_path: destination.to_string_lossy().into_owned(),
+                        copied: false,
                     });
                 };
                 control.wait_if_paused_blocking()?;
@@ -1040,6 +1043,7 @@ impl FileCopyRequest {
                     bytes: copy_local_path(&source, &destination, &control)?,
                     used_local_staging: false,
                     destination_path: destination.to_string_lossy().into_owned(),
+                    copied: true,
                 })
             }
             (
@@ -1060,6 +1064,7 @@ impl FileCopyRequest {
                         bytes: 0,
                         used_local_staging: false,
                         destination_path: path.display_path,
+                        copied: false,
                     });
                 };
                 let summary = if source.is_dir() {
@@ -1087,6 +1092,7 @@ impl FileCopyRequest {
                     bytes: summary.bytes,
                     used_local_staging: false,
                     destination_path: path.display_path,
+                    copied: true,
                 })
             }
             (
@@ -1104,6 +1110,7 @@ impl FileCopyRequest {
                     bytes: summary.bytes,
                     used_local_staging: false,
                     destination_path: summary.local_path.to_string_lossy().into_owned(),
+                    copied: true,
                 })
             }
             (
@@ -1131,6 +1138,7 @@ impl FileCopyRequest {
                         bytes: 0,
                         used_local_staging: false,
                         destination_path: destination_path.display_path,
+                        copied: false,
                     });
                 };
                 if source.backend()? == RemoteFileBackendKind::Sftp
@@ -1147,6 +1155,7 @@ impl FileCopyRequest {
                         bytes,
                         used_local_staging: false,
                         destination_path: destination_path.display_path,
+                        copied: true,
                     });
                 }
                 let staging = RemoteCopyStaging::new()?;
@@ -1183,6 +1192,7 @@ impl FileCopyRequest {
                     bytes: downloaded.bytes.min(uploaded.bytes),
                     used_local_staging: true,
                     destination_path: destination_path.display_path,
+                    copied: true,
                 })
             }
         }
@@ -2237,10 +2247,12 @@ mod tests {
             options: SftpPathTransferOptions::new(policy, None, SftpTransferOptions::default()),
         };
         let skipped = request(SftpDuplicatePolicy::Skip).execute().unwrap();
+        assert!(!skipped.copied);
         assert_eq!(skipped.bytes, 0);
         assert_eq!(skipped.destination_path, target.to_string_lossy());
         assert_eq!(std::fs::read_to_string(&target).unwrap(), "target");
         let renamed = request(SftpDuplicatePolicy::Rename).execute().unwrap();
+        assert!(renamed.copied);
         assert_eq!(
             renamed.destination_path,
             root.join("target (1).txt").to_string_lossy()

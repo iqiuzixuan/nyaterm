@@ -139,6 +139,12 @@ pub struct CloudSyncState {
     pub last_checked_at_ms: Option<u64>,
     #[serde(default)]
     pub last_synced_at_ms: Option<u64>,
+    #[serde(default)]
+    pub last_validated_remote_revision: Option<String>,
+    #[serde(default)]
+    pub last_full_validation_at_ms: Option<u64>,
+    #[serde(default)]
+    pub last_gc_attempt_at_ms: Option<u64>,
 }
 
 impl Default for CloudSyncState {
@@ -149,6 +155,9 @@ impl Default for CloudSyncState {
             last_applied_remote_revision: None,
             last_checked_at_ms: None,
             last_synced_at_ms: None,
+            last_validated_remote_revision: None,
+            last_full_validation_at_ms: None,
+            last_gc_attempt_at_ms: None,
         }
     }
 }
@@ -358,6 +367,8 @@ pub fn push_snapshot_with_remote(
         next_state.last_synced_payload_hash = Some(local_hash);
         next_state.last_applied_remote_revision = Some(remote_pointer.revision_id.clone());
         next_state.last_checked_at_ms = Some(current_time_ms());
+        next_state.last_validated_remote_revision = Some(remote_pointer.revision_id.clone());
+        next_state.last_full_validation_at_ms = Some(current_time_ms());
         let result = result(
             next_state,
             remote.provider(),
@@ -395,6 +406,8 @@ pub fn push_snapshot_with_remote(
     protocol::upload_sync_snapshot(local_store, remote, options, &snapshot)?;
     let pointer = protocol::pointer_from_snapshot(&snapshot);
     protocol::read_snapshot_for_pointer(local_store, remote, options, &pointer)?;
+    next_state.last_validated_remote_revision = Some(pointer.revision_id.clone());
+    next_state.last_full_validation_at_ms = Some(current_time_ms());
     if !force {
         protocol::ensure_remote_head_unchanged(
             local_store,
@@ -464,6 +477,8 @@ pub fn pull_snapshot_with_remote(
                 )));
             }
         };
+    next_state.last_validated_remote_revision = Some(latest.revision_id.clone());
+    next_state.last_full_validation_at_ms = Some(current_time_ms());
 
     if latest.payload_hash == local_snapshot.meta.payload_hash {
         next_state.last_synced_payload_hash = Some(latest.payload_hash.clone());
@@ -549,6 +564,9 @@ pub fn recover_current_snapshot_with_remote(
         last_applied_remote_revision: Some(pointer.revision_id.clone()),
         last_checked_at_ms: Some(now),
         last_synced_at_ms: Some(now),
+        last_validated_remote_revision: Some(pointer.revision_id.clone()),
+        last_full_validation_at_ms: Some(now),
+        last_gc_attempt_at_ms: None,
     };
     let result = result(
         state,

@@ -6,7 +6,9 @@
 //! lifetime visible; the flat `transfer_*` prefix did not.
 
 mod browser;
+mod clipboard;
 pub(in crate::features) use browser::TransferSessionTransferBundle;
+pub(in crate::features) use clipboard::TransferFileClipboard;
 mod browser_logic;
 mod tree;
 pub(in crate::features) use tree::TransferTreePresentation;
@@ -46,6 +48,9 @@ use crate::models::{
 use super::external_sync_runtime::ExternalEditorWatcher;
 
 pub(in crate::features) struct TransferFeatureState {
+    clipboard: Option<TransferFileClipboard>,
+    clipboard_generation: u64,
+    cut_jobs: HashMap<String, (u64, String)>,
     tree: tree::TransferTreeState,
     tree_focus: FocusHandle,
     queue: TransferQueueState,
@@ -305,6 +310,9 @@ impl TransferFeatureState {
     ) -> Self {
         let (tx, rx) = unbounded();
         Self {
+            clipboard: None,
+            clipboard_generation: 0,
+            cut_jobs: HashMap::new(),
             tree: tree::TransferTreeState::default(),
             tree_focus: focus.tree,
             #[cfg(test)]

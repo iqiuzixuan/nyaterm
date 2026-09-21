@@ -3709,6 +3709,7 @@ fn cloud_sync_state_round_trips_and_reads_legacy_doc() {
         last_applied_remote_revision: Some("rev-a".to_string()),
         last_checked_at_ms: Some(10),
         last_synced_at_ms: Some(20),
+        ..CloudSyncState::default()
     };
     store
         .save_cloud_sync_state(&state)
@@ -3724,8 +3725,16 @@ fn cloud_sync_state_round_trips_and_reads_legacy_doc() {
         last_applied_remote_revision: Some("legacy-rev".to_string()),
         last_checked_at_ms: Some(30),
         last_synced_at_ms: Some(40),
+        ..CloudSyncState::default()
     };
-    let legacy_content = serde_json::to_string(&legacy).expect("legacy json");
+    let legacy_content = serde_json::json!({
+        "device_id": "legacy-device",
+        "last_synced_payload_hash": "legacy-hash",
+        "last_applied_remote_revision": "legacy-rev",
+        "last_checked_at_ms": 30,
+        "last_synced_at_ms": 40
+    })
+    .to_string();
     let txn = legacy_store.db.begin_write().expect("legacy txn");
     txn.open_table(TEXT_DOCS_TABLE)
         .expect("text docs")
