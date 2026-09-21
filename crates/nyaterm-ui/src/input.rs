@@ -632,6 +632,7 @@ impl RenderOnce for NyaInputShell {
                 // A script box needs more than the two-line note height a textarea
                 // gets; the gutter makes short boxes read as cramped.
                 .h(px(168.))
+                .text_size(px(14.))
                 .into_any_element(),
         };
 

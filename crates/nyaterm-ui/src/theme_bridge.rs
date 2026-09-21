@@ -1,5 +1,7 @@
 //! Bridge from NyaTerm's persisted theme palette to gpui-component's theme.
 
+use std::sync::Arc;
+
 use gpui::{App, Font, Global, Hsla, Pixels, font, hsla, px, rgb, transparent_black};
 use gpui_component::scroll::ScrollbarMode;
 use gpui_component::{Theme, ThemeMode, ThemeTokens};
@@ -217,6 +219,12 @@ pub fn apply_component_theme(
     component_theme.colors.magenta_light = color(palette.accent);
     component_theme.colors.cyan = color(palette.link);
     component_theme.colors.cyan_light = color(palette.link);
+    let editor_style = &mut Arc::make_mut(&mut component_theme.highlight_theme).style;
+    editor_style.editor_background = Some(color(palette.input));
+    editor_style.editor_active_line = None;
+    editor_style.editor_gutter_background = Some(color(palette.surface_elevated));
+    editor_style.editor_line_number = Some(color(palette.text_dimmed));
+    editor_style.editor_active_line_number = Some(color(palette.text));
     component_theme.tokens = ThemeTokens::from(&component_theme.colors);
 
     // `Scrollbar` reads mode, motion, and thumb colors from the Base theme, and
@@ -313,6 +321,28 @@ mod tests {
             assert_eq!(tokens.background.color, color(palette.bg));
             assert_eq!(tokens.secondary.color, color(palette.surface_elevated));
             assert_eq!(tokens.primary.color, color(palette.primary));
+        });
+    }
+
+    #[test]
+    fn editor_colors_follow_the_nyaterm_palette() {
+        let cx = TestAppContext::single();
+
+        cx.update(|cx| {
+            gpui_component::init(cx);
+            let palette = theme_palette("github-dark");
+
+            apply_component_theme(palette, cx);
+
+            let style = &Theme::global(cx).highlight_theme.style;
+            assert_eq!(style.editor_background, Some(color(palette.input)));
+            assert_eq!(style.editor_active_line, None);
+            assert_eq!(
+                style.editor_gutter_background,
+                Some(color(palette.surface_elevated))
+            );
+            assert_eq!(style.editor_line_number, Some(color(palette.text_dimmed)));
+            assert_eq!(style.editor_active_line_number, Some(color(palette.text)));
         });
     }
 
