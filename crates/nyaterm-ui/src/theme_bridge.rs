@@ -1,4 +1,4 @@
-//! Bridge from NyaTerm's persisted theme palette to gpui-component's theme.
+//! Bridge from NyaTerm's persisted theme palette to gpui-kit's theme.
 
 use std::sync::Arc;
 

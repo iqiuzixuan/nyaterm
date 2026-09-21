@@ -1,4 +1,4 @@
-//! Background-only syntax parsing behind the gpui-component integration boundary.
+//! Background-only syntax parsing behind the gpui-kit integration boundary.
 use gpui_component::highlighter::SyntaxHighlighter;
 use std::ops::Range;
 

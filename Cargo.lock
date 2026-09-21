@@ -3458,7 +3458,7 @@ dependencies = [
 [[package]]
 name = "gpui-base"
 version = "0.6.0"
-source = "git+https://github.com/nyakang/gpui-component?rev=5d6f1b83418a971faa0a532fc5b41f6abcc240f7#5d6f1b83418a971faa0a532fc5b41f6abcc240f7"
+source = "git+https://github.com/nyakang/gpui-kit?rev=5d6f1b83418a971faa0a532fc5b41f6abcc240f7#5d6f1b83418a971faa0a532fc5b41f6abcc240f7"
 dependencies = [
  "aho-corasick",
  "anyhow",
@@ -3492,9 +3492,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui-component"
+name = "gpui-kit"
 version = "0.6.0"
-source = "git+https://github.com/nyakang/gpui-component?rev=5d6f1b83418a971faa0a532fc5b41f6abcc240f7#5d6f1b83418a971faa0a532fc5b41f6abcc240f7"
+source = "git+https://github.com/nyakang/gpui-kit?rev=5d6f1b83418a971faa0a532fc5b41f6abcc240f7#5d6f1b83418a971faa0a532fc5b41f6abcc240f7"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3502,7 +3502,7 @@ dependencies = [
  "enum-iterator",
  "gpui",
  "gpui-base",
- "gpui-component-macros",
+ "gpui-kit-macros",
  "gpui-kit-assets",
  "gpui_macros",
  "instant",
@@ -3549,9 +3549,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui-component-macros"
+name = "gpui-kit-macros"
 version = "0.6.0"
-source = "git+https://github.com/nyakang/gpui-component?rev=5d6f1b83418a971faa0a532fc5b41f6abcc240f7#5d6f1b83418a971faa0a532fc5b41f6abcc240f7"
+source = "git+https://github.com/nyakang/gpui-kit?rev=5d6f1b83418a971faa0a532fc5b41f6abcc240f7#5d6f1b83418a971faa0a532fc5b41f6abcc240f7"
 dependencies = [
  "proc-macro-crate 3.5.0",
  "proc-macro2",
@@ -3562,7 +3562,7 @@ dependencies = [
 [[package]]
 name = "gpui-kit-assets"
 version = "0.6.0"
-source = "git+https://github.com/nyakang/gpui-component?rev=5d6f1b83418a971faa0a532fc5b41f6abcc240f7#5d6f1b83418a971faa0a532fc5b41f6abcc240f7"
+source = "git+https://github.com/nyakang/gpui-kit?rev=5d6f1b83418a971faa0a532fc5b41f6abcc240f7#5d6f1b83418a971faa0a532fc5b41f6abcc240f7"
 dependencies = [
  "anyhow",
  "gpui",
@@ -6063,7 +6063,7 @@ dependencies = [
  "embed-resource",
  "futures",
  "gpui",
- "gpui-component",
+ "gpui-kit",
  "gpui-kit-assets",
  "gpui_platform",
  "nyaterm-core",
@@ -6314,7 +6314,7 @@ version = "2.0.0-preview.1"
 dependencies = [
  "gpui",
  "gpui-base",
- "gpui-component",
+ "gpui-kit",
  "ropey",
  "rust-i18n",
 ]

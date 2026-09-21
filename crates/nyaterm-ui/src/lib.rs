@@ -67,9 +67,9 @@ pub use widgets::{
 
 #[cfg(test)]
 mod tests {
-    /// NyaTerm localises `gpui-component`'s own widget strings by setting one
+    /// NyaTerm localises `gpui-kit`'s own widget strings by setting one
     /// process-wide locale, which only works because both crates read the same
-    /// `rust_i18n` global and `gpui-component` ships the locales NyaTerm offers.
+    /// `rust_i18n` global and `gpui-kit` ships the locales NyaTerm offers.
     /// This pins the whole chain without mutating the global, which parallel tests
     /// would race.
     #[test]

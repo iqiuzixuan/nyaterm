@@ -13,7 +13,7 @@ use crate::{NyaPopoverAlign, NyaPopoverPlacement};
 /// Hover-triggered rich content that stays open while the pointer moves from
 /// the trigger into the card.
 ///
-/// This is the stable NyaTerm boundary for `gpui-component`'s HoverCard. It is
+/// This is the stable NyaTerm boundary for `gpui-kit`'s HoverCard. It is
 /// intended for concise, pointer-interactive previews; click-driven workflows
 /// should continue to use [`crate::NyaPopover`].
 #[derive(IntoElement)]

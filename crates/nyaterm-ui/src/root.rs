@@ -1,4 +1,4 @@
-//! Window-root adapter for gpui-component.
+//! Window-root adapter for gpui-kit.
 
 use gpui::{
     AnyView, AppContext as _, Context, InteractiveElement as _, IntoElement, ParentElement as _,
@@ -629,7 +629,7 @@ mod tests {
 
     /// Geometry of the dialog card's own close button.
     ///
-    /// `gpui-component` paints it as an absolutely positioned overlay inset from
+    /// `gpui-kit` paints it as an absolutely positioned overlay inset from
     /// the card's top-right corner, and gives it no debug selector, so derive it
     /// from the title and content it sits beside.
     fn dialog_close_button_center(

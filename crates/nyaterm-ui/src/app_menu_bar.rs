@@ -29,7 +29,7 @@ const KEY_CONTEXT: &str = "NyaAppMenuBar";
 ///
 /// `PopupMenu` also expects its container to defer it at the popup layer, since
 /// each submenu defers itself at `priority + 1` relative to the menu's own
-/// `gpui_base::POPUP_PRIORITY` default. This matches what `gpui-component`'s
+/// `gpui_base::POPUP_PRIORITY` default. This matches what `gpui-kit`'s
 /// own menu-bar fallback, `Popover`, and `ContextMenu` use, and keeps the menu
 /// below tooltips.
 const MENU_POPUP_PRIORITY: usize = 100;

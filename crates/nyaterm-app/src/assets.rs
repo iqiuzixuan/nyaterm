@@ -36,7 +36,7 @@ impl AssetSource for NyaTermAssets {
             return Ok(Some(file.data));
         }
 
-        // gpui-component's built-in controls address their bundled icons by
+        // gpui-kit's built-in controls address their bundled icons by
         // names like `icons/search.svg`. Keep NyaTerm assets authoritative, then
         // fall back to the component asset pack for paths we do not ship.
         match gpui_component_assets::Assets.load(path) {

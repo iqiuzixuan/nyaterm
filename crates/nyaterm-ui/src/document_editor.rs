@@ -16,8 +16,8 @@ pub enum NyaDocumentEditorEvent {
 
 /// Full-size native document editor used by modeless document windows.
 ///
-/// This type is the stable NyaTerm boundary around gpui-component's editor;
-/// desktop features never need to import gpui-component directly.
+/// This type is the stable NyaTerm boundary around gpui-kit's editor;
+/// desktop features never need to import gpui-kit directly.
 pub struct NyaDocumentEditorState {
     editor: Entity<EditorState>,
     subscription: Subscription,
