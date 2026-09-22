@@ -401,7 +401,6 @@ impl AppShell {
                             app.update(cx, |app, cx| {
                                 app.report_close_save_failed(error.to_string(), cx)
                             });
-                            return;
                         }
                     }
                 }
