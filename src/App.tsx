@@ -3972,6 +3972,7 @@ function App() {
         }}
         bottomPanel={{
           activePanel: activeBottomPanel,
+          onSelect: handleItemSelect,
           quickCmdHeight: uiConfig.quick_cmd_height || 180,
           serialSendHeight: uiConfig.serial_send_height || 180,
           clearAfterSend: uiConfig.serial_send_clear_after_send ?? false,

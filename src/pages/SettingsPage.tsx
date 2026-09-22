@@ -496,8 +496,8 @@ export default function SettingsPage() {
         }}
       >
         <AppContext.Provider value={nestedAppContextValue}>
-          <div className="flex min-h-0 flex-1 overflow-hidden bg-background">
-            <div className="flex w-14 shrink-0 flex-col border-r border-border/70 bg-muted/20 sm:w-48 lg:w-56">
+          <div className="workspace-settings-layout min-h-0 flex-1 overflow-hidden bg-background">
+            <div className="workspace-settings-nav flex w-14 shrink-0 flex-col sm:w-48 lg:w-56">
               <div
                 className="flex items-center justify-center gap-3 border-b border-border/70 px-3 py-4 sm:justify-start sm:px-4 sm:py-5"
                 data-tauri-drag-region
@@ -607,7 +607,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="flex flex-1 min-h-0 min-w-0 flex-col">
+            <div className="workspace-settings-content flex flex-1 min-h-0 min-w-0 flex-col">
               <div
                 className="flex shrink-0 items-center justify-between border-b border-border/70 bg-background/90 px-4 py-4 backdrop-blur sm:px-6 sm:py-5"
                 data-tauri-drag-region
@@ -620,7 +620,7 @@ export default function SettingsPage() {
                 onScroll={(e) => {
                   scrollStates.current[activeTab] = e.currentTarget.scrollTop;
                 }}
-                className="flex-1 overflow-y-auto bg-gradient-to-b from-background via-background to-muted/10 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
+                className="flex-1 overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
               >
                 <div className="mx-auto w-full max-w-5xl space-y-5 text-base sm:space-y-6">
                   {activeTab === "syncBackup" ? (

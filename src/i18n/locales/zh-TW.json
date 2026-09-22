@@ -2973,6 +2973,15 @@
     "updateFailed": "更新失敗",
     "updateNow": "立即更新"
   },
+  "workspaceLayout": {
+    "bottom": "切換底部面板",
+    "left": "切換左側面板",
+    "resizeHeight": "調整高度（上下方向鍵）",
+    "resizeWidth": "調整寬度（左右方向鍵）",
+    "right": "切換右側面板",
+    "sendCommand": "傳送指令",
+    "title": "工作區配置"
+  },
   "zmodem": {
     "cancelled": "ZMODEM 傳輸已取消",
     "complete": "ZMODEM 傳輸完成",

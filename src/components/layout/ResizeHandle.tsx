@@ -1,75 +1,103 @@
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 
 interface ResizeHandleProps {
   direction: "horizontal" | "vertical";
   onResize: (delta: number) => void;
   className?: string;
+  variant?: "line" | "gutter";
+  value?: number;
 }
 
-/** Draggable handle for horizontal or vertical resize. Calls onResize(delta) on drag. */
-export default function ResizeHandle({ direction, onResize, className = "" }: ResizeHandleProps) {
-  const startPos = useRef(0);
+/** Pointer and keyboard resizing share the same delta contract as the existing layouts. */
+export default function ResizeHandle({
+  direction,
+  onResize,
+  className,
+  variant = "line",
+  value,
+}: ResizeHandleProps) {
+  const { t } = useTranslation();
   const onResizeRef = useRef(onResize);
+  const cleanupRef = useRef<(() => void) | null>(null);
+  onResizeRef.current = onResize;
+  useEffect(() => () => cleanupRef.current?.(), []);
 
-  // Keep the ref up to date
-  useEffect(() => {
-    onResizeRef.current = onResize;
-  }, [onResize]);
-
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      startPos.current = direction === "horizontal" ? e.clientX : e.clientY;
-
-      const handleMouseMove = (ev: MouseEvent) => {
-        const current = direction === "horizontal" ? ev.clientX : ev.clientY;
-        const delta = current - startPos.current;
-        startPos.current = current;
-        onResizeRef.current(delta);
-      };
-
-      const handleMouseUp = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      };
-
-      document.body.style.cursor = direction === "horizontal" ? "col-resize" : "row-resize";
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      cleanupRef.current?.();
+      const pointerId = event.pointerId;
+      let position = direction === "horizontal" ? event.clientX : event.clientY;
+      const { cursor, userSelect } = document.body.style;
+      const target = event.currentTarget;
+      target.dataset.dragging = "true";
+      target.setPointerCapture?.(pointerId);
+      document.body.style.cursor =
+        direction === "horizontal" ? "col-resize" : "row-resize";
       document.body.style.userSelect = "none";
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
+
+      const move = (next: PointerEvent) => {
+        if (next.pointerId !== pointerId) return;
+        const current =
+          direction === "horizontal" ? next.clientX : next.clientY;
+        onResizeRef.current(current - position);
+        position = current;
+      };
+      const cleanup = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", end);
+        window.removeEventListener("pointercancel", end);
+        window.removeEventListener("blur", cleanup);
+        if (target.hasPointerCapture?.(pointerId))
+          target.releasePointerCapture(pointerId);
+        delete target.dataset.dragging;
+        document.body.style.cursor = cursor;
+        document.body.style.userSelect = userSelect;
+        cleanupRef.current = null;
+      };
+      const end = (next: PointerEvent) => {
+        if (next.pointerId === pointerId) cleanup();
+      };
+      cleanupRef.current = cleanup;
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", end);
+      window.addEventListener("pointercancel", end);
+      window.addEventListener("blur", cleanup);
     },
     [direction],
   );
 
-  const isHorizontal = direction === "horizontal";
-
   return (
+    // biome-ignore lint/a11y/useSemanticElements: An interactive window splitter is not a thematic break (hr).
     <div
-      className={`
-        ${
-          isHorizontal
-            ? "group relative z-20 w-px shrink-0 cursor-col-resize overflow-visible"
-            : "group relative z-20 h-px shrink-0 cursor-row-resize overflow-visible"
-        } ${className}
-      `}
-      onMouseDown={handleMouseDown}
+      role="separator"
+      tabIndex={0}
+      aria-label={t(
+        direction === "horizontal"
+          ? "workspaceLayout.resizeWidth"
+          : "workspaceLayout.resizeHeight",
+      )}
+      aria-orientation={direction === "horizontal" ? "vertical" : "horizontal"}
+      aria-valuenow={value}
+      className={cn("workspace-resize-handle", className)}
+      data-direction={direction}
+      data-variant={variant}
+      onPointerDown={handlePointerDown}
+      onKeyDown={(event) => {
+        const decrement = direction === "horizontal" ? "ArrowLeft" : "ArrowUp";
+        const increment =
+          direction === "horizontal" ? "ArrowRight" : "ArrowDown";
+        if (event.key !== decrement && event.key !== increment) return;
+        event.preventDefault();
+        onResizeRef.current(
+          (event.key === increment ? 1 : -1) * (event.shiftKey ? 24 : 8),
+        );
+      }}
     >
-      <div
-        className={
-          isHorizontal
-            ? "absolute inset-y-0 left-1/2 w-[3px] -translate-x-1/2"
-            : "absolute top-1/2 inset-x-0 h-[3px] -translate-y-1/2"
-        }
-      />
-      <div
-        className={
-          isHorizontal
-            ? "absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[var(--df-border)] transition-[width,background-color] group-hover:w-[3px] group-hover:bg-[var(--df-primary)] group-active:w-[3px] group-active:bg-[var(--df-primary)]"
-            : "absolute top-1/2 inset-x-0 h-px -translate-y-1/2 bg-[var(--df-border)] transition-[height,background-color] group-hover:h-[3px] group-hover:bg-[var(--df-primary)] group-active:h-[3px] group-active:bg-[var(--df-primary)]"
-        }
-      />
+      <span aria-hidden="true" />
     </div>
   );
 }

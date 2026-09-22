@@ -26,7 +26,12 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { PanelOpenMode } from "@/lib/appWorkspace";
 import type { ActivityBarZone } from "@/types/global";
 
@@ -55,11 +60,16 @@ interface ActivityDropZoneRegistryEntry {
   onMoveItem: (itemId: string, targetZone: ActivityBarZone) => void;
 }
 
-const activityDropZones = new Map<ActivityBarZone, ActivityDropZoneRegistryEntry>();
+const activityDropZones = new Map<
+  ActivityBarZone,
+  ActivityDropZoneRegistryEntry
+>();
 
 function shouldUsePointerActivityDrag() {
   if (typeof navigator === "undefined") return false;
-  return /Mac/.test(navigator.platform) && /AppleWebKit/.test(navigator.userAgent);
+  return (
+    /Mac/.test(navigator.platform) && /AppleWebKit/.test(navigator.userAgent)
+  );
 }
 
 function resolvePointerDropTarget(clientX: number, clientY: number) {
@@ -70,14 +80,21 @@ function resolvePointerDropTarget(clientX: number, clientY: number) {
     );
     if (!target) continue;
 
-    const targetZone = target.dataset.activityDropZone as ActivityBarZone | undefined;
+    const targetZone = target.dataset.activityDropZone as
+      | ActivityBarZone
+      | undefined;
     const baseIndex = Number(target.dataset.activityDropIndex);
     if (!targetZone || !Number.isFinite(baseIndex)) continue;
 
     const rect = target.getBoundingClientRect();
     const isEndTarget = target.dataset.activityDropEnd === "true";
     const targetIndex =
-      isEndTarget || clientY < rect.top + rect.height / 2 ? baseIndex : baseIndex + 1;
+      isEndTarget ||
+      (target.dataset.activityOrientation === "horizontal"
+        ? clientX < rect.left + rect.width / 2
+        : clientY < rect.top + rect.height / 2)
+        ? baseIndex
+        : baseIndex + 1;
     return { targetZone, targetIndex };
   }
 
@@ -85,13 +102,31 @@ function resolvePointerDropTarget(clientX: number, clientY: number) {
 }
 
 const ZONE_LABELS: { zone: ActivityBarZone; key: string; icon: ReactNode }[] = [
-  { zone: "left_top", key: "activityBar.leftTop", icon: <HiMiniArrowTurnLeftUp /> },
-  { zone: "left_bottom", key: "activityBar.leftBottom", icon: <HiMiniArrowTurnLeftDown /> },
-  { zone: "right_top", key: "activityBar.rightTop", icon: <HiMiniArrowTurnRightUp /> },
-  { zone: "right_bottom", key: "activityBar.rightBottom", icon: <HiMiniArrowTurnRightDown /> },
+  {
+    zone: "left_top",
+    key: "activityBar.leftTop",
+    icon: <HiMiniArrowTurnLeftUp />,
+  },
+  {
+    zone: "left_bottom",
+    key: "activityBar.leftBottom",
+    icon: <HiMiniArrowTurnLeftDown />,
+  },
+  {
+    zone: "right_top",
+    key: "activityBar.rightTop",
+    icon: <HiMiniArrowTurnRightUp />,
+  },
+  {
+    zone: "right_bottom",
+    key: "activityBar.rightBottom",
+    icon: <HiMiniArrowTurnRightDown />,
+  },
 ];
 
 interface ActivityBarProps {
+  orientation?: "horizontal" | "vertical";
+  region?: "top" | "bottom" | "both";
   items: ActivityBarItem[];
   bottomItems?: ActivityBarItem[];
   hiddenItems?: ActivityBarItem[];
@@ -114,6 +149,8 @@ interface ActivityBarProps {
 }
 
 export default function ActivityBar({
+  orientation = "vertical",
+  region = "both",
   items,
   bottomItems,
   hiddenItems = [],
@@ -135,54 +172,64 @@ export default function ActivityBar({
 }: ActivityBarProps) {
   const { t } = useTranslation();
   const indicatorSide = side === "left" ? "left-0" : "right-0";
-  const tooltipSide = side === "left" ? "right" : "left";
+  const tooltipSide =
+    orientation === "horizontal"
+      ? "bottom"
+      : side === "left"
+        ? "right"
+        : "left";
 
   return (
     <TooltipProvider delayDuration={400}>
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
-            className="flex flex-col shrink-0 w-10 select-none"
+            className="workspace-activity-bar"
+            data-orientation={orientation}
+            data-region={region}
             style={{
               backgroundColor: "var(--df-bg-panel)",
-              borderColor: "var(--df-border)",
-              borderRightWidth: side === "left" ? 1 : 0,
-              borderLeftWidth: side === "right" ? 1 : 0,
             }}
           >
-            <DropZone
-              items={items}
-              zoneKey="top"
-              zoneName={zone.top}
-              activeId={activeId}
-              activeIds={activeIds}
-              onSelect={onSelect}
-              onReorder={onReorder}
-              onMoveItem={onMoveItem}
-              onHideItem={onHideItem}
-              onToggleLabel={onToggleLabel}
-              showLabels={showLabels}
-              indicatorSide={indicatorSide}
-              tooltipSide={tooltipSide}
-              className="flex flex-col items-center gap-0.5 pt-1"
-            />
-            <DropZone
-              items={bottomItems ?? []}
-              zoneKey="bottom"
-              zoneName={zone.bottom}
-              activeId={activeId}
-              activeIds={activeIds}
-              activeBottomIds={activeBottomIds}
-              onSelect={onSelect}
-              onReorder={onReorder}
-              onMoveItem={onMoveItem}
-              onHideItem={onHideItem}
-              onToggleLabel={onToggleLabel}
-              showLabels={showLabels}
-              indicatorSide={indicatorSide}
-              tooltipSide={tooltipSide}
-              className="mt-auto flex flex-col items-center gap-0.5 pb-1"
-            />
+            {region !== "bottom" && (
+              <DropZone
+                orientation={orientation}
+                items={items}
+                zoneKey="top"
+                zoneName={zone.top}
+                activeId={activeId}
+                activeIds={activeIds}
+                onSelect={onSelect}
+                onReorder={onReorder}
+                onMoveItem={onMoveItem}
+                onHideItem={onHideItem}
+                onToggleLabel={onToggleLabel}
+                showLabels={showLabels}
+                indicatorSide={indicatorSide}
+                tooltipSide={tooltipSide}
+                className="workspace-activity-zone"
+              />
+            )}
+            {region !== "top" && (
+              <DropZone
+                orientation={orientation}
+                items={bottomItems ?? []}
+                zoneKey="bottom"
+                zoneName={zone.bottom}
+                activeId={activeId}
+                activeIds={activeIds}
+                activeBottomIds={activeBottomIds}
+                onSelect={onSelect}
+                onReorder={onReorder}
+                onMoveItem={onMoveItem}
+                onHideItem={onHideItem}
+                onToggleLabel={onToggleLabel}
+                showLabels={showLabels}
+                indicatorSide={indicatorSide}
+                tooltipSide={tooltipSide}
+                className="workspace-activity-zone workspace-activity-zone-bottom"
+              />
+            )}
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -201,10 +248,15 @@ export default function ActivityBar({
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
               {hiddenItems.length === 0 ? (
-                <ContextMenuItem disabled>{t("activityBar.noHiddenItems")}</ContextMenuItem>
+                <ContextMenuItem disabled>
+                  {t("activityBar.noHiddenItems")}
+                </ContextMenuItem>
               ) : (
                 hiddenItems.map((item) => (
-                  <ContextMenuItem key={item.id} onClick={() => onShowItem(item.id)}>
+                  <ContextMenuItem
+                    key={item.id}
+                    onClick={() => onShowItem(item.id)}
+                  >
                     {item.icon}
                     {item.tooltip}
                   </ContextMenuItem>
@@ -213,7 +265,10 @@ export default function ActivityBar({
             </ContextMenuSubContent>
           </ContextMenuSub>
           <ContextMenuSeparator />
-          <ContextMenuCheckboxItem checked={showLabels} onCheckedChange={onToggleLabel}>
+          <ContextMenuCheckboxItem
+            checked={showLabels}
+            onCheckedChange={onToggleLabel}
+          >
             {t("activityBar.showLabel")}
           </ContextMenuCheckboxItem>
           <ContextMenuSeparator />
@@ -227,6 +282,7 @@ export default function ActivityBar({
 }
 
 interface DropZoneProps {
+  orientation: "horizontal" | "vertical";
   items: ActivityBarItem[];
   zoneKey: "top" | "bottom";
   zoneName: ActivityBarZone;
@@ -240,11 +296,12 @@ interface DropZoneProps {
   onToggleLabel: () => void;
   showLabels: boolean;
   indicatorSide: string;
-  tooltipSide: "left" | "right";
+  tooltipSide: "left" | "right" | "bottom";
   className: string;
 }
 
 function DropZone({
+  orientation,
   items,
   zoneKey,
   zoneName,
@@ -281,7 +338,11 @@ function DropZone({
   }, []);
 
   const requestPointerDrop = useCallback(
-    (state: PointerActivityDragState, targetZone: ActivityBarZone, targetIndex: number) => {
+    (
+      state: PointerActivityDragState,
+      targetZone: ActivityBarZone,
+      targetIndex: number,
+    ) => {
       const targetEntry = activityDropZones.get(targetZone);
       if (!targetEntry) {
         resetDragState();
@@ -305,7 +366,10 @@ function DropZone({
       reordered.splice(fromIdx, 1);
       const insertAt = Math.max(
         0,
-        Math.min(reordered.length, targetIndex > fromIdx ? targetIndex - 1 : targetIndex),
+        Math.min(
+          reordered.length,
+          targetIndex > fromIdx ? targetIndex - 1 : targetIndex,
+        ),
       );
       reordered.splice(insertAt, 0, state.itemId);
       targetEntry.onReorder(targetEntry.zoneKey, reordered);
@@ -317,7 +381,13 @@ function DropZone({
   const handlePointerDown = useCallback(
     (event: PointerEvent, itemId: string) => {
       if (!usePointerDrag) return;
-      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+      if (
+        event.button !== 0 ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        event.shiftKey
+      ) {
         return;
       }
 
@@ -401,7 +471,10 @@ function DropZone({
   const handleDragStart = useCallback(
     (e: DragEvent, itemId: string) => {
       dragItemIdRef.current = itemId;
-      e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ id: itemId, zone: zoneName }));
+      e.dataTransfer.setData(
+        DRAG_MIME,
+        JSON.stringify({ id: itemId, zone: zoneName }),
+      );
       e.dataTransfer.effectAllowed = "move";
     },
     [zoneName],
@@ -425,7 +498,10 @@ function DropZone({
       const raw = e.dataTransfer.getData(DRAG_MIME);
       if (!raw) return;
       try {
-        const { id, zone: srcZone } = JSON.parse(raw) as { id: string; zone: string };
+        const { id, zone: srcZone } = JSON.parse(raw) as {
+          id: string;
+          zone: string;
+        };
         if (srcZone !== zoneName) {
           onMoveItem(id, zoneName);
           return;
@@ -454,9 +530,12 @@ function DropZone({
       {items.map((item, idx) => (
         <ActivityBarButton
           key={item.id}
+          orientation={orientation}
           item={item}
           active={
-            activeId === item.id || !!activeIds?.has(item.id) || !!activeBottomIds?.has(item.id)
+            activeId === item.id ||
+            !!activeIds?.has(item.id) ||
+            !!activeBottomIds?.has(item.id)
           }
           showLabel={showLabels}
           onSelect={onSelect}
@@ -469,8 +548,15 @@ function DropZone({
           dropZoneName={zoneName}
           dropIndex={idx}
           onDragStart={(e) => handleDragStart(e, item.id)}
-          onDragOver={(e) => handleDragOver(e, idx)}
-          onDrop={(e) => handleDrop(e, idx)}
+          onDragOver={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const after =
+              orientation === "horizontal"
+                ? e.clientX >= rect.left + rect.width / 2
+                : e.clientY >= rect.top + rect.height / 2;
+            handleDragOver(e, idx + (after ? 1 : 0));
+          }}
+          onDrop={(e) => handleDrop(e, dropIndex ?? idx)}
           onDragEnd={handleDragEnd}
           onPointerDown={(e) => handlePointerDown(e, item.id)}
           onPointerMove={handlePointerMove}
@@ -483,7 +569,8 @@ function DropZone({
       ))}
       {/* Drop target after last item */}
       <div
-        className="w-full h-1"
+        className="workspace-activity-drop-end"
+        data-activity-orientation={orientation}
         data-activity-drop-zone={zoneName}
         data-activity-drop-index={items.length}
         data-activity-drop-end="true"
@@ -495,6 +582,7 @@ function DropZone({
 }
 
 function ActivityBarButton({
+  orientation,
   item,
   active,
   showLabel,
@@ -519,12 +607,13 @@ function ActivityBarButton({
   suppressClickRef,
   showDropIndicator,
 }: {
+  orientation: "horizontal" | "vertical";
   item: ActivityBarItem;
   active: boolean;
   showLabel: boolean;
   onSelect: (id: string) => void;
   indicatorSide: string;
-  tooltipSide: "left" | "right";
+  tooltipSide: "left" | "right" | "bottom";
   currentZone: ActivityBarZone;
   onMoveItem: (itemId: string, targetZone: ActivityBarZone) => void;
   onHideItem: (itemId: string) => void;
@@ -551,6 +640,12 @@ function ActivityBarButton({
         <ContextMenuTrigger asChild>
           <TooltipTrigger asChild>
             <button
+              type="button"
+              aria-label={item.tooltip}
+              aria-pressed={active}
+              data-active={active}
+              data-show-label={showLabel}
+              data-activity-orientation={orientation}
               draggable={draggable}
               data-activity-drop-zone={dropZoneName}
               data-activity-drop-index={dropIndex}
@@ -563,9 +658,9 @@ function ActivityBarButton({
               onPointerUp={onPointerEnd}
               onPointerCancel={onPointerCancel}
               onContextMenu={(event) => event.stopPropagation()}
-              className={`relative flex flex-col items-center justify-center w-full transition-colors ${showLabel ? "min-h-12 gap-0.5 py-1" : "h-9"}`}
+              className="workspace-activity-button"
               style={{
-                color: active ? "var(--df-primary)" : "var(--df-text-muted)",
+                color: active ? "var(--df-text)" : "var(--df-text-muted)",
                 cursor: "default",
               }}
               onClick={() => {
@@ -578,11 +673,15 @@ function ActivityBarButton({
             >
               {showDropIndicator && (
                 <span
-                  className="absolute left-1 right-1 -top-[1px] h-[2px] rounded-full"
+                  className={
+                    orientation === "horizontal"
+                      ? "absolute top-1 bottom-1 -left-px w-0.5 rounded-full"
+                      : "absolute left-1 right-1 -top-px h-0.5 rounded-full"
+                  }
                   style={{ backgroundColor: "var(--df-primary)" }}
                 />
               )}
-              {active && (
+              {active && orientation === "vertical" && (
                 <span
                   className={`absolute ${indicatorSide} top-1 bottom-1 w-[2px] rounded-full`}
                   style={{ backgroundColor: "var(--df-primary)" }}
@@ -593,7 +692,10 @@ function ActivityBarButton({
                 <span
                   className="text-[0.5rem] leading-tight w-full text-center break-words hyphens-auto"
                   lang="zh"
-                  style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
+                  style={{
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
+                  }}
                 >
                   {item.tooltip}
                 </span>
@@ -610,7 +712,9 @@ function ActivityBarButton({
 
       <ContextMenuContent>
         <ContextMenuSub>
-          <ContextMenuSubTrigger>{t("activityBar.moveTo")}</ContextMenuSubTrigger>
+          <ContextMenuSubTrigger>
+            {t("activityBar.moveTo")}
+          </ContextMenuSubTrigger>
           <ContextMenuSubContent>
             {ZONE_LABELS.map(({ zone, key, icon }) => (
               <ContextMenuItem
@@ -629,7 +733,10 @@ function ActivityBarButton({
           {t("activityBar.hideItem", { name: item.tooltip })}
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuCheckboxItem checked={showLabel} onCheckedChange={onToggleLabel}>
+        <ContextMenuCheckboxItem
+          checked={showLabel}
+          onCheckedChange={onToggleLabel}
+        >
           {t("activityBar.showLabel")}
         </ContextMenuCheckboxItem>
       </ContextMenuContent>

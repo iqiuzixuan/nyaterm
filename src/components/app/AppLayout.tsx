@@ -9,6 +9,10 @@ import {
 } from "react";
 import FloatingPanel from "@/components/app/FloatingPanel";
 import { MdClose, MdTerminal } from "react-icons/md";
+import WorkspaceSidebar from "./WorkspaceSidebar";
+import WorkspaceControls from "@/components/layout/WorkspaceControls";
+import { Button } from "@/components/ui/button";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import PanelStack from "@/components/app/PanelStack";
 import AboutDialog from "@/components/dialog/app/AboutDialog";
 import LockScreen from "@/components/dialog/app/LockScreen";
@@ -29,7 +33,7 @@ import DockerSudoPasswordDialog, {
 } from "@/components/dialog/docker/DockerSudoPasswordDialog";
 import { TransferDuplicateDialog } from "@/components/dialog/file-explorer/TransferDuplicateDialog";
 import SyncGroupDialog from "@/components/dialog/terminal/SyncGroupDialog";
-import ActivityBar from "@/components/layout/ActivityBar";
+import type ActivityBar from "@/components/layout/ActivityBar";
 import Header from "@/components/layout/Header";
 import ResizeHandle from "@/components/layout/ResizeHandle";
 import QuickCommands from "@/components/panel/QuickCommands";
@@ -43,7 +47,7 @@ import {
   isWindowTransparencyEnabled,
   loadBackgroundImageDataUrl,
 } from "@/lib/backgroundImage";
-import { isMacOS, isWindows } from "@/lib/platform";
+import { isWindows } from "@/lib/platform";
 import type { SendCommandPanelDraft } from "@/lib/sendCommandPanelEvents";
 import type { UpdateInfo } from "@/lib/updater";
 import { bounceTopModalWindow } from "@/lib/windowManager";
@@ -113,6 +117,7 @@ interface AppLayoutProps {
   };
   bottomPanel: {
     activePanel: "quickCmdBar" | "serialSend" | null;
+    onSelect: (panel: "quickCmdBar" | "serialSend") => void;
     quickCmdHeight: number;
     serialSendHeight: number;
     clearAfterSend: boolean;
@@ -249,53 +254,151 @@ export default function AppLayout({
   );
   const hasLeftActivityItems = hasVisibleActivityBarItems(leftActivityBar);
   const hasRightActivityItems = hasVisibleActivityBarItems(rightActivityBar);
-  const leftPanelOpen =
-    hasLeftActivityItems &&
-    (leftPanelIds.length > 0 || Boolean(leftOverlayPanelId));
+  const leftPanelOpen = leftPanelIds.length > 0 || Boolean(leftOverlayPanelId);
   const rightPanelOpen =
+    rightPanelIds.length > 0 || Boolean(rightOverlayPanelId);
+  const compactLeft = useMediaQuery("(max-width: 640px)");
+  const compactRight = useMediaQuery("(max-width: 900px)");
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [bottomCollapsed, setBottomCollapsed] = useState(false);
+  const [auxiliaryPanel, setAuxiliaryPanel] = useState<
+    "fileTransfer" | "commandHistory" | null
+  >(null);
+  const leftVisible =
+    hasLeftActivityItems && (compactLeft ? mobile.leftOpen : !leftCollapsed);
+  const rightVisible =
     hasRightActivityItems &&
-    (rightPanelIds.length > 0 || Boolean(rightOverlayPanelId));
-  const leftMobileOpen = hasLeftActivityItems && mobile.leftOpen;
-  const rightMobileOpen = hasRightActivityItems && mobile.rightOpen;
-  const serialSendVisible = bottomPanel.activePanel === "serialSend";
-  if (serialSendVisible) {
+    (compactRight ? mobile.rightOpen : !rightCollapsed);
+  const bottomView = auxiliaryPanel ?? bottomPanel.activePanel ?? "quickCmdBar";
+  const bottomVisible =
+    !bottomCollapsed && Boolean(auxiliaryPanel || bottomPanel.activePanel);
+  const serialSendVisible = bottomVisible && bottomView === "serialSend";
+  if (bottomPanel.activePanel === "serialSend")
     serialSendEverShownRef.current = true;
-  }
-  const serialSendMounted =
-    serialSendVisible || serialSendRunning || serialSendEverShownRef.current;
+  const serialSendMounted = serialSendEverShownRef.current || serialSendRunning;
+  const quickCommandsMounted = useRef(false);
+  if (bottomPanel.activePanel === "quickCmdBar")
+    quickCommandsMounted.current = true;
+  const overlayVisible =
+    (compactLeft && leftVisible) || (compactRight && rightVisible);
+
+  // Menu/shortcut selections reveal the corresponding card without overwriting its layout.
+  const selection = `${leftPanelIds.join(",")}:${leftOverlayPanelId}:${rightPanelIds.join(",")}:${rightOverlayPanelId}`;
+  const previousSelection = useRef(selection);
+  useEffect(() => {
+    const previous = previousSelection.current.split(":");
+    const next = selection.split(":");
+    if (previous[0] !== next[0] || previous[1] !== next[1]) {
+      setLeftCollapsed(false);
+      if (compactLeft && leftPanelOpen) mobile.setLeftOpen(true);
+    }
+    if (previous[2] !== next[2] || previous[3] !== next[3]) {
+      setRightCollapsed(false);
+      if (compactRight && rightPanelOpen) mobile.setRightOpen(true);
+    }
+    previousSelection.current = selection;
+  }, [
+    selection,
+    compactLeft,
+    compactRight,
+    leftPanelOpen,
+    rightPanelOpen,
+    mobile,
+  ]);
+
+  const previousBottom = useRef(bottomPanel.activePanel);
+  useEffect(() => {
+    if (previousBottom.current !== bottomPanel.activePanel) {
+      setBottomCollapsed(false);
+      setAuxiliaryPanel(null);
+    }
+    previousBottom.current = bottomPanel.activePanel;
+  }, [bottomPanel.activePanel]);
+
+  useEffect(() => {
+    if (bottomPanel.sendCommandDraft) {
+      setBottomCollapsed(false);
+      setAuxiliaryPanel(null);
+    }
+  }, [bottomPanel.sendCommandDraft]);
 
   useEffect(() => {
     const roots = [document.documentElement, document.body];
     for (const root of roots) {
-      if (windowTransparencyEnabled) {
-        root.dataset.windowTransparency = "true";
-      } else {
-        delete root.dataset.windowTransparency;
-      }
+      if (windowTransparencyEnabled) root.dataset.windowTransparency = "true";
+      else delete root.dataset.windowTransparency;
     }
-
     return () => {
-      for (const root of roots) {
-        delete root.dataset.windowTransparency;
-      }
+      for (const root of roots) delete root.dataset.windowTransparency;
     };
   }, [windowTransparencyEnabled]);
 
-  useEffect(() => {
-    if (!hasLeftActivityItems && mobile.leftOpen) {
-      mobile.setLeftOpen(false);
+  const toggleLeft = () =>
+    compactLeft
+      ? mobile.setLeftOpen(!mobile.leftOpen)
+      : setLeftCollapsed((value) => !value);
+  const toggleRight = () =>
+    compactRight
+      ? mobile.setRightOpen(!mobile.rightOpen)
+      : setRightCollapsed((value) => !value);
+  const toggleBottom = () => {
+    if (!auxiliaryPanel && !bottomPanel.activePanel)
+      bottomPanel.onSelect("quickCmdBar");
+    setBottomCollapsed(bottomVisible);
+  };
+  const selectBottom = (panel: typeof bottomView) => {
+    setBottomCollapsed(false);
+    if (panel === "fileTransfer" || panel === "commandHistory")
+      setAuxiliaryPanel(panel);
+    else {
+      setAuxiliaryPanel(null);
+      if (bottomPanel.activePanel !== panel) bottomPanel.onSelect(panel);
     }
-    if (!hasRightActivityItems && mobile.rightOpen) {
-      mobile.setRightOpen(false);
+  };
+  const renderSidebar = (side: "left" | "right") => {
+    const left = side === "left";
+    const activity = left ? leftActivityBar : rightActivityBar;
+    const activeBottomIds = new Set(activity.activeBottomIds);
+    activeBottomIds.delete("quickCmdBar");
+    activeBottomIds.delete("serialSend");
+    if (
+      bottomVisible &&
+      (bottomView === "quickCmdBar" || bottomView === "serialSend")
+    ) {
+      activeBottomIds.add(bottomView);
     }
-  }, [
-    hasLeftActivityItems,
-    hasRightActivityItems,
-    mobile.leftOpen,
-    mobile.rightOpen,
-    mobile.setLeftOpen,
-    mobile.setRightOpen,
-  ]);
+    return (
+      <WorkspaceSidebar
+        side={side}
+        width={left ? uiConfig.left_width : uiConfig.right_width}
+        visible={left ? leftVisible : rightVisible}
+        panelOpen={left ? leftPanelOpen : rightPanelOpen}
+        activity={{
+          ...activity,
+          activeBottomIds,
+          onSelect: (id) => {
+            if (
+              (id === "quickCmdBar" || id === "serialSend") &&
+              (auxiliaryPanel || bottomCollapsed)
+            ) {
+              selectBottom(id);
+            } else activity.onSelect(id);
+          },
+        }}
+      >
+        <PanelStack
+          panelIds={left ? leftPanelIds : rightPanelIds}
+          overlayPanelId={left ? leftOverlayPanelId : rightOverlayPanelId}
+          sizes={panelStackSizes}
+          renderPanel={panelContent}
+          onResizePair={(aboveId, belowId, delta, height) =>
+            onPanelStackResize(side, aboveId, belowId, delta, height)
+          }
+        />
+      </WorkspaceSidebar>
+    );
+  };
 
   return (
     <div
@@ -321,103 +424,44 @@ export default function AppLayout({
       <div className="relative z-10 flex h-full min-h-0 flex-col">
         <Header
           {...header}
-          onToggleLeft={() => {
-            if (hasLeftActivityItems) mobile.setLeftOpen(!mobile.leftOpen);
-          }}
-          onToggleRight={() => {
-            if (hasRightActivityItems) mobile.setRightOpen(!mobile.rightOpen);
-          }}
+          onToggleLeft={toggleLeft}
+          onToggleRight={toggleRight}
+          workspaceControls={
+            <WorkspaceControls
+              leftVisible={leftVisible}
+              rightVisible={rightVisible}
+              bottomVisible={bottomVisible}
+              leftAvailable={hasLeftActivityItems}
+              rightAvailable={hasRightActivityItems}
+              onToggleLeft={toggleLeft}
+              onToggleRight={toggleRight}
+              onToggleBottom={toggleBottom}
+            />
+          }
         />
-
-        <main className="flex-1 flex overflow-hidden relative">
-          {!isMacOS && (leftMobileOpen || rightMobileOpen) && (
-            <div
-              className="absolute inset-0 bg-black/50 z-40 lg:hidden"
+        <main className="workspace-layout">
+          {overlayVisible && (
+            <button
+              type="button"
+              className="workspace-sidebar-backdrop"
+              aria-label={t("common.close")}
               onClick={() => {
                 mobile.setLeftOpen(false);
                 mobile.setRightOpen(false);
               }}
             />
           )}
-
-          {hasLeftActivityItems && (
-            <ActivityBar
-              {...leftActivityBar}
-              side="left"
-              zone={{ top: "left_top", bottom: "left_bottom" }}
+          {hasLeftActivityItems && renderSidebar("left")}
+          {leftVisible && !compactLeft && (
+            <ResizeHandle
+              direction="horizontal"
+              variant="gutter"
+              value={uiConfig.left_width}
+              onResize={onLeftResize}
             />
           )}
-
-          {leftPanelOpen && (
-            <>
-              <div
-                style={{
-                  width: uiConfig.left_width,
-                  backgroundColor: "var(--df-bg-panel)",
-                }}
-                className={
-                  isMacOS
-                    ? "relative flex flex-col"
-                    : `
-                    fixed inset-y-0 left-10 z-40 flex flex-col shadow-xl transition-transform duration-200
-                    lg:relative lg:left-0 lg:translate-x-0 lg:z-0 lg:shadow-none
-                    ${
-                      leftMobileOpen
-                        ? "translate-x-0"
-                        : "-translate-x-[calc(100%+2.5rem)] lg:translate-x-0"
-                    }
-                  `
-                }
-              >
-                {!isMacOS && (
-                  <div
-                    className="lg:hidden h-10 flex items-center justify-end px-2 border-b shrink-0"
-                    style={{ borderColor: "var(--df-border)" }}
-                  >
-                    <button
-                      onClick={() => mobile.setLeftOpen(false)}
-                      style={{ color: "var(--df-text-muted)" }}
-                    >
-                      <MdClose />
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <PanelStack
-                    panelIds={leftPanelIds}
-                    overlayPanelId={leftOverlayPanelId}
-                    sizes={panelStackSizes}
-                    renderPanel={panelContent}
-                    onResizePair={(aboveId, belowId, delta, containerHeight) =>
-                      onPanelStackResize(
-                        "left",
-                        aboveId,
-                        belowId,
-                        delta,
-                        containerHeight,
-                      )
-                    }
-                  />
-                </div>
-              </div>
-              <ResizeHandle
-                direction="horizontal"
-                onResize={onLeftResize}
-                className={isMacOS ? "" : "hidden lg:block"}
-              />
-            </>
-          )}
-
-          <section
-            className="flex-1 flex flex-col relative min-w-0 origin-top-left"
-            style={{
-              backgroundColor: backgroundEnabled
-                ? "transparent"
-                : "var(--df-bg-terminal)",
-            }}
-          >
-            <div className="flex-1 relative overflow-hidden">
+          <section className="workspace-center">
+            <div className="workspace-terminal-area">
               {tabsCount === 0 ? (
                 <StartWorkspace
                   t={t}
@@ -469,48 +513,137 @@ export default function AppLayout({
               )}
             </div>
 
-            {bottomPanel.activePanel === "quickCmdBar" && (
-              <>
-                <ResizeHandle
-                  direction="vertical"
-                  onResize={bottomPanel.onQuickCmdResize}
-                />
-                <div
-                  style={{
-                    height: bottomPanel.quickCmdHeight,
-                    backgroundColor: "var(--df-bg-panel)",
-                  }}
-                  className="shrink-0 overflow-hidden"
+            {bottomVisible && (
+              <ResizeHandle
+                direction="vertical"
+                variant="gutter"
+                value={
+                  bottomView === "serialSend"
+                    ? bottomPanel.serialSendHeight
+                    : bottomPanel.quickCmdHeight
+                }
+                onResize={
+                  bottomView === "serialSend"
+                    ? bottomPanel.onSerialSendResize
+                    : bottomPanel.onQuickCmdResize
+                }
+              />
+            )}
+            <section
+              id="workspace-bottom"
+              className="workspace-bottom workspace-card"
+              data-collapsed={!bottomVisible}
+              style={{
+                height:
+                  bottomView === "serialSend"
+                    ? bottomPanel.serialSendHeight
+                    : bottomPanel.quickCmdHeight,
+              }}
+            >
+              <div
+                className="workspace-bottom-tabs"
+                role="tablist"
+                aria-label={t("workspaceLayout.bottom")}
+              >
+                {(
+                  [
+                    ["quickCmdBar", "panel.quickCommands"],
+                    ["fileTransfer", "panel.fileTransfer"],
+                    ["commandHistory", "panel.commandHistory"],
+                    ["serialSend", "workspaceLayout.sendCommand"],
+                  ] as const
+                ).map(([id, key]) => (
+                  <button
+                    type="button"
+                    key={id}
+                    role="tab"
+                    id={`workspace-tab-${id}`}
+                    aria-selected={bottomView === id}
+                    tabIndex={bottomView === id ? 0 : -1}
+                    onKeyDown={(event) => {
+                      const ids = [
+                        "quickCmdBar",
+                        "fileTransfer",
+                        "commandHistory",
+                        "serialSend",
+                      ] as const;
+                      const index = ids.indexOf(id);
+                      const next =
+                        event.key === "ArrowRight"
+                          ? (index + 1) % ids.length
+                          : event.key === "ArrowLeft"
+                            ? (index + ids.length - 1) % ids.length
+                            : event.key === "Home"
+                              ? 0
+                              : event.key === "End"
+                                ? ids.length - 1
+                                : -1;
+                      if (next < 0) return;
+                      event.preventDefault();
+                      selectBottom(ids[next]);
+                      document
+                        .getElementById(`workspace-tab-${ids[next]}`)
+                        ?.focus();
+                    }}
+                    aria-controls={`workspace-content-${id}`}
+                    onClick={() => selectBottom(id)}
+                  >
+                    {t(key)}
+                  </button>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="ml-auto"
+                  aria-label={t("workspaceLayout.bottom")}
+                  onClick={() => setBottomCollapsed(true)}
                 >
+                  <MdClose />
+                </Button>
+              </div>
+              <div
+                role="tabpanel"
+                id="workspace-content-quickCmdBar"
+                aria-labelledby="workspace-tab-quickCmdBar"
+                className="workspace-bottom-content"
+                hidden={bottomView !== "quickCmdBar"}
+              >
+                {quickCommandsMounted.current && (
                   <QuickCommands
                     onSend={bottomPanel.onCommandSend}
                     onSendToAll={bottomPanel.onSendToAllSessions}
                     sendDisabled={bottomPanel.quickCommandsDisabled}
                   />
-                </div>
-              </>
-            )}
-
-            {serialSendVisible && (
-              <ResizeHandle
-                direction="vertical"
-                onResize={bottomPanel.onSerialSendResize}
-              />
-            )}
-
-            {serialSendMounted && (
-              <>
-                <div
-                  style={{
-                    ...(serialSendVisible
-                      ? {
-                          height: bottomPanel.serialSendHeight,
-                          backgroundColor: "var(--df-bg-panel)",
-                        }
-                      : {}),
-                  }}
-                  className={serialSendVisible ? "shrink-0 overflow-hidden" : "hidden"}
-                >
+                )}
+              </div>
+              <div
+                role="tabpanel"
+                id="workspace-content-fileTransfer"
+                aria-labelledby="workspace-tab-fileTransfer"
+                className="workspace-bottom-content"
+                hidden={bottomView !== "fileTransfer"}
+              >
+                {auxiliaryPanel === "fileTransfer" &&
+                  panelContent("fileTransfer")}
+              </div>
+              <div
+                role="tabpanel"
+                id="workspace-content-commandHistory"
+                aria-labelledby="workspace-tab-commandHistory"
+                className="workspace-bottom-content"
+                hidden={bottomView !== "commandHistory"}
+              >
+                {auxiliaryPanel === "commandHistory" &&
+                  panelContent("commandHistory")}
+              </div>
+              <div
+                role="tabpanel"
+                id="workspace-content-serialSend"
+                aria-labelledby="workspace-tab-serialSend"
+                className="workspace-bottom-content"
+                hidden={!serialSendVisible}
+              >
+                {serialSendMounted && (
                   <SerialSendPanel
                     serialSessionId={bottomPanel.activeSerialSessionId}
                     currentShellSessionId={bottomPanel.activeNonSerialSessionId}
@@ -524,83 +657,19 @@ export default function AppLayout({
                     onSendingChange={setSerialSendRunning}
                     onClearAfterSendChange={bottomPanel.onClearAfterSendChange}
                   />
-                </div>
-              </>
-            )}
-          </section>
-
-          {hasRightActivityItems && (
-            <>
-              {rightPanelOpen && (
-                <ResizeHandle
-                  direction="horizontal"
-                  onResize={onRightResize}
-                  className={isMacOS ? "" : "hidden md:block"}
-                />
-              )}
-              <aside
-                style={{
-                  width: rightPanelOpen ? uiConfig.right_width : 0,
-                  backgroundColor: "var(--df-bg-panel)",
-                  borderColor: "var(--df-border)",
-                }}
-                className={
-                  isMacOS
-                    ? `relative flex flex-col overflow-hidden ${rightPanelOpen ? "border-l" : "hidden"}`
-                    : `
-                    fixed inset-y-0 right-10 z-50 flex flex-col overflow-hidden shadow-xl transition-transform duration-200 border-l
-                    md:relative md:right-0 md:translate-x-0 md:z-0 md:shadow-none
-                    ${
-                      rightPanelOpen && rightMobileOpen
-                        ? "translate-x-0"
-                        : "translate-x-[calc(100%+2.5rem)] md:translate-x-0"
-                    }
-                    ${rightPanelOpen ? "" : "hidden"}
-                  `
-                }
-              >
-                {!isMacOS && (
-                  <div
-                    className="md:hidden h-10 flex items-center justify-end px-2 border-b shrink-0"
-                    style={{ borderColor: "var(--df-border)" }}
-                  >
-                    <button
-                      onClick={() => mobile.setRightOpen(false)}
-                      style={{ color: "var(--df-text-muted)" }}
-                    >
-                      <MdClose />
-                    </button>
-                  </div>
                 )}
-
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <PanelStack
-                    panelIds={rightPanelIds}
-                    overlayPanelId={rightOverlayPanelId}
-                    sizes={panelStackSizes}
-                    renderPanel={panelContent}
-                    onResizePair={(aboveId, belowId, delta, containerHeight) =>
-                      onPanelStackResize(
-                        "right",
-                        aboveId,
-                        belowId,
-                        delta,
-                        containerHeight,
-                      )
-                    }
-                  />
-                </div>
-              </aside>
-            </>
-          )}
-
-          {hasRightActivityItems && (
-            <ActivityBar
-              {...rightActivityBar}
-              side="right"
-              zone={{ top: "right_top", bottom: "right_bottom" }}
+              </div>
+            </section>
+          </section>
+          {rightVisible && !compactRight && (
+            <ResizeHandle
+              direction="horizontal"
+              variant="gutter"
+              value={uiConfig.right_width}
+              onResize={onRightResize}
             />
           )}
+          {hasRightActivityItems && renderSidebar("right")}
         </main>
 
         <AboutDialog

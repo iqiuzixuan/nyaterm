@@ -2980,6 +2980,15 @@
     "updateFailed": "Update failed",
     "updateNow": "Update Now"
   },
+  "workspaceLayout": {
+    "bottom": "Toggle bottom panel",
+    "left": "Toggle left sidebar",
+    "resizeHeight": "Resize height (Up / Down arrows)",
+    "resizeWidth": "Resize width (Left / Right arrows)",
+    "right": "Toggle right sidebar",
+    "sendCommand": "Send command",
+    "title": "Workspace layout"
+  },
   "zmodem": {
     "cancelled": "ZMODEM transfer cancelled",
     "complete": "ZMODEM transfer complete",

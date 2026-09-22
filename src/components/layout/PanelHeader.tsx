@@ -19,18 +19,18 @@ export default function PanelHeader({
   return (
     <div
       className={cn(
-        "nyaterm-wallpaper-transparent-surface flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-3",
+        "workspace-panel-header nyaterm-wallpaper-transparent-surface flex shrink-0 items-center justify-between gap-3 px-3",
         className,
       )}
       style={{
         borderColor: "var(--df-border)",
-        backgroundColor: "var(--df-bg-section-header)",
+        backgroundColor: "transparent",
       }}
     >
       <div className="flex min-w-0 flex-1 items-baseline gap-2">
         <span
           className={cn(
-            "shrink-0 truncate text-[0.6875rem] font-semibold uppercase tracking-[0.16em]",
+            "workspace-panel-title shrink-0 truncate",
             titleClassName,
           )}
           style={{ color: "var(--df-text-muted)" }}

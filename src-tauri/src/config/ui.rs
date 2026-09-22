@@ -206,6 +206,7 @@ impl Default for ActivityBarLayout {
 
 fn default_left_top() -> Vec<String> {
     vec![
+        "savedConnections".to_string(),
         "fileExplorer".to_string(),
         "notes".to_string(),
         "network".to_string(),
@@ -219,7 +220,6 @@ fn default_left_bottom() -> Vec<String> {
 
 fn default_right_top() -> Vec<String> {
     vec![
-        "savedConnections".to_string(),
         "aiAssistant".to_string(),
         "activeSessions".to_string(),
         "commandHistory".to_string(),
@@ -396,11 +396,11 @@ fn default_panel_open_mode() -> String {
 }
 
 fn default_active_left_panel() -> Option<String> {
-    Some("fileExplorer".to_string())
+    Some("savedConnections".to_string())
 }
 
 fn default_active_right_panel() -> Option<String> {
-    Some("savedConnections".to_string())
+    Some("aiAssistant".to_string())
 }
 
 fn default_network_panel_active_tab() -> String {

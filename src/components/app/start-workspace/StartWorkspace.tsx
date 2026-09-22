@@ -51,7 +51,7 @@ export default function StartWorkspace({
 
   return (
     <div
-      className="relative h-full min-h-0 overflow-hidden"
+      className="workspace-card relative h-full min-h-0 overflow-hidden"
       style={{
         backgroundColor: mode === "assets" ? assetSurfaceBackground : undefined,
       }}

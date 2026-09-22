@@ -39,7 +39,7 @@ export default function FloatingPanel({
       {!isLeft && <ResizeHandle direction="horizontal" onResize={onResize} />}
       <aside
         className={cn(
-          "relative flex min-w-0 flex-1 flex-col overflow-hidden",
+          "workspace-floating workspace-card relative flex min-w-0 flex-1 flex-col overflow-hidden",
           isLeft ? "border-r" : "border-l",
         )}
         style={{

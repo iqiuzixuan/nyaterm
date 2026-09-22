@@ -2978,6 +2978,15 @@
     "updateFailed": "更新失败",
     "updateNow": "立即更新"
   },
+  "workspaceLayout": {
+    "bottom": "切换底部面板",
+    "left": "切换左侧面板",
+    "resizeHeight": "调整高度（上下方向键）",
+    "resizeWidth": "调整宽度（左右方向键）",
+    "right": "切换右侧面板",
+    "sendCommand": "发送命令",
+    "title": "工作区布局"
+  },
   "zmodem": {
     "cancelled": "ZMODEM 传输已取消",
     "complete": "ZMODEM 传输完成",

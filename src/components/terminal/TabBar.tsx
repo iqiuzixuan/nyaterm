@@ -1329,7 +1329,8 @@ function TabBar({
     const tabButton = (
       <div
         draggable={!usePointerTabDrag}
-        className={`group relative flex items-center gap-2 border-r pl-3 pr-2 text-xs transition-[color,background-color,opacity] duration-200 ${
+        data-active={isActive}
+        className={`workspace-session-tab group relative flex items-center gap-2 pl-3 pr-2 text-xs transition-[color,background-color,opacity] duration-200 ${
           isActive ? "font-semibold" : "font-medium df-hover"
         } ${draggedTabId === tab.id ? "opacity-60" : ""}`}
         style={{
@@ -1413,18 +1414,10 @@ function TabBar({
       >
         {isActive && (
           <div
-            className="absolute top-0 left-0 h-[2px] w-full"
+            className="workspace-tab-accent absolute top-0 left-0 h-[2px] w-full"
             style={{
               backgroundColor: accentColor || "var(--df-primary)",
-              boxShadow: `0 1px 4px ${accentColor || "var(--df-primary)"}`,
             }}
-          />
-        )}
-
-        {isActive && (
-          <div
-            className="absolute bottom-0 left-0 z-10 h-[1px] w-full"
-            style={{ backgroundColor: "var(--df-bg)" }}
           />
         )}
 
@@ -1662,10 +1655,10 @@ function TabBar({
   return (
     <>
       <div
-        className="flex h-9 shrink-0"
+        className="workspace-tabbar flex h-10 shrink-0"
         style={{
           backgroundColor: "var(--df-bg-panel)",
-          boxShadow: "inset 0 -1px 0 var(--df-border)",
+          boxShadow: "inset 0 -1px 0 color-mix(in srgb, var(--df-border) 55%, transparent)",
         }}
       >
         <div
@@ -1714,7 +1707,7 @@ function TabBar({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="flex h-full w-8 shrink-0 items-center justify-center border-l transition-colors df-hover"
+                    className="workspace-tabbar-actions flex h-full w-8 shrink-0 items-center justify-center border-l transition-colors df-hover"
                     style={{
                       color: "var(--df-text-muted)",
                       borderColor: "var(--df-border)",
@@ -1757,7 +1750,7 @@ function TabBar({
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex h-full w-9 shrink-0 items-center justify-center border-l transition-colors df-hover"
+                  className="workspace-tabbar-actions flex h-full w-9 shrink-0 items-center justify-center border-l transition-colors df-hover"
                   style={{
                     color: "var(--df-text-muted)",
                     borderColor: "var(--df-border)",

@@ -17,10 +17,9 @@ export const ACTIVITY_LAYOUT_ZONES = [
 ] as const satisfies readonly ActivityBarZone[];
 
 export const DEFAULT_ACTIVITY_BAR_LAYOUT: ActivityBarLayout = {
-  left_top: ["fileExplorer", "notes", "network", "securityAuth"],
+  left_top: ["savedConnections", "fileExplorer", "notes", "network", "securityAuth"],
   left_bottom: ["syncBackupHistory", "settings"],
   right_top: [
-    "savedConnections",
     "aiAssistant",
     "activeSessions",
     "commandHistory",

@@ -60,7 +60,7 @@ export default function WorkbenchView({
       <div className="flex w-full max-w-[34rem] flex-col items-center">
         <NyaTermLogo
           aria-hidden="true"
-          className="mb-9 h-64 w-64 opacity-[0.13] grayscale"
+          className="mb-8 h-24 w-24 opacity-30 grayscale"
           style={{
             color: "var(--df-text-dimmed)",
             ["--grad-from" as string]: "currentColor",
@@ -68,17 +68,17 @@ export default function WorkbenchView({
           }}
         />
 
-        <div className="grid w-fit max-w-[30rem] grid-cols-[max-content_auto] gap-x-4 gap-y-3 text-sm">
+        <div className="flex w-full max-w-[22rem] flex-col gap-1 text-sm">
           {emptyWorkspaceActions.map((item) => (
             <button
               key={item.label}
               type="button"
-              className="contents text-left"
+              className="flex min-h-10 items-center justify-between gap-5 rounded-lg px-3 text-left transition-colors hover:bg-[var(--df-bg-hover)] focus-visible:outline-2 focus-visible:outline-[var(--df-focus-ring)]"
               onClick={item.onClick}
             >
               <span
                 className="justify-self-start transition-colors hover:text-[var(--df-primary)]"
-                style={{ color: "var(--df-primary)" }}
+                style={{ color: "var(--df-text-muted)" }}
               >
                 {item.label}
               </span>

@@ -139,6 +139,8 @@ export default function AppPanelContent({
             </div>
           </div>
         );
+      case "fileTransfer":
+        return <FileTransfer activeSessionId={filePanelSessionId} />;
       case "network":
         return <NetworkPanel />;
       case "notes":

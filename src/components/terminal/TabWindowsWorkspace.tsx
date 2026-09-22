@@ -206,7 +206,7 @@ function SplitWindow({
           {...props}
         />
       </div>
-      <ResizeHandle direction={isHorizontal ? "vertical" : "horizontal"} onResize={handleResize} />
+      <ResizeHandle direction={isHorizontal ? "vertical" : "horizontal"} variant="gutter" onResize={handleResize} value={Math.round(split.ratio * 100)} />
       <div className="min-h-0 min-w-0 flex-1">
         <WindowNodeView
           node={split.second}
@@ -312,7 +312,7 @@ function LeafWindow({
 
   return (
     <div
-      className="nyaterm-wallpaper-transparent-surface nyaterm-terminal-surface flex h-full min-h-0 min-w-0 flex-col overflow-hidden border"
+      className="workspace-card nyaterm-wallpaper-transparent-surface nyaterm-terminal-surface flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
       style={{
         borderColor: "var(--df-border)",
         backgroundColor: "var(--df-terminal-surface-bg)",

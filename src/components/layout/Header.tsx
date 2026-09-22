@@ -560,6 +560,7 @@ function HeaderMiniProgress({ value }: { value: number | null }) {
 }
 
 interface HeaderProps {
+  workspaceControls?: React.ReactNode;
   onNewSession: () => void;
   onToggleLeft?: () => void;
   onToggleRight?: () => void;
@@ -725,6 +726,7 @@ function getActivityBarPanelLabel(id: string, t: (key: string, opts?: Record<str
 
 /** Top bar with File/Edit/View/Terminal/Help menus, theme picker, and mobile toggles. */
 export default function Header({
+  workspaceControls,
   onNewSession,
   onToggleLeft,
   onToggleRight,
@@ -1848,15 +1850,15 @@ export default function Header({
 
   return (
     <header
-      className="h-10 border-b flex items-center gap-2 px-2 select-none shrink-0"
-      style={{ backgroundColor: "var(--df-bg-panel)", borderColor: "var(--df-border)" }}
+      className="workspace-titlebar h-10 flex items-center gap-2 px-2 select-none shrink-0"
+      style={{ backgroundColor: "var(--df-bg)" }}
     >
       <div className={`flex items-center gap-2 shrink-0${isMacOS ? " pl-[84px]" : ""}`}>
         {!isMacOS && (
           <NyaTermLogo className="h-5 w-5 shrink-0" onDoubleClick={handleToggleMaximizeWindow} />
         )}
 
-        {!isMacOS && (
+        {!isMacOS && !workspaceControls && (
           <Button
             type="button"
             variant="ghost"
@@ -1957,7 +1959,8 @@ export default function Header({
       </div>
 
       <div className="flex items-center gap-1 shrink-0" style={{ color: "var(--df-text-muted)" }}>
-        {!isMacOS && (
+        {workspaceControls}
+        {!isMacOS && !workspaceControls && (
           <Button
             type="button"
             variant="ghost"

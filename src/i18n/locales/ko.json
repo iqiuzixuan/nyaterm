@@ -2972,6 +2972,15 @@
     "updateFailed": "업데이트 실패",
     "updateNow": "지금 업데이트"
   },
+  "workspaceLayout": {
+    "bottom": "하단 패널 전환",
+    "left": "왼쪽 사이드바 전환",
+    "resizeHeight": "높이 조절 (위아래 화살표)",
+    "resizeWidth": "너비 조절 (좌우 화살표)",
+    "right": "오른쪽 사이드바 전환",
+    "sendCommand": "명령 전송",
+    "title": "작업 공간 레이아웃"
+  },
   "zmodem": {
     "cancelled": "ZMODEM 전송이 취소되었습니다",
     "complete": "ZMODEM 전송이 완료되었습니다",
