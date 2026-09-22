@@ -296,7 +296,6 @@ impl NyaTermApp {
                 TerminalFeatureFocus {
                     actions: cx.focus_handle(),
                     terminal: cx.focus_handle(),
-                    paste: cx.focus_handle(),
                 },
             ),
             ai: AiFeatureState::new(
