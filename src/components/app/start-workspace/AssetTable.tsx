@@ -26,7 +26,7 @@ interface AssetTableProps {
   onEditConnection: (connection: SavedConnection) => void;
 }
 
-const ASSET_TABLE_ROW_HEIGHT = 56;
+const ASSET_TABLE_ROW_HEIGHT = 40;
 type AssetTableColumnKey = AssetSortKey | "actions";
 
 const ASSET_TABLE_COLUMNS: AssetTableColumnKey[] = [
@@ -209,16 +209,16 @@ export default function AssetTable({
             return (
               <tr
                 key={connection.id}
-                className="group h-14 outline-none transition-colors hover:bg-[var(--df-bg-hover)]"
+                className="group h-10 outline-none transition-colors hover:bg-[var(--df-bg-hover)]"
                 style={{
                   color: "var(--df-text)",
                 }}
               >
                 <BodyCell>
-                  <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="flex min-w-0 items-center gap-2">
                     <AssetConnectionIcon connection={connection} />
                     <div className="min-w-0">
-                      <div className="truncate font-medium" data-asset-name>
+                      <div className="truncate font-normal" data-asset-name>
                         {connection.name}
                       </div>
                       <div
@@ -289,7 +289,7 @@ function HeaderCell({
 }) {
   return (
     <th
-      className={`relative border-b px-3 py-2 font-medium ${className}`}
+      className={`relative border-b px-2 py-1 font-medium ${className}`}
       style={{
         borderColor: "var(--df-border)",
         backgroundColor: "var(--nyaterm-asset-sticky-bg, var(--df-bg-terminal))",
@@ -347,9 +347,9 @@ function SortableHeaderCell({
 function BodyCell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <td
-      className={`border-b px-3 py-2 align-middle ${className}`}
+      className={`border-b px-2 py-0.5 align-middle ${className}`}
       style={{
-        borderColor: "color-mix(in srgb, var(--df-border) 50%, transparent)",
+        borderColor: "color-mix(in srgb, var(--df-border) 25%, transparent)",
         backgroundColor: className.includes("asset-col-actions")
           ? "var(--nyaterm-asset-sticky-bg, var(--df-bg-terminal))"
           : undefined,
@@ -374,11 +374,9 @@ function ActionButton({
       type="button"
       aria-label={label}
       title={label}
-      className="inline-flex size-7 cursor-pointer items-center justify-center rounded border transition-colors hover:bg-[var(--df-bg-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--df-primary)]"
+      className="workspace-asset-action inline-flex size-6 cursor-pointer items-center justify-center rounded transition-colors hover:bg-[var(--df-bg-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--df-primary)]"
       style={{
-        borderColor: "color-mix(in srgb, var(--df-border) 78%, transparent)",
         color: "var(--df-text-muted)",
-        backgroundColor: "color-mix(in srgb, var(--df-bg-panel) 50%, transparent)",
       }}
       onClick={onClick}
     >

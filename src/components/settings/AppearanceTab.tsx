@@ -933,7 +933,7 @@ export function AppearanceTab() {
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection contentClassName="space-y-5">
         <SettingSelect
           label={t("settings.theme")}

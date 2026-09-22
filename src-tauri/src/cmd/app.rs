@@ -472,8 +472,8 @@ pub async fn open_child_window(
             .focused(false)
             .title_bar_style(tauri::TitleBarStyle::Overlay)
             // Position the traffic light controls in logical points so the 12px native buttons
-            // sit visually centered in the 40px custom header.
-            .traffic_light_position(tauri::LogicalPosition::new(12.0, 18.0))
+            // sit visually centered in the 32px custom header.
+            .traffic_light_position(tauri::LogicalPosition::new(12.0, 14.0))
             .hidden_title(true);
     }
 

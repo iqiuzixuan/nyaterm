@@ -1330,15 +1330,15 @@ function TabBar({
       <div
         draggable={!usePointerTabDrag}
         data-active={isActive}
-        className={`workspace-session-tab group relative flex items-center gap-2 pl-3 pr-2 text-xs transition-[color,background-color,opacity] duration-200 ${
-          isActive ? "font-semibold" : "font-medium df-hover"
+        className={`workspace-session-tab group relative flex items-center gap-1.5 pl-2 pr-1.5 text-xs transition-[color,background-color,opacity] duration-200 ${
+          isActive ? "" : "df-hover"
         } ${draggedTabId === tab.id ? "opacity-60" : ""}`}
         style={{
           borderColor: "var(--df-border)",
           backgroundColor: isActive
             ? accentColor
               ? `color-mix(in srgb, ${accentColor} 16%, var(--df-bg))`
-              : "var(--df-bg)"
+              : "var(--df-bg-hover)"
             : accentColor
               ? `color-mix(in srgb, ${accentColor} 12%, var(--df-bg-panel))`
               : "transparent",
@@ -1412,7 +1412,7 @@ function TabBar({
           handleDropAtIndex(getInsertionIndex(event, index), event);
         }}
       >
-        {isActive && (
+        {isActive && accentColor && (
           <div
             className="workspace-tab-accent absolute top-0 left-0 h-[2px] w-full"
             style={{
@@ -1424,7 +1424,7 @@ function TabBar({
         {renderTabIcon(tab)}
 
         <span
-          className="shrink-0 min-w-[1.25em] text-xs font-semibold tabular-nums leading-none"
+          className="shrink-0 min-w-[1.25em] text-[11px] font-normal tabular-nums leading-none"
           style={{
             color: isActive ? "var(--df-text-muted)" : "var(--df-text-dimmed)",
           }}
@@ -1655,10 +1655,10 @@ function TabBar({
   return (
     <>
       <div
-        className="workspace-tabbar flex h-10 shrink-0"
+        className="workspace-tabbar flex shrink-0"
         style={{
           backgroundColor: "var(--df-bg-panel)",
-          boxShadow: "inset 0 -1px 0 color-mix(in srgb, var(--df-border) 55%, transparent)",
+          boxShadow: "inset 0 -1px 0 color-mix(in srgb, var(--df-border) 25%, transparent)",
         }}
       >
         <div

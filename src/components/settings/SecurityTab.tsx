@@ -60,7 +60,7 @@ export function SecurityTab() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection title={t("settings.masterPasswordSection")} contentClassName="space-y-5">
         <SettingRow
           label={t("settings.masterPasswordSwitch")}

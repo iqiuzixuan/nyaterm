@@ -1414,7 +1414,7 @@ export default function SavedConnections({
         />
 
         <div
-          className="nyaterm-wallpaper-transparent-surface relative flex items-center gap-1.5 px-2 py-1.5 min-h-10 shrink-0 border-b"
+          className="nyaterm-wallpaper-transparent-surface relative flex items-center gap-1.5 px-2 py-1 min-h-8 shrink-0 border-b"
           style={{
             borderColor: "color-mix(in srgb, var(--df-border) 40%, transparent)",
             backgroundColor: "var(--df-bg-section-header)",
@@ -1430,7 +1430,7 @@ export default function SavedConnections({
               onClick={() => setIsSearchExpanded(true)}
               placeholder={t("savedConnections.filter")}
               aria-label={t("savedConnections.search")}
-              className="w-full pl-8 pr-3 py-1 h-7 text-xs rounded-md bg-[var(--df-bg-hover)] border border-transparent outline-none transition-all cursor-text placeholder:text-[var(--df-text-dimmed)] focus:bg-transparent focus:border-[var(--df-primary)] focus:ring-1 focus:ring-[var(--df-primary)] text-[var(--df-text)]"
+              className="w-full pl-8 pr-2 py-0.5 h-6 text-xs rounded-[4px] bg-[var(--df-bg-hover)] border border-transparent outline-none transition-all cursor-text placeholder:text-[var(--df-text-dimmed)] focus:bg-transparent focus:border-[var(--df-primary)] focus:ring-1 focus:ring-[var(--df-primary)] text-[var(--df-text)]"
             />
           </div>
 

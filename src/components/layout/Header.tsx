@@ -1850,7 +1850,7 @@ export default function Header({
 
   return (
     <header
-      className="workspace-titlebar h-10 flex items-center gap-2 px-2 select-none shrink-0"
+      className="workspace-titlebar h-8 flex items-center gap-2 px-2 select-none shrink-0"
       style={{ backgroundColor: "var(--df-bg)" }}
     >
       <div className={`flex items-center gap-2 shrink-0${isMacOS ? " pl-[84px]" : ""}`}>
@@ -1977,7 +1977,7 @@ export default function Header({
             <Button
               type="button"
               variant="ghost"
-              className="rounded-none h-10 w-[46px] px-0 text-[var(--df-text-muted)] transition-colors hover:!bg-[color-mix(in_srgb,var(--df-text)_10%,transparent)] hover:!text-[var(--df-text)]"
+              className="rounded-none h-8 w-[46px] px-0 text-[var(--df-text-muted)] transition-colors hover:!bg-[color-mix(in_srgb,var(--df-text)_10%,transparent)] hover:!text-[var(--df-text)]"
               aria-label={t("menu.minimize")}
               onMouseDown={preventWindowControlMouseFocus}
               onClick={handleMinimizeWindow}
@@ -1988,7 +1988,7 @@ export default function Header({
             <Button
               type="button"
               variant="ghost"
-              className="rounded-none h-10 w-[46px] px-0 text-[var(--df-text-muted)] transition-colors hover:!bg-[color-mix(in_srgb,var(--df-text)_10%,transparent)] hover:!text-[var(--df-text)]"
+              className="rounded-none h-8 w-[46px] px-0 text-[var(--df-text-muted)] transition-colors hover:!bg-[color-mix(in_srgb,var(--df-text)_10%,transparent)] hover:!text-[var(--df-text)]"
               aria-label={isMaximized ? t("menu.restore") : t("menu.maximize")}
               onMouseDown={preventWindowControlMouseFocus}
               onClick={handleToggleMaximizeWindow}
@@ -2003,7 +2003,7 @@ export default function Header({
             <Button
               type="button"
               variant="ghost"
-              className="rounded-none h-10 w-[46px] px-0 text-[var(--df-text-muted)] transition-colors hover:!bg-[#e81123] hover:!text-white"
+              className="rounded-none h-8 w-[46px] px-0 text-[var(--df-text-muted)] transition-colors hover:!bg-[#e81123] hover:!text-white"
               aria-label={t("common.close")}
               onMouseDown={preventWindowControlMouseFocus}
               onClick={handleCloseWindow}

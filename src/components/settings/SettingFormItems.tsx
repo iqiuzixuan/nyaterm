@@ -42,7 +42,7 @@ function SettingFieldShell({
   controlClassName,
 }: SettingFieldShellProps) {
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-2", className)}>
       <SettingMeta label={label} desc={desc} />
       <div className={cn("min-w-0 max-w-xl", controlClassName)}>{children}</div>
     </div>
@@ -59,11 +59,11 @@ export function SettingSection({
 }: SettingSectionProps) {
   return (
     <section
-      className={cn("min-w-0 rounded-xl border border-border/70 bg-card/60 shadow-xs", className)}
+      className={cn("min-w-0 rounded-lg border border-border/40 bg-card/60", className)}
     >
       {(title || desc || action) && (
-        <div className="flex flex-col gap-3 border-b border-border/60 px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2 border-b border-border/30 px-3 py-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             {(title || desc) && (
               <div className="min-w-0">
                 {title && <h3 className="text-sm font-semibold leading-5">{title}</h3>}
@@ -74,7 +74,7 @@ export function SettingSection({
           </div>
         </div>
       )}
-      <div className={cn("min-w-0 space-y-4 px-4 py-4 sm:px-5 sm:py-5", contentClassName)}>
+      <div className={cn("min-w-0 space-y-3 px-3 py-3", contentClassName)}>
         {children}
       </div>
     </section>
@@ -89,7 +89,7 @@ export function SettingFieldGrid({
   className?: string;
 }) {
   return (
-    <div className={cn("grid min-w-0 gap-4 lg:grid-cols-2 lg:gap-x-6", className)}>{children}</div>
+    <div className={cn("grid min-w-0 gap-3 lg:grid-cols-2 lg:gap-x-4", className)}>{children}</div>
   );
 }
 
@@ -103,7 +103,7 @@ export function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-x-6">
+    <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-x-4">
       <SettingMeta label={label} desc={desc} />
       <div className="flex min-w-0 items-center justify-start gap-2 sm:justify-end">{children}</div>
     </div>
@@ -130,7 +130,7 @@ export function SettingInput({
       className={fieldClassName}
       controlClassName={controlClassName}
     >
-      <Input className={cn("w-full text-sm", className)} {...inputProps} />
+      <Input className={cn("w-full text-xs", className)} {...inputProps} />
     </SettingFieldShell>
   );
 }
@@ -209,7 +209,7 @@ export function SettingSelect({
       controlClassName={controlClassName}
     >
       <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-        <SelectTrigger className={cn("w-full text-sm", triggerClassName)}>
+        <SelectTrigger className={cn("w-full text-xs", triggerClassName)}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>{children}</SelectContent>

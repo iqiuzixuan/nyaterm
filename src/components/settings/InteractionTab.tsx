@@ -52,7 +52,7 @@ export function InteractionTab() {
     ));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection
         title={t("settings.interactionClipboardMouse")}
         desc={t("settings.interactionClipboardMouseDesc")}

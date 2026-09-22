@@ -1,7 +1,8 @@
 /* Workspace geometry only: every surface and interaction inherits the user's theme. */
 :root {
-  --workspace-gap: 6px;
-  --workspace-radius: 10px;
+  --workspace-gap: 4px;
+  --workspace-radius: 8px;
+  --workspace-border: color-mix(in srgb, var(--df-border) 45%, transparent);
 }
 .workspace-layout {
   display: flex;
@@ -15,7 +16,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--df-border);
+  border: 1px solid var(--workspace-border);
   border-radius: var(--workspace-radius);
   background: var(--df-bg-panel);
 }
@@ -64,16 +65,16 @@
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 14px;
-  min-height: 36px;
+  gap: 12px;
+  min-height: 32px;
   padding: 0 10px;
   overflow-x: auto;
 }
 .workspace-bottom-tabs > button[role="tab"] {
   position: relative;
   flex-shrink: 0;
-  min-height: 34px;
-  font-size: 0.6875rem;
+  min-height: 24px;
+  font-size: 0.75rem;
   color: var(--df-text-muted);
   border-radius: 4px;
   outline-offset: -2px;
@@ -84,10 +85,10 @@
 .workspace-bottom-tabs > button[aria-selected="true"]::after {
   content: "";
   position: absolute;
-  height: 2px;
+  height: 1px;
   left: 0;
   right: 0;
-  bottom: 4px;
+  bottom: 0;
   background: var(--df-primary);
   border-radius: 2px;
 }
@@ -115,7 +116,7 @@
 }
 .workspace-control {
   color: var(--df-text-muted);
-  border-radius: 6px;
+  border-radius: 4px;
 }
 .workspace-control[aria-pressed="true"] {
   background: var(--df-bg-hover);
@@ -126,7 +127,7 @@
   flex-direction: column;
   flex-shrink: 0;
   user-select: none;
-  padding: 5px;
+  padding: 4px;
 }
 .workspace-activity-bar[data-orientation="vertical"] {
   flex: 1;
@@ -140,7 +141,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
 }
 .workspace-activity-zone-bottom {
   margin-top: auto;
@@ -149,7 +150,7 @@
   .workspace-activity-zone {
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: 2px;
 }
 .workspace-activity-button {
   position: relative;
@@ -157,10 +158,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  min-height: 30px;
+  width: 24px;
+  min-height: 24px;
   flex-shrink: 0;
-  border-radius: 6px;
+  border-radius: 4px;
   outline-offset: -2px;
 }
 .workspace-activity-button:hover,
@@ -175,8 +176,8 @@
 }
 .workspace-activity-button[data-show-label="true"] {
   width: 58px;
-  min-height: 46px;
-  gap: 3px;
+  min-height: 40px;
+  gap: 2px;
   padding: 4px;
 }
 .workspace-activity-bar[data-orientation="vertical"]
@@ -195,11 +196,11 @@
 }
 .workspace-panel-header {
   background: transparent;
-  min-height: 38px;
+  min-height: 30px;
 }
 .workspace-panel-title {
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: normal;
   text-transform: none;
 }
@@ -276,13 +277,16 @@
   outline: 1px solid var(--df-focus-ring);
 }
 .workspace-tabbar {
-  padding: 3px 5px;
-  gap: 3px;
+  height: 32px;
+  padding: 4px;
+  gap: 2px;
 }
 .workspace-session-tab {
-  border-radius: 6px;
+  border-radius: 4px;
   border: 0;
-  margin-right: 3px;
+  margin-right: 2px;
+  font-size: 12px;
+  font-weight: 400;
 }
 .workspace-tab-accent {
   left: 8px !important;
@@ -293,8 +297,11 @@
   height: 1px !important;
 }
 .workspace-tabbar-actions {
-  border: 0 !important;
-  border-radius: 6px;
+  border: 0;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  align-self: center;
 }
 .workspace-sidebar-backdrop {
   position: absolute;
@@ -312,12 +319,12 @@
   padding: 0 var(--workspace-gap) var(--workspace-gap);
 }
 .workspace-settings-nav {
-  border: 1px solid var(--df-border);
+  border: 1px solid var(--workspace-border);
   border-radius: var(--workspace-radius);
   background: var(--df-bg-panel);
 }
 .workspace-settings-content {
-  border: 1px solid var(--df-border);
+  border: 1px solid var(--workspace-border);
   border-radius: var(--workspace-radius);
   overflow: hidden;
   background: var(--df-bg);
@@ -358,4 +365,24 @@
       background-color 120ms ease,
       color 120ms ease;
   }
+}
+
+/* Preserve visible boundaries when the user requests extra contrast. */
+@media (prefers-contrast: more) {
+  :root {
+    --workspace-border: var(--df-border);
+  }
+}
+
+.workspace-asset-action {
+  border: 0;
+  background: transparent;
+  outline: none;
+}
+.workspace-asset-action:is(:hover, :focus-visible) {
+  background: var(--df-bg-hover);
+}
+.workspace-asset-action:focus-visible {
+  outline: 1px solid var(--df-focus-ring);
+  outline-offset: -1px;
 }

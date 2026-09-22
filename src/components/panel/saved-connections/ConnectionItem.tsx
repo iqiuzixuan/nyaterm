@@ -538,7 +538,7 @@ export default function ConnectionItem({ conn, indented, depth = 0 }: Connection
             />
           )}
           <div
-            className={`group/item relative flex min-w-full w-max items-center gap-2 py-1.5 px-2 rounded cursor-pointer transition-colors df-hover ${isTarget && dragTarget.position === "inside" ? "ring-1 ring-primary/60" : ""}`}
+            className={`group/item relative flex min-w-full w-max items-center gap-2 py-0.5 px-2 rounded cursor-pointer transition-colors df-hover ${isTarget && dragTarget.position === "inside" ? "ring-1 ring-primary/60" : ""}`}
             style={{
               ...(indented ? { paddingLeft: `${8 + depth * 16 + 16}px` } : undefined),
               backgroundColor: isSelected
@@ -570,7 +570,7 @@ export default function ConnectionItem({ conn, indented, depth = 0 }: Connection
                 >
                   <ConnIcon className="text-sm shrink-0" style={iconStyle} />
                   <span
-                    className="min-w-12 max-w-48 truncate whitespace-nowrap text-xs font-medium"
+                    className="min-w-12 max-w-48 truncate whitespace-nowrap text-xs font-normal"
                     style={{
                       color:
                         isSelected || isKeyboardActive ? "var(--df-primary)" : "var(--df-text)",

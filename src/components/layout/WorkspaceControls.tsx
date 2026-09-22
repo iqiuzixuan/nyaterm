@@ -54,7 +54,7 @@ export default function WorkspaceControls(props: WorkspaceControlsProps) {
             <Button
               type="button"
               variant="ghost"
-              size="icon-sm"
+              size="icon-xs"
               className="workspace-control"
               disabled={!available}
               aria-label={t(`workspaceLayout.${id}`)}

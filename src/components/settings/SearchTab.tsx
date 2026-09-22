@@ -293,7 +293,7 @@ export function SearchTab() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection
         title={t("settings.customEngines")}
         desc={t("settings.engineUrlHint")}

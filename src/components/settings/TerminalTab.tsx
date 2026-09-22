@@ -188,7 +188,7 @@ export function TerminalTab() {
   const ringClass = isDark ? "ring-white/20" : "ring-black/20";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection contentClassName="space-y-5">
         <SettingNumberInput
           label={t("settings.scrollbackLines")}

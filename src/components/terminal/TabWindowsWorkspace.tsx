@@ -314,7 +314,7 @@ function LeafWindow({
     <div
       className="workspace-card nyaterm-wallpaper-transparent-surface nyaterm-terminal-surface flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
       style={{
-        borderColor: "var(--df-border)",
+        borderColor: "var(--workspace-border)",
         backgroundColor: "var(--df-terminal-surface-bg)",
       }}
       onMouseDown={() => {

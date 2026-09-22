@@ -90,7 +90,7 @@ export function TransferTab() {
     updateAppSettings({ transfer: { ...transfer, ...patch } });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection contentClassName="space-y-5">
         <PathPickerInput
           label={t("settings.downloadPath")}

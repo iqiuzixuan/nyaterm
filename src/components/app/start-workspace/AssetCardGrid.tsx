@@ -143,7 +143,6 @@ function AssetCard({
     <article
       className="flex h-[182px] min-w-0 flex-col rounded-md border text-left transition-colors hover:bg-[var(--df-bg-hover)]"
       style={{
-        borderColor: "color-mix(in srgb, var(--df-border) 78%, transparent)",
         color: "var(--df-text)",
         backgroundColor: "color-mix(in srgb, var(--df-bg-panel) 36%, transparent)",
       }}
@@ -228,11 +227,9 @@ function CardActionButton({
       type="button"
       aria-label={label}
       title={label}
-      className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded border px-2 text-xs transition-colors hover:bg-[var(--df-bg-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--df-primary)]"
+      className="workspace-asset-action inline-flex h-6 cursor-pointer items-center gap-1.5 rounded px-2 text-xs transition-colors hover:bg-[var(--df-bg-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--df-primary)]"
       style={{
-        borderColor: "color-mix(in srgb, var(--df-border) 78%, transparent)",
         color: "var(--df-text-muted)",
-        backgroundColor: "color-mix(in srgb, var(--df-bg-terminal) 42%, transparent)",
       }}
       onClick={onClick}
     >

@@ -687,7 +687,7 @@ function ActivityBarButton({
                   style={{ backgroundColor: "var(--df-primary)" }}
                 />
               )}
-              <span className="text-[1.125rem] shrink-0">{item.icon}</span>
+              <span className="text-base shrink-0">{item.icon}</span>
               {showLabel && (
                 <span
                   className="text-[0.5rem] leading-tight w-full text-center break-words hyphens-auto"

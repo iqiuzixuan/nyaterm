@@ -188,7 +188,7 @@ export function AiGeneralTab() {
   const update = (patch: Partial<AISettings>) => updateAppSettings({ ai: { ...ai, ...patch } });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection title={t("ai.general")}>
         <SettingRow label={t("ai.enabled")}>
           <SettingSwitch checked={ai.enabled} onChange={(enabled) => update({ enabled })} />
@@ -547,7 +547,7 @@ export function AiAgentsTab() {
     : t("ai.codexNotLoggedIn");
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection
         title={t("ai.localAgents")}
         action={
@@ -1153,7 +1153,7 @@ export function AiModelsTab() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection title={t("ai.modelList")}>
         <div className="flex items-center gap-2">
           <Input
@@ -1492,7 +1492,7 @@ export function AiRulesTab() {
   const MB = 1024 * 1024;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection title={t("ai.rules")}>
         <SettingNumberInput
           label={`${t("ai.maxAiFileSize")} (MB)`}

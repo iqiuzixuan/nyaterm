@@ -34,6 +34,36 @@ this browser capture.
 - Settings windows use the same card geometry. Panel headings use spacing and
   typography instead of a separate colored strip and heavy separator.
 
+## Compact desktop density
+
+![Compact asset list with borderless actions](images/compact-assets.png)
+
+The spacing pass follows the installed VS Code 1.138.0 workbench styles
+(`workbench.desktop.main.css`), including its modern editor tabs. The local
+VS Code preference places the activity bar at the top. The release version was
+also checked against the [official release notes](https://code.visualstudio.com/updates/v1_138).
+Live VS Code window capture was unavailable because ScreenCaptureKit returned
+error -3811; the comparison uses local styles and the supplied screenshots.
+
+- Main and child title bars: 32px, with matching native macOS button placement.
+- Session tab strip: 32px; individual tabs: 24px with 4px corners and regular
+  12px labels. Active tabs use the theme's hover surface. The default accent
+  underline is removed; explicit custom tab colors retain their subtle marker.
+- Workspace cards: 8px corners, 4px gutters, and a border mixed to 45% of the
+  existing theme border. Increased-contrast preferences restore the full border.
+- Activity and small toolbar controls: 24px with 16px activity icons. Shared
+  buttons, inputs and selects default to 28px, with 24px small variants and
+  4px corners. Explicit component size overrides remain supported.
+- Connection rows and panel headings use tighter spacing and regular text.
+- Asset list rows are 40px instead of 56px; virtualization uses the same height.
+  Asset actions and view toggles are borderless, showing a surface on hover or
+  keyboard focus. The official custom-tag filters remain unchanged.
+- Settings use 12px section padding, 8px field gaps and 16px section gaps;
+  dialogs use 16px padding. Controls retain visible keyboard focus indicators.
+
+This changes presentation only. Theme palettes, terminal font sizes, saved
+connections, tab actions and application behavior are retained.
+
 ## Themes and saved preferences
 
 `src/styles/workspace.css` defines geometry and uses the existing `--df-*` theme

@@ -16,7 +16,7 @@ export function ProxyTab() {
   const { appSettings, updateAppSettings } = useApp();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection contentClassName="space-y-5">
         <SettingRow label={t("settings.enableProxy")} desc={t("settings.enableProxyDesc")}>
           <SettingSwitch

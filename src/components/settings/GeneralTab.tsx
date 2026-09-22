@@ -25,7 +25,7 @@ export function GeneralTab() {
       : normalizeHeaderStatusMode(appSettings.ui.header_status_mode);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection contentClassName="space-y-5">
         <SettingSelect
           label={t("settings.language")}

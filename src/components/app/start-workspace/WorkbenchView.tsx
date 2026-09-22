@@ -73,7 +73,7 @@ export default function WorkbenchView({
             <button
               key={item.label}
               type="button"
-              className="flex min-h-10 items-center justify-between gap-5 rounded-lg px-3 text-left transition-colors hover:bg-[var(--df-bg-hover)] focus-visible:outline-2 focus-visible:outline-[var(--df-focus-ring)]"
+              className="flex min-h-8 items-center justify-between gap-4 rounded px-2 text-left transition-colors hover:bg-[var(--df-bg-hover)] focus-visible:outline-2 focus-visible:outline-[var(--df-focus-ring)]"
               onClick={item.onClick}
             >
               <span

@@ -38,9 +38,9 @@ export default function AssetBreadcrumb({
 
   return (
     <div
-      className="flex min-h-9 shrink-0 items-center justify-between gap-3 border-y px-5 text-xs"
+      className="flex min-h-7 shrink-0 items-center justify-between gap-3 border-y px-3 text-xs"
       style={{
-        borderColor: "var(--df-border)",
+        borderColor: "var(--workspace-border)",
         backgroundColor: "color-mix(in srgb, var(--df-bg-panel) 50%, transparent)",
       }}
     >

@@ -17,14 +17,11 @@ export default function AssetConnectionIcon({
 
   return (
     <span
-      className={`flex size-7 shrink-0 items-center justify-center rounded border ${className}`}
+      className={`flex size-6 shrink-0 items-center justify-center rounded ${className}`}
       style={{
-        borderColor: selected
-          ? "color-mix(in srgb, var(--df-primary) 46%, transparent)"
-          : "color-mix(in srgb, var(--df-border) 72%, transparent)",
         backgroundColor: selected
           ? "color-mix(in srgb, var(--df-primary) 12%, transparent)"
-          : "color-mix(in srgb, var(--df-bg-hover) 42%, transparent)",
+          : "transparent",
         color: selected ? "var(--df-primary)" : iconDef.color,
       }}
     >

@@ -89,7 +89,7 @@ export default function ChildWindowHeader({
 
   return (
     <header
-      className="workspace-titlebar h-10 flex items-center shrink-0 select-none"
+      className="workspace-titlebar h-8 flex items-center shrink-0 select-none"
       style={{ backgroundColor: "var(--df-bg)", borderColor: "var(--df-border)" }}
     >
       {hideHeaderContent ? (
@@ -109,7 +109,7 @@ export default function ChildWindowHeader({
           {alwaysOnTopControl && (
             <button
               type="button"
-              className={`flex h-10 w-[46px] items-center justify-center transition-colors hover:bg-[color-mix(in_srgb,var(--df-text)_10%,transparent)] hover:text-[var(--df-text)] ${
+              className={`flex h-8 w-[46px] items-center justify-center transition-colors hover:bg-[color-mix(in_srgb,var(--df-text)_10%,transparent)] hover:text-[var(--df-text)] ${
                 isAlwaysOnTop ? "text-[var(--df-primary)]" : "text-[var(--df-text-muted)]"
               }`}
               aria-label={isAlwaysOnTop ? t("menu.disableAlwaysOnTop") : t("menu.alwaysOnTop")}
@@ -128,7 +128,7 @@ export default function ChildWindowHeader({
             <>
               <button
                 type="button"
-                className="flex h-10 w-[46px] items-center justify-center text-[var(--df-text-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--df-text)_10%,transparent)] hover:text-[var(--df-text)]"
+                className="flex h-8 w-[46px] items-center justify-center text-[var(--df-text-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--df-text)_10%,transparent)] hover:text-[var(--df-text)]"
                 aria-label={t("menu.minimize")}
                 title={t("menu.minimize")}
                 onClick={handleMinimize}
@@ -137,7 +137,7 @@ export default function ChildWindowHeader({
               </button>
               <button
                 type="button"
-                className="flex h-10 w-[46px] items-center justify-center text-[var(--df-text-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--df-text)_10%,transparent)] hover:text-[var(--df-text)]"
+                className="flex h-8 w-[46px] items-center justify-center text-[var(--df-text-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--df-text)_10%,transparent)] hover:text-[var(--df-text)]"
                 aria-label={isMaximized ? t("menu.restore") : t("menu.maximize")}
                 title={isMaximized ? t("menu.restore") : t("menu.maximize")}
                 onClick={() => void handleToggleMaximize()}
@@ -152,7 +152,7 @@ export default function ChildWindowHeader({
           )}
           <button
             type="button"
-            className="flex h-10 w-[46px] items-center justify-center text-[var(--df-text-muted)] transition-colors hover:bg-[#e81123] hover:text-white"
+            className="flex h-8 w-[46px] items-center justify-center text-[var(--df-text-muted)] transition-colors hover:bg-[#e81123] hover:text-white"
             aria-label={t("common.close")}
             title={t("common.close")}
             onClick={onClose}

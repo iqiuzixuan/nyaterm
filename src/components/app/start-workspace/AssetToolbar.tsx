@@ -28,7 +28,7 @@ export default function AssetToolbar({
   onViewModeChange,
 }: AssetToolbarProps) {
   return (
-    <div className="shrink-0 space-y-3 px-5 pb-3" data-total-count={totalCount}>
+    <div className="shrink-0 space-y-1.5 px-3 pb-1.5" data-total-count={totalCount}>
       <div className="relative">
         <Search
           className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2"
@@ -42,7 +42,7 @@ export default function AssetToolbar({
           autoCorrect="off"
           autoComplete="off"
           spellCheck={false}
-          className="h-9 w-full rounded-md border bg-transparent pl-9 pr-8 text-sm outline-none transition-colors placeholder:text-[var(--df-text-dimmed)] focus:border-[var(--df-primary)]"
+          className="h-7 w-full rounded border bg-transparent pl-9 pr-8 text-xs outline-none transition-colors placeholder:text-[var(--df-text-dimmed)] focus:border-[var(--df-primary)]"
           style={{
             borderColor: "var(--df-border)",
             color: "var(--df-text)",
@@ -122,13 +122,9 @@ function FilterButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className="h-7 shrink-0 whitespace-nowrap rounded-md border px-2.5 text-xs transition-colors"
+      className="workspace-asset-action h-6 shrink-0 whitespace-nowrap rounded px-2 text-xs transition-colors"
       style={{
-        borderColor: active ? "var(--df-primary)" : "var(--df-border)",
         color: active ? "var(--df-primary)" : "var(--df-text-muted)",
-        backgroundColor: active
-          ? "color-mix(in srgb, var(--df-primary) 12%, transparent)"
-          : "transparent",
       }}
     >
       {children}
@@ -153,13 +149,9 @@ function IconToggleButton({
       aria-label={label}
       aria-pressed={active}
       title={label}
-      className="flex size-7 items-center justify-center rounded-md border transition-colors"
+      className="workspace-asset-action flex size-6 items-center justify-center rounded transition-colors"
       style={{
-        borderColor: active ? "var(--df-primary)" : "transparent",
         color: active ? "var(--df-primary)" : "var(--df-text-muted)",
-        backgroundColor: active
-          ? "color-mix(in srgb, var(--df-primary) 10%, transparent)"
-          : "transparent",
       }}
       onClick={onClick}
     >

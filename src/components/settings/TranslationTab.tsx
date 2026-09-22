@@ -81,7 +81,7 @@ export function TranslationTab() {
     updateAppSettings({ translation: { ...ts, ...patch } });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SettingSection>
         <SettingSelect
           label={t("settings.targetLanguage")}

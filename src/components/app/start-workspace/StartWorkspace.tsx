@@ -56,9 +56,9 @@ export default function StartWorkspace({
         backgroundColor: mode === "assets" ? assetSurfaceBackground : undefined,
       }}
     >
-      <div className="pointer-events-none absolute left-0 right-0 top-3 z-30 flex justify-center">
+      <div className="pointer-events-none absolute left-0 right-0 top-1 z-30 flex justify-center">
         <div
-          className="pointer-events-auto inline-flex rounded-md border p-0.5"
+          className="pointer-events-auto inline-flex rounded p-0.5"
           style={{
             borderColor: "var(--df-border)",
             backgroundColor: "color-mix(in srgb, var(--df-bg-panel) 78%, transparent)",
@@ -87,7 +87,7 @@ export default function StartWorkspace({
           onSwitchTerminal={onSwitchTerminal}
         />
       ) : (
-        <div className="h-full min-h-0 pt-14">
+        <div className="h-full min-h-0 pt-9">
           <AssetView
             t={t}
             transparentBackground
@@ -117,12 +117,9 @@ function ModeButton({
     <button
       type="button"
       aria-pressed={active}
-      className="h-7 rounded px-3 text-xs font-medium outline-none transition-colors focus-visible:ring-1 focus-visible:ring-[var(--df-primary)]"
+      className="workspace-asset-action h-6 rounded px-2 text-xs font-normal outline-none transition-colors focus-visible:ring-1 focus-visible:ring-[var(--df-primary)]"
       style={{
         color: active ? "var(--df-primary)" : "var(--df-text-muted)",
-        backgroundColor: active
-          ? "color-mix(in srgb, var(--df-primary) 12%, transparent)"
-          : "transparent",
       }}
       onClick={onClick}
     >

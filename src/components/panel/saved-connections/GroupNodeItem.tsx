@@ -109,7 +109,7 @@ export default function GroupNodeItem({ node, depth }: GroupNodeItemProps) {
             data-group-header
             data-saved-drop-type="group"
             data-saved-drop-id={node.group.id}
-            className={`flex items-center gap-1.5 py-1.5 px-2 rounded cursor-pointer transition-colors select-none df-hover ${isInside ? "ring-1 ring-primary/60 bg-primary/10" : ""}`}
+            className={`flex items-center gap-1.5 py-0.5 px-2 rounded cursor-pointer transition-colors select-none df-hover ${isInside ? "ring-1 ring-primary/60 bg-primary/10" : ""}`}
             style={{ paddingLeft: indentPx }}
             onClick={() => toggleGroup(node.group.id)}
             onDragEnter={
@@ -136,7 +136,7 @@ export default function GroupNodeItem({ node, depth }: GroupNodeItemProps) {
               <MdFolderOpen className="text-sm text-amber-500/70 shrink-0" />
             )}
             <span
-              className="text-xs font-medium flex-1 truncate"
+              className="text-xs font-normal flex-1 truncate"
               style={{ color: "var(--df-text-muted)" }}
             >
               {node.group.name}

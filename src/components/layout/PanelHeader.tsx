@@ -19,7 +19,7 @@ export default function PanelHeader({
   return (
     <div
       className={cn(
-        "workspace-panel-header nyaterm-wallpaper-transparent-surface flex shrink-0 items-center justify-between gap-3 px-3",
+        "workspace-panel-header nyaterm-wallpaper-transparent-surface flex shrink-0 items-center justify-between gap-2 px-2",
         className,
       )}
       style={{
