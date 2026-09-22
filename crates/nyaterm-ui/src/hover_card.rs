@@ -6,7 +6,7 @@ use gpui::{
     Window, canvas, deferred, div, prelude::FluentBuilder as _, px,
 };
 use gpui_base::{POPUP_PRIORITY, Positioner};
-use gpui_component::{ThemeStyled as _, hover_card::HoverCard};
+use gpui_kit::component::{ThemeStyled as _, hover_card::HoverCard};
 
 use crate::{NyaPopoverAlign, NyaPopoverPlacement};
 
@@ -473,7 +473,7 @@ mod tests {
 
     #[gpui::test]
     fn side_placed_card_is_adjacent_to_and_centered_on_its_trigger(cx: &mut TestAppContext) {
-        cx.update(gpui_component::init);
+        cx.update(gpui_kit::init);
         let clicked = Rc::new(Cell::new(false));
         let clicked_for_view = clicked.clone();
         let (_, cx) = cx.add_window_view(|_, _| SideHarness {
@@ -520,7 +520,7 @@ mod tests {
 
     #[gpui::test]
     fn side_placed_card_flips_when_the_preferred_side_has_no_room(cx: &mut TestAppContext) {
-        cx.update(gpui_component::init);
+        cx.update(gpui_kit::init);
         let (_, cx) = cx.add_window_view(|_, _| FlippedSideHarness);
         cx.update(|window, cx| window.draw(cx).clear(cx));
 

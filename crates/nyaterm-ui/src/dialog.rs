@@ -2,7 +2,7 @@ use gpui::{
     App, ClickEvent, InteractiveElement as _, IntoElement, ParentElement as _, SharedString,
     Window, px,
 };
-use gpui_component::{
+use gpui_kit::component::{
     Disableable as _, WindowExt as _,
     button::{Button, ButtonVariant, ButtonVariants as _},
     dialog::{Dialog, DialogAction, DialogButtonProps, DialogClose, DialogFooter},

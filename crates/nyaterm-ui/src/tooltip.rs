@@ -1,5 +1,5 @@
 use gpui::{AnyView, App, SharedString, Window};
-use gpui_component::tooltip::Tooltip;
+use gpui_kit::component::tooltip::Tooltip;
 
 /// Theme-aware text tooltip backed by `gpui-kit`.
 pub struct NyaTooltip {
