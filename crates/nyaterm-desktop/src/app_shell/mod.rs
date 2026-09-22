@@ -17,11 +17,12 @@ pub use session_hub::SessionHub;
 pub use window_state::{AppShellStartup, MainWindowPlacement};
 
 use std::collections::VecDeque;
+use std::time::Duration;
 
 use gpui::{
     AnyElement, App, AppContext, Context, Entity, InteractiveElement, IntoElement, KeyBinding,
-    Menu, MenuItem, OsAction, ParentElement, Render, Styled, Subscription, SystemMenuType,
-    WeakEntity, Window, actions, div, prelude::FluentBuilder, px, rgb,
+    Menu, MenuItem, MouseButton, OsAction, ParentElement, Render, Styled, Subscription,
+    SystemMenuType, WeakEntity, Window, actions, div, prelude::FluentBuilder, px, rgb,
 };
 use nyaterm_core::{
     ActivationRequest, AppRuntime, DiagnosticsExportOptions, DiagnosticsRuntimeSnapshot,
@@ -32,11 +33,14 @@ use nyaterm_ui::{
     NyaAppMenu, NyaAppMenuBar, NyaButton, NyaButtonVariant, NyaCopy, NyaCut, NyaPaste, NyaRedo,
     NyaSelectAll, NyaUndo,
 };
+use rust_i18n::t;
 
 use crate::{
     entities::{OverlayStore, StartupRestoreStore, UiStoreHandles},
     features::{AppLifecycleEvent, NyaTermApp, NyaTermStoreClients},
 };
+
+const SHUTDOWN_STATUS_DELAY: Duration = Duration::from_millis(200);
 
 actions!(
     nyaterm_native_menu,
@@ -109,6 +113,7 @@ pub struct AppShell {
     session_hub: Entity<SessionHub>,
     quit_requested: bool,
     lifecycle: AppShellLifecycle,
+    flushing_view_ready: bool,
     app: Option<Entity<NyaTermApp>>,
     store_runtime: Option<StoreRuntime>,
     startup_restore: Entity<StartupRestoreStore>,
@@ -169,6 +174,7 @@ impl AppShell {
             session_hub,
             quit_requested: false,
             lifecycle,
+            flushing_view_ready: true,
             app: None,
             store_runtime: startup.store_runtime,
             startup_restore,
@@ -385,7 +391,7 @@ impl AppShell {
                             Ok(task) => task,
                             Err(_) => return,
                         };
-                        this.lifecycle = AppShellLifecycle::Flushing;
+                        this.enter_flushing(cx);
                         let workspace_id = this.workspace_id;
                         if let Err(error) = this.controller.update(cx, |controller, cx| {
                             controller.request_close_workspace(workspace_id, persistence_task, cx)
@@ -397,7 +403,6 @@ impl AppShell {
                             });
                             return;
                         }
-                        cx.notify();
                     }
                 }
                 AppLifecycleEvent::NewWindowRequested => this.request_new_window(cx),
@@ -539,8 +544,7 @@ impl AppShell {
             | AppShellLifecycle::FlushFailed(_)
             | AppShellLifecycle::Loading
             | AppShellLifecycle::Recovery(_) => {
-                self.lifecycle = AppShellLifecycle::Flushing;
-                cx.notify();
+                self.enter_flushing(cx);
                 let workspace_id = self.workspace_id;
                 self.controller.update(cx, |controller, cx| {
                     controller.request_close_unready_workspace(workspace_id, cx)
@@ -627,6 +631,29 @@ impl AppShell {
         });
     }
 
+    fn enter_flushing(&mut self, cx: &mut Context<Self>) {
+        self.lifecycle = AppShellLifecycle::Flushing;
+        self.flushing_view_ready = self.app.is_none();
+        cx.notify();
+
+        if self.flushing_view_ready {
+            return;
+        }
+
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(SHUTDOWN_STATUS_DELAY).await;
+            let _ = this.update(cx, |this, cx| {
+                if matches!(this.lifecycle, AppShellLifecycle::Flushing)
+                    && !this.flushing_view_ready
+                {
+                    this.flushing_view_ready = true;
+                    cx.notify();
+                }
+            });
+        })
+        .detach();
+    }
+
     fn begin_shutdown(&mut self, cx: &mut Context<Self>) {
         let Some(store_runtime) = &self.store_runtime else {
             self.controller
@@ -700,7 +727,7 @@ impl AppShell {
             }
         };
         let pending_tasks = std::mem::take(&mut self.pending_process_quit_tasks);
-        self.lifecycle = AppShellLifecycle::Flushing;
+        self.enter_flushing(cx);
         cx.spawn(async move |this, cx| {
             let mut failure = None;
             for pending in pending_tasks {
@@ -732,7 +759,6 @@ impl AppShell {
             });
         })
         .detach();
-        cx.notify();
     }
 
     fn return_to_app_after_flush_failure(&mut self, cx: &mut Context<Self>) {
@@ -867,15 +893,18 @@ impl AppShell {
                     )
                     .into_any_element()
             }
-            AppShellLifecycle::Flushing => div()
-                .size_full()
-                .flex()
-                .items_center()
-                .justify_center()
-                .bg(rgb(0x101214))
-                .text_color(rgb(0xe7e9ea))
-                .child("Saving changes before closing...")
-                .into_any_element(),
+            AppShellLifecycle::Flushing => {
+                debug_assert!(self.flushing_view_ready);
+                div()
+                    .size_full()
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .bg(rgb(0x101214))
+                    .text_color(rgb(0xe7e9ea))
+                    .child(t!("appShell.savingBeforeClose"))
+                    .into_any_element()
+            }
             AppShellLifecycle::FlushFailed(message) => div()
                 .size_full()
                 .flex()
@@ -1046,7 +1075,11 @@ fn build_title_menu_bar(
 
 impl Render for AppShell {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let show_app = matches!(self.lifecycle, AppShellLifecycle::Ready);
+        let show_app = should_render_app(&self.lifecycle, self.flushing_view_ready);
+        let block_input = matches!(self.lifecycle, AppShellLifecycle::Flushing)
+            && !self.flushing_view_ready
+            && self.app.is_some();
+
         div()
             .size_full()
             .on_action(cx.listener(|this, _: &NativeNewWindow, _window, cx| {
@@ -1166,15 +1199,33 @@ impl Render for AppShell {
             .when_some(self.app.clone().filter(|_| show_app), |root, app| {
                 root.child(app)
             })
+            .when(block_input, |root| {
+                root.child(
+                    div()
+                        .id("shutdown-input-blocker")
+                        .absolute()
+                        .inset_0()
+                        .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                        .on_mouse_down(MouseButton::Right, |_, _, cx| cx.stop_propagation())
+                        .on_mouse_down(MouseButton::Middle, |_, _, cx| cx.stop_propagation()),
+                )
+            })
             .when(!show_app, |root| root.child(self.lifecycle_view(cx)))
     }
+}
+
+fn should_render_app(lifecycle: &AppShellLifecycle, flushing_view_ready: bool) -> bool {
+    matches!(lifecycle, AppShellLifecycle::Ready)
+        || (matches!(lifecycle, AppShellLifecycle::Flushing) && !flushing_view_ready)
 }
 
 #[cfg(test)]
 mod tests {
     use gpui::{Menu, MenuItem};
 
-    use crate::app_shell::{native_app_menus_for, native_new_window_key_binding};
+    use crate::app_shell::{
+        AppShellLifecycle, native_app_menus_for, native_new_window_key_binding, should_render_app,
+    };
     use nyaterm_core::app_identity::AppFlavor;
 
     fn menu_names(menus: &[Menu]) -> Vec<&str> {
@@ -1246,5 +1297,12 @@ mod tests {
     #[test]
     fn native_new_window_shortcut_is_valid_for_the_current_platform() {
         let _ = native_new_window_key_binding();
+    }
+
+    #[test]
+    fn app_remains_visible_until_delayed_shutdown_status_is_ready() {
+        assert!(should_render_app(&AppShellLifecycle::Flushing, false));
+        assert!(!should_render_app(&AppShellLifecycle::Flushing, true));
+        assert!(should_render_app(&AppShellLifecycle::Ready, true));
     }
 }

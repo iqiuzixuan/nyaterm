@@ -11,6 +11,9 @@
     "quit": "結束",
     "unavailable": "目前桌面工作階段不支援隱藏至系統匣，視窗已正常最小化。"
 },
+  "appShell": {
+    "savingBeforeClose": "正在儲存資料..."
+  },
   "documentEditor": {
     "fold": "摺疊游標處程式碼",
     "unfoldAll": "全部展開",

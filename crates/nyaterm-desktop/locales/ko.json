@@ -11,6 +11,9 @@
     "quit": "종료",
     "unavailable": "현재 데스크톱은 트레이 숨기기를 지원하지 않아 일반 최소화를 수행했습니다."
 },
+  "appShell": {
+    "savingBeforeClose": "종료하기 전에 변경 사항을 저장하는 중..."
+  },
   "documentEditor": {
     "fold": "커서 위치 접기",
     "unfoldAll": "모두 펼치기",

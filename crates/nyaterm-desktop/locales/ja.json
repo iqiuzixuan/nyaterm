@@ -11,6 +11,9 @@
     "quit": "終了",
     "unavailable": "このデスクトップではトレイに非表示にできません。通常の最小化を行いました。"
 },
+  "appShell": {
+    "savingBeforeClose": "終了前に変更を保存しています..."
+  },
   "documentEditor": {
     "fold": "カーソル位置を折りたたむ",
     "unfoldAll": "すべて展開",
