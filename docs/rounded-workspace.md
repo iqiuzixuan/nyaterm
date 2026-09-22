@@ -76,6 +76,18 @@ It does not establish SSH/SFTP connectivity or native macOS window behavior.
 
 A native package additionally requires Rust/Cargo and the usual Tauri platform
 prerequisites. `pnpm build` builds the Rust MCP sidecar before the frontend;
-`pnpm tauri build` builds the complete desktop application. Those native build
-steps could not be run in the implementation environment because `rustc` was
-not installed.
+`pnpm tauri build` builds the complete desktop application.
+
+The macOS arm64 release build passed with Rust/Cargo 1.98.1, including the MCP
+sidecar and frontend, using this local-package command:
+
+```sh
+pnpm tauri build --ci --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
+```
+
+The resulting `src-tauri/target/release/bundle/macos/NyaTerm.app` contains arm64
+executables for both the app and MCP sidecar. Its Info.plist passed validation,
+and `codesign --verify --deep --strict` passed. The package uses the project's
+ad-hoc signing configuration and is not notarized; updater artifacts were disabled
+only for this local build. The installed application was not replaced, and this
+build check does not establish native runtime or live SSH/SFTP behavior.
