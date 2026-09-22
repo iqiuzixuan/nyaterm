@@ -4,10 +4,10 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use gpui::Context;
 use nyaterm_core::{
-    CLOUD_SYNC_HISTORY_LIMIT, CloudSyncError, CloudSyncHistoryEntry, CloudSyncSettings,
-    LocalCloudSyncOptions, LocalDirectoryRemote, RemoteSyncPointer, append_cloud_sync_history,
-    cleanup_sync_snapshots_with_remote, pull_local_snapshot, push_local_snapshot,
-    read_cloud_sync_history, recover_local_current_snapshot,
+    CLOUD_SYNC_HISTORY_LIMIT, CloudLocalStore, CloudSyncError, CloudSyncHistoryEntry,
+    CloudSyncSettings, LocalCloudSyncOptions, LocalDirectoryRemote, RemoteSyncPointer,
+    append_cloud_sync_history, cleanup_sync_snapshots_with_remote, pull_local_snapshot,
+    push_local_snapshot, read_cloud_sync_history, recover_local_current_snapshot,
 };
 
 use crate::blocking_jobs::{BlockingJobScheduler, JobRejected, JobTask};
@@ -29,24 +29,43 @@ impl NyaTermApp {
             return;
         }
         let settings = self.cloud_sync.settings().clone();
+        let state = self.cloud_sync.state().clone();
         let local_store = self.store_blocking_client();
         let provider = configured_cloud_sync_provider(&settings);
         self.cloud_sync
-            .set_status(format!("testing provider connection via {provider}"));
+            .set_status(format!("Testing the provider connection via {provider}."));
         self.shell
-            .set_status("provider cloud sync connection test started".to_string());
+            .set_status("Provider cloud sync connection test started.".to_string());
         let task = self.blocking_jobs.submit_task("cloud-sync-test", move |_| {
-            test_provider_connection(&local_store, &settings)
+            test_provider_connection(&local_store, &settings)?;
+            // A successful manual check records when the remote was last reachable
+            // without counting as a transfer, so only the check time is bumped.
+            let mut checked = state;
+            checked.last_checked_at_ms = Some(current_time_ms());
+            if let Err(error) = local_store.persist_cloud_sync_state(&checked) {
+                tracing::warn!(
+                    provider = %provider,
+                    "failed to persist cloud-sync check time: {error}"
+                );
+            }
+            Ok(checked)
         });
         cx.spawn(async move |this, cx| {
             let result = await_cloud_sync_job(task).await;
             let _ = this.update(cx, |this, cx| {
-                let status = match result {
-                    Ok(()) => t!("settings.syncTestSuccess").to_string(),
-                    Err(error) => format!("provider test failed: {error}"),
-                };
-                this.cloud_sync.finish_job_with_status(status);
-                this.shell.set_status(this.cloud_sync.status().to_string());
+                match result {
+                    Ok(checked) => {
+                        let status = t!("settings.syncTestSuccess").to_string();
+                        this.cloud_sync.complete_job(checked, status.clone());
+                        this.shell.set_status(status);
+                    }
+                    Err(error) => {
+                        let status = format!("Cloud test failed: {error}.");
+                        this.cloud_sync.finish_job_with_status(status);
+                        this.shell.set_status(this.cloud_sync.status().to_string());
+                    }
+                }
+                this.request_settings_panel_refresh(cx);
                 cx.notify();
             });
         })
@@ -69,14 +88,16 @@ impl NyaTermApp {
         let options = self.local_cloud_sync_options(master_password);
         let cleanup_options = options.clone();
         let state = self.cloud_sync.state().clone();
+        let previous_payload_hash = state.last_synced_payload_hash.clone();
         let local_store = self.store_blocking_client();
         let started_at = Instant::now();
         self.cloud_sync.set_status(if force {
-            "force pushing local cloud sync snapshot".to_string()
+            "Force pushing the local cloud sync snapshot.".to_string()
         } else {
-            "pushing local cloud sync snapshot".to_string()
+            "Pushing the local cloud sync snapshot.".to_string()
         });
-        self.shell.set_status("cloud sync push started".to_string());
+        self.shell
+            .set_status("Cloud sync push started.".to_string());
         let task = self
             .blocking_jobs
             .submit_task("cloud-sync-local-push", move |_| {
@@ -95,6 +116,12 @@ impl NyaTermApp {
                             result.pointer.clone(),
                             cx,
                         );
+                        let message =
+                            if result.state.last_synced_payload_hash != previous_payload_hash {
+                                "Snapshot uploaded.".to_string()
+                            } else {
+                                "Already up to date.".to_string()
+                            };
                         let mut history = CloudSyncHistoryEntry::sync(
                             "success",
                             if force {
@@ -107,19 +134,18 @@ impl NyaTermApp {
                                 .pointer
                                 .as_ref()
                                 .map(|pointer| pointer.revision_id.clone()),
-                            result.status.message.clone(),
+                            message.clone(),
                         );
                         history.duration_ms = Some(started_at.elapsed().as_millis() as u64);
                         this.queue_cloud_sync_history_refresh(Some(history), cx);
-                        this.cloud_sync
-                            .complete_job(result.state, result.status.message.clone());
-                        this.shell.set_status(result.status.message);
+                        this.cloud_sync.complete_job(result.state, message.clone());
+                        this.shell.set_status(message);
                     }
                     Err(error) => {
                         let status = cloud_sync_history_status(&error);
                         this.cloud_sync.fail_job(
                             &error,
-                            format!("push failed: {error}"),
+                            format!("Cloud sync push failed: {error}."),
                             "local_directory".to_string(),
                             false,
                         );
@@ -139,6 +165,7 @@ impl NyaTermApp {
                         this.queue_cloud_sync_history_refresh(Some(history), cx);
                     }
                 }
+                this.request_settings_panel_refresh(cx);
                 cx.notify();
             });
         })
@@ -161,14 +188,16 @@ impl NyaTermApp {
         let options = self.local_cloud_sync_options(master_password);
         let cleanup_options = options.clone();
         let state = self.cloud_sync.state().clone();
+        let previous_payload_hash = state.last_synced_payload_hash.clone();
         let local_store = self.store_blocking_client();
         let started_at = Instant::now();
         self.cloud_sync.set_status(if force {
-            "force pulling local cloud sync snapshot".to_string()
+            "Force pulling the local cloud sync snapshot.".to_string()
         } else {
-            "pulling local cloud sync snapshot".to_string()
+            "Pulling the local cloud sync snapshot.".to_string()
         });
-        self.shell.set_status("cloud sync pull started".to_string());
+        self.shell
+            .set_status("Cloud sync pull started.".to_string());
         let task = self
             .blocking_jobs
             .submit_task("cloud-sync-local-pull", move |_| {
@@ -187,6 +216,12 @@ impl NyaTermApp {
                             result.pointer.clone(),
                             cx,
                         );
+                        let message =
+                            if result.state.last_synced_payload_hash != previous_payload_hash {
+                                "Snapshot downloaded.".to_string()
+                            } else {
+                                "Already up to date.".to_string()
+                            };
                         let mut history = CloudSyncHistoryEntry::sync(
                             "success",
                             if force {
@@ -199,20 +234,19 @@ impl NyaTermApp {
                                 .pointer
                                 .as_ref()
                                 .map(|pointer| pointer.revision_id.clone()),
-                            result.status.message.clone(),
+                            message.clone(),
                         );
                         history.duration_ms = Some(started_at.elapsed().as_millis() as u64);
                         this.queue_cloud_sync_history_refresh(Some(history), cx);
-                        this.cloud_sync
-                            .complete_job(result.state, result.status.message.clone());
-                        this.shell.set_status(result.status.message);
+                        this.cloud_sync.complete_job(result.state, message.clone());
+                        this.shell.set_status(message);
                         this.refresh_store_from_runtime_and_sync_theme(cx);
                     }
                     Err(error) => {
                         let status = cloud_sync_history_status(&error);
                         this.cloud_sync.fail_job(
                             &error,
-                            format!("pull failed: {error}"),
+                            format!("Cloud sync pull failed: {error}."),
                             "local_directory".to_string(),
                             false,
                         );
@@ -232,6 +266,7 @@ impl NyaTermApp {
                         this.queue_cloud_sync_history_refresh(Some(history), cx);
                     }
                 }
+                this.request_settings_panel_refresh(cx);
                 cx.notify();
             });
         })
@@ -254,6 +289,7 @@ impl NyaTermApp {
         let options = self.local_cloud_sync_options(master_password);
         let cleanup_options = options.clone();
         let state = self.cloud_sync.state().clone();
+        let previous_payload_hash = state.last_synced_payload_hash.clone();
         let settings = self.cloud_sync.settings().clone();
         let local_store = self.store_blocking_client();
         let cleanup_settings = settings.clone();
@@ -261,12 +297,12 @@ impl NyaTermApp {
         let provider = configured_cloud_sync_provider(&settings);
         let started_at = Instant::now();
         self.cloud_sync.set_status(if force {
-            format!("force pushing provider cloud sync snapshot via {provider}")
+            format!("Force pushing the cloud sync snapshot via {provider}.")
         } else {
-            format!("pushing provider cloud sync snapshot via {provider}")
+            format!("Pushing the cloud sync snapshot via {provider}.")
         });
         self.shell
-            .set_status("provider cloud sync push started".to_string());
+            .set_status("Provider cloud sync push started.".to_string());
         let task = self
             .blocking_jobs
             .submit_task("cloud-sync-provider-push", move |_| {
@@ -285,6 +321,12 @@ impl NyaTermApp {
                             result.pointer.clone(),
                             cx,
                         );
+                        let message =
+                            if result.state.last_synced_payload_hash != previous_payload_hash {
+                                "Snapshot uploaded.".to_string()
+                            } else {
+                                "Already up to date.".to_string()
+                            };
                         let mut history = CloudSyncHistoryEntry::sync(
                             "success",
                             if force {
@@ -297,19 +339,18 @@ impl NyaTermApp {
                                 .pointer
                                 .as_ref()
                                 .map(|pointer| pointer.revision_id.clone()),
-                            result.status.message.clone(),
+                            message.clone(),
                         );
                         history.duration_ms = Some(started_at.elapsed().as_millis() as u64);
                         this.queue_cloud_sync_history_refresh(Some(history), cx);
-                        this.cloud_sync
-                            .complete_job(result.state, result.status.message.clone());
-                        this.shell.set_status(result.status.message);
+                        this.cloud_sync.complete_job(result.state, message.clone());
+                        this.shell.set_status(message);
                     }
                     Err(error) => {
                         let status = cloud_sync_history_status(&error);
                         this.cloud_sync.fail_job(
                             &error,
-                            format!("provider push failed: {error}"),
+                            format!("Cloud sync push failed: {error}."),
                             configured_cloud_sync_provider(&result_settings),
                             true,
                         );
@@ -329,6 +370,7 @@ impl NyaTermApp {
                         this.queue_cloud_sync_history_refresh(Some(history), cx);
                     }
                 }
+                this.request_settings_panel_refresh(cx);
                 cx.notify();
             });
         })
@@ -351,6 +393,7 @@ impl NyaTermApp {
         let options = self.local_cloud_sync_options(master_password);
         let cleanup_options = options.clone();
         let state = self.cloud_sync.state().clone();
+        let previous_payload_hash = state.last_synced_payload_hash.clone();
         let settings = self.cloud_sync.settings().clone();
         let local_store = self.store_blocking_client();
         let cleanup_settings = settings.clone();
@@ -358,12 +401,12 @@ impl NyaTermApp {
         let provider = configured_cloud_sync_provider(&settings);
         let started_at = Instant::now();
         self.cloud_sync.set_status(if force {
-            format!("force pulling provider cloud sync snapshot via {provider}")
+            format!("Force pulling the cloud sync snapshot via {provider}.")
         } else {
-            format!("pulling provider cloud sync snapshot via {provider}")
+            format!("Pulling the cloud sync snapshot via {provider}.")
         });
         self.shell
-            .set_status("provider cloud sync pull started".to_string());
+            .set_status("Provider cloud sync pull started.".to_string());
         let task = self
             .blocking_jobs
             .submit_task("cloud-sync-provider-pull", move |_| {
@@ -382,6 +425,12 @@ impl NyaTermApp {
                             result.pointer.clone(),
                             cx,
                         );
+                        let message =
+                            if result.state.last_synced_payload_hash != previous_payload_hash {
+                                "Snapshot downloaded.".to_string()
+                            } else {
+                                "Already up to date.".to_string()
+                            };
                         let mut history = CloudSyncHistoryEntry::sync(
                             "success",
                             if force {
@@ -394,20 +443,19 @@ impl NyaTermApp {
                                 .pointer
                                 .as_ref()
                                 .map(|pointer| pointer.revision_id.clone()),
-                            result.status.message.clone(),
+                            message.clone(),
                         );
                         history.duration_ms = Some(started_at.elapsed().as_millis() as u64);
                         this.queue_cloud_sync_history_refresh(Some(history), cx);
-                        this.cloud_sync
-                            .complete_job(result.state, result.status.message.clone());
-                        this.shell.set_status(result.status.message);
+                        this.cloud_sync.complete_job(result.state, message.clone());
+                        this.shell.set_status(message);
                         this.refresh_store_from_runtime_and_sync_theme(cx);
                     }
                     Err(error) => {
                         let status = cloud_sync_history_status(&error);
                         this.cloud_sync.fail_job(
                             &error,
-                            format!("provider pull failed: {error}"),
+                            format!("Cloud sync pull failed: {error}."),
                             configured_cloud_sync_provider(&result_settings),
                             true,
                         );
@@ -427,6 +475,7 @@ impl NyaTermApp {
                         this.queue_cloud_sync_history_refresh(Some(history), cx);
                     }
                 }
+                this.request_settings_panel_refresh(cx);
                 cx.notify();
             });
         })
@@ -471,9 +520,9 @@ impl NyaTermApp {
         };
         let started_at = Instant::now();
         self.cloud_sync
-            .set_status("recovering incomplete cloud sync metadata".to_string());
+            .set_status("Recovering incomplete cloud sync metadata.".to_string());
         self.shell
-            .set_status("cloud sync metadata recovery started".to_string());
+            .set_status("Cloud sync metadata recovery started.".to_string());
         let task = self
             .blocking_jobs
             .submit_task("cloud-sync-recover", move |_| {
@@ -496,6 +545,7 @@ impl NyaTermApp {
                             result.pointer.clone(),
                             cx,
                         );
+                        let message = t!("settings.syncRecoverCurrentSuccess").to_string();
                         let mut history = CloudSyncHistoryEntry::sync(
                             "success",
                             "recover_current_remote",
@@ -504,20 +554,19 @@ impl NyaTermApp {
                                 .pointer
                                 .as_ref()
                                 .map(|pointer| pointer.revision_id.clone()),
-                            result.status.message.clone(),
+                            message.clone(),
                         );
                         history.duration_ms = Some(started_at.elapsed().as_millis() as u64);
                         this.queue_cloud_sync_history_refresh(Some(history), cx);
-                        this.cloud_sync
-                            .complete_job(result.state, result.status.message.clone());
-                        this.shell.set_status(result.status.message);
+                        this.cloud_sync.complete_job(result.state, message.clone());
+                        this.shell.set_status(message);
                         this.refresh_store_from_runtime_and_sync_theme(cx);
                     }
                     Err(error) => {
                         let status = cloud_sync_history_status(&error);
                         this.cloud_sync.fail_job(
                             &error,
-                            format!("cloud sync metadata recovery failed: {error}"),
+                            format!("Cloud sync metadata recovery failed: {error}."),
                             provider.clone(),
                             provider_action,
                         );
@@ -533,6 +582,7 @@ impl NyaTermApp {
                         this.shell.set_status(this.cloud_sync.status().to_string());
                     }
                 }
+                this.request_settings_panel_refresh(cx);
                 cx.notify();
             });
         })
@@ -543,7 +593,7 @@ impl NyaTermApp {
     fn begin_cloud_sync_job(&mut self, cx: &mut Context<Self>) -> bool {
         if !self.cloud_sync.begin_job() {
             self.shell
-                .set_status("cloud sync operation already in progress".to_string());
+                .set_status("Cloud sync operation already in progress.".to_string());
             cx.notify();
             return false;
         }
@@ -572,8 +622,9 @@ impl NyaTermApp {
                     Ok(history) => this.cloud_sync.replace_history(history),
                     Err(error) => this
                         .cloud_sync
-                        .set_status(format!("cloud sync history refresh failed: {error}")),
+                        .set_status(format!("Cloud sync history refresh failed: {error}.")),
                 }
+                this.request_settings_panel_refresh(cx);
                 cx.notify();
             });
         })
@@ -647,4 +698,11 @@ async fn await_cloud_sync_job<T>(
             .map_err(|error| CloudSyncError::Remote(error.to_string()))?,
         Err(error) => Err(CloudSyncError::Remote(error.to_string())),
     }
+}
+
+fn current_time_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or(0)
 }

@@ -9,8 +9,8 @@ use gpui::{
     Window, div, prelude::*, px, rgb,
 };
 use nyaterm_core::{
-    AiSettings, AppSettingsSummary, CloudSyncSettings, CloudSyncState, KeywordHighlightConfig,
-    TranslationSettings,
+    AiSettings, AppSettingsSummary, CloudSyncHistoryEntry, CloudSyncSettings, CloudSyncState,
+    KeywordHighlightConfig, TranslationSettings,
 };
 use nyaterm_ui::{
     NYA_FORM_CONTROL_HEIGHT_PX, NyaInputShell, NyaNumberInputState, NyaSelect, NyaSelectOption,
@@ -341,6 +341,7 @@ impl AiSettingsPresentation {
 pub(in crate::features) struct CloudSyncPresentation {
     pub(in crate::features) settings: Arc<CloudSyncSettings>,
     pub(in crate::features) state: CloudSyncState,
+    pub(in crate::features) history: Vec<CloudSyncHistoryEntry>,
     pub(in crate::features) pending_settings: CloudSyncSettings,
     pub(in crate::features) secret_draft: CloudSyncSecretDraft,
     pub(in crate::features) status: String,
@@ -354,6 +355,7 @@ impl Default for CloudSyncPresentation {
         Self {
             settings: Arc::new(CloudSyncSettings::default()),
             state: CloudSyncState::default(),
+            history: Vec::new(),
             pending_settings: CloudSyncSettings::default(),
             secret_draft: CloudSyncSecretDraft::default(),
             status: String::new(),
@@ -371,6 +373,10 @@ impl CloudSyncPresentation {
 
     pub(in crate::features) fn state(&self) -> &CloudSyncState {
         &self.state
+    }
+
+    pub(in crate::features) fn history(&self) -> &[CloudSyncHistoryEntry] {
+        &self.history
     }
 
     pub(in crate::features) fn pending_settings(&self) -> CloudSyncSettings {

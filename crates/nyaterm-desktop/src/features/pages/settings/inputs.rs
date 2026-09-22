@@ -1142,4 +1142,172 @@ mod tests {
             );
         });
     }
+
+    /// A finished connection test must unstick the settings panel.
+    ///
+    /// `run_provider_cloud_sync_test` stops showing "testing..." only when the
+    /// background completion flush publishes the outcome into the panel
+    /// snapshot. The panel's `with_app` click wrapper refreshes unconditionally
+    /// on its own, so this drives the job directly: the completion handler
+    /// alone has to reflush the snapshot. The endpoint is a just-released
+    /// listener, so the webdav client is refused immediately and the job fails
+    /// fast instead of hanging on a real departure.
+    #[test]
+    fn finished_cloud_sync_connection_test_reflushes_the_panel_snapshot() {
+        let test_dir = TestConfigDir::new("nyaterm-settings-inputs");
+        let mut cx = TestAppContext::single();
+        let app = app(&mut cx, test_dir.path());
+
+        let probe = std::net::TcpListener::bind("127.0.0.1:0").expect("bind probe");
+        let endpoint = format!("http://{}", probe.local_addr().expect("probe address"));
+        drop(probe);
+
+        let persisted = cx.update_entity(&app, |app, _| {
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, |store| {
+                    store
+                        .save_master_password(Some("msk"))
+                        .expect("save master password");
+                    Ok(store
+                        .load_app_settings_summary()
+                        .expect("load stored settings"))
+                })
+                .expect("blocking settings store request")
+        });
+        cx.update_entity(&app, |app, cx| {
+            app.settings.replace_summary(persisted);
+            app.settings.rebase_master_password();
+            let mut settings = app.cloud_sync.settings().clone();
+            settings.provider = "webdav".to_string();
+            settings.webdav.endpoint = endpoint;
+            settings.enabled = true;
+            app.cloud_sync
+                .replace_settings(settings, Default::default());
+            app.sync_component_theme(cx);
+            app.open_page(NavItem::Settings, cx);
+            app.ensure_settings_tab_inputs(SettingsTab::SyncBackup, cx);
+            app.shell.set_settings_active_tab(SettingsTab::SyncBackup);
+            app.flush_settings_panel_snapshots(cx);
+        });
+
+        cx.update_entity(&app, |app, cx| app.run_provider_cloud_sync_test(cx));
+
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+        loop {
+            let completed = cx.update_entity(&app, |app, _| !app.cloud_sync.job_running());
+            if completed {
+                break;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "cloud sync connection test never completed"
+            );
+            cx.run_until_parked();
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        cx.run_until_parked();
+
+        cx.update_entity(&app, |app, cx| {
+            let status = app.cloud_sync.status().to_string();
+            assert!(
+                status.contains("Cloud test failed"),
+                "expected a refusal, got: {status}"
+            );
+            let presentation = &app
+                .settings_panel
+                .read(cx)
+                .snapshot()
+                .expect("the panel has a snapshot")
+                .cloud_sync;
+            assert_eq!(
+                presentation.status, status,
+                "the flushed panel must show the job outcome"
+            );
+            assert!(
+                !presentation.job_running,
+                "the panel must not stay stuck in a running state"
+            );
+        });
+    }
+
+    /// A successful manual connection test records the last-check time while the
+    /// last-sync time stays untouched: probing the endpoint is a check, not a
+    /// transfer.
+    #[test]
+    fn successful_cloud_sync_connection_test_records_check_time_only() {
+        let test_dir = TestConfigDir::new("nyaterm-settings-inputs");
+        let mut cx = TestAppContext::single();
+        let app = app(&mut cx, test_dir.path());
+
+        let (endpoint, server) = crate::test_support::spawn_webdav_healthy_server();
+
+        let persisted = cx.update_entity(&app, |app, _| {
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, |store| {
+                    store
+                        .save_master_password(Some("msk"))
+                        .expect("save master password");
+                    Ok(store
+                        .load_app_settings_summary()
+                        .expect("load stored settings"))
+                })
+                .expect("blocking settings store request")
+        });
+        cx.update_entity(&app, |app, cx| {
+            app.settings.replace_summary(persisted);
+            app.settings.rebase_master_password();
+            let mut settings = app.cloud_sync.settings().clone();
+            settings.provider = "webdav".to_string();
+            settings.webdav.endpoint = endpoint;
+            settings.enabled = true;
+            app.cloud_sync
+                .replace_settings(settings, Default::default());
+            app.sync_component_theme(cx);
+            app.open_page(NavItem::Settings, cx);
+            app.ensure_settings_tab_inputs(SettingsTab::SyncBackup, cx);
+            app.shell.set_settings_active_tab(SettingsTab::SyncBackup);
+            app.flush_settings_panel_snapshots(cx);
+            assert!(
+                app.cloud_sync.state().last_checked_at_ms.is_none(),
+                "no check is recorded before the test runs"
+            );
+        });
+
+        cx.update_entity(&app, |app, cx| app.run_provider_cloud_sync_test(cx));
+
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+        loop {
+            let completed = cx.update_entity(&app, |app, _| !app.cloud_sync.job_running());
+            if completed {
+                break;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "cloud sync connection test never completed"
+            );
+            cx.run_until_parked();
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        cx.run_until_parked();
+
+        cx.update_entity(&app, |app, _| {
+            let checked_at = app
+                .cloud_sync
+                .state()
+                .last_checked_at_ms
+                .expect("a successful test records the check time");
+            assert!(checked_at > 0, "the recorded check time must be non-zero");
+            assert_eq!(
+                app.cloud_sync.state().last_synced_at_ms,
+                None,
+                "a connection test is not a transfer and must not bump the sync time"
+            );
+            assert!(
+                app.cloud_sync.status().contains("Cloud test passed"),
+                "expected a success, got: {}",
+                app.cloud_sync.status()
+            );
+        });
+        server.join().expect("mock WebDAV server finishes");
+    }
 }

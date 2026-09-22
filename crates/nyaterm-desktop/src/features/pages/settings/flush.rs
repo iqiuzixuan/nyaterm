@@ -101,6 +101,7 @@ impl NyaTermApp {
             cloud_sync: CloudSyncPresentation {
                 settings: Arc::new(self.cloud_sync.settings().clone()),
                 state: self.cloud_sync.state().clone(),
+                history: self.cloud_sync.history().to_vec(),
                 pending_settings: self.cloud_sync.pending_settings(),
                 secret_draft: self.cloud_sync.secret_draft().clone(),
                 status: self.cloud_sync.status().to_string(),

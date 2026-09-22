@@ -234,7 +234,11 @@ impl SettingsPanel {
         let sync_state_key = cloud_sync_state_i18n_key(
             self.cloud_sync.settings().enabled,
             cloud_conflict.is_some(),
-            self.cloud_sync.status(),
+            self.cloud_sync.job_running(),
+            self.cloud_sync
+                .history()
+                .first()
+                .map(|entry| entry.status.as_str()),
         );
         let sync_running = sync_state_key == "settings.syncState.running";
         let current_operation = if sync_running {
@@ -428,7 +432,7 @@ impl SettingsPanel {
                                 .py_2()
                                 .text_size(px(12.))
                                 .text_color(rgb(palette.text_muted))
-                                .child(local_backup_status),
+                                .child(local_backup_status.clone()),
                         )
                     }),
             ))
@@ -756,27 +760,25 @@ fn cloud_sync_provider_label(provider: &str) -> &'static str {
     }
 }
 
-fn cloud_sync_state_i18n_key(enabled: bool, has_conflict: bool, message: &str) -> &'static str {
+fn cloud_sync_state_i18n_key(
+    enabled: bool,
+    has_conflict: bool,
+    running: bool,
+    last_history_status: Option<&str>,
+) -> &'static str {
     if has_conflict {
         return "settings.syncState.conflict";
     }
     if !enabled {
         return "settings.syncState.disabled";
     }
-    let message = message.to_ascii_lowercase();
-    if message.contains("failed") || message.contains("error") {
-        "settings.syncState.failed"
-    } else if message.contains("testing")
-        || message.contains("pushing")
-        || message.contains("pulling")
-        || message.contains("started")
-        || message.contains("awaiting")
-    {
-        "settings.syncState.running"
-    } else if message.contains("success") || message.contains("up to date") {
-        "settings.syncState.success"
-    } else {
-        "settings.syncState.idle"
+    if running {
+        return "settings.syncState.running";
+    }
+    match last_history_status {
+        Some("failed") => "settings.syncState.failed",
+        Some("success") => "settings.syncState.success",
+        _ => "settings.syncState.idle",
     }
 }
 
