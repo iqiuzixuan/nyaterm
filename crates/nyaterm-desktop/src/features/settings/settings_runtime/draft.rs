@@ -75,9 +75,9 @@ impl NyaTermApp {
             return false;
         }
         self.settings
-            .update_store_status("settings draft changed", true);
+            .update_store_status(t!("settings.draftChanged").to_string(), true);
         self.shell
-            .set_status("settings draft changed; apply to persist".to_string());
+            .set_status(t!("settings.draftChanged").to_string());
         cx.notify();
         true
     }
@@ -302,7 +302,7 @@ impl NyaTermApp {
             || cloud_revision_conflict
             || translation_revision_conflict
         {
-            let message = "settings changed in another window; reload before applying".to_string();
+            let message = t!("settings.changedInAnotherWindow").to_string();
             self.settings.update_store_status(message.clone(), false);
             self.shell.set_status(message);
             self.request_settings_panel_refresh(cx);
@@ -320,13 +320,13 @@ impl NyaTermApp {
             Some(Some(master_password.draft.to_string()))
         };
         self.settings
-            .update_store_status("applying settings", false);
+            .update_store_status(t!("settings.applying").to_string(), false);
         self.submit_store_request(
             0,
             store_request(StoreDomain::Settings, move |store| {
                 let conflict = || {
                     nyaterm_store::StorageError::InvalidData(
-                        "settings changed in another window; reload before applying".to_string(),
+                        t!("settings.changedInAnotherWindow").to_string(),
                     )
                 };
                 let mut shared_settings = settings.clone();
@@ -490,8 +490,9 @@ impl NyaTermApp {
                     this.refresh_visible_terminal_surfaces(cx);
                     this.shell.clear_settings_draft_snapshot();
                     this.settings.clear_draft_dirty_domains();
-                    this.settings.update_store_status("settings applied", true);
-                    this.shell.set_status("settings applied".to_string());
+                    this.settings
+                        .update_store_status(t!("settings.applied").to_string(), true);
+                    this.shell.set_status(t!("settings.applied").to_string());
                     if close_after_apply {
                         this.finish_settings_page(cx);
                     } else {
@@ -501,7 +502,7 @@ impl NyaTermApp {
                     this.request_settings_panel_refresh(cx);
                 }
                 Err(error) => {
-                    let message = format!("settings apply failed: {error}");
+                    let message = t!("settings.applyFailed", error = error).to_string();
                     this.settings.update_store_status(message.clone(), false);
                     this.shell.set_status(message);
                     this.request_settings_panel_refresh(cx);
@@ -569,8 +570,8 @@ impl NyaTermApp {
                 .settings
                 .toggle_master_password(self.cloud_sync.settings().enabled)
             {
-                Ok(true) => "master password enabled; enter a password".to_string(),
-                Ok(false) => "master password removal staged".to_string(),
+                Ok(true) => t!("settings.masterPasswordEnabled").to_string(),
+                Ok(false) => t!("settings.masterPasswordRemovalStaged").to_string(),
                 Err(error) => error.to_string(),
             },
         );
@@ -593,7 +594,7 @@ impl NyaTermApp {
             return;
         }
         self.shell
-            .set_status("master password edited; apply to persist".to_string());
+            .set_status(t!("settings.masterPasswordEdited").to_string());
         self.request_settings_panel_refresh(cx);
         cx.notify();
     }
@@ -608,7 +609,8 @@ impl NyaTermApp {
         if self.shell.finish_settings_navigation() {
             self.persist_ui_layout();
         }
-        self.shell.set_status("settings closed".to_string());
+        self.shell
+            .set_status(t!("settings.settingsClosed").to_string());
         cx.notify();
     }
 }

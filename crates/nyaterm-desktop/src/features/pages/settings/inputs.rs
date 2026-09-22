@@ -1042,7 +1042,7 @@ mod tests {
             );
             assert_eq!(
                 app.cloud_sync.status(),
-                "cloud sync settings edited",
+                "Cloud sync settings edited.",
                 "the event handler must set the edited status"
             );
             assert!(

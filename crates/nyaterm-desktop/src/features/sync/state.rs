@@ -8,6 +8,8 @@ use std::sync::{
 
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded};
 
+use rust_i18n::t;
+
 use nyaterm_core::{CloudSyncError, CloudSyncHistoryEntry, CloudSyncSettings, CloudSyncState};
 
 use crate::models::{
@@ -108,7 +110,7 @@ impl CloudSyncFeatureState {
         }
         self.focused_field = field;
         *self.input_value_mut() = text;
-        self.status = "cloud sync settings edited".to_string();
+        self.status = t!("settings.syncSettingsEdited").to_string();
         true
     }
 
@@ -251,47 +253,45 @@ impl CloudSyncFeatureState {
 
     pub(in crate::features) fn select_provider(&mut self, provider: &str) {
         self.settings.provider = provider.to_string();
-        self.status = format!("provider set to {provider}; save to persist");
+        self.status = t!("settings.syncProviderSetTo", provider = provider).to_string();
     }
 
     pub(in crate::features) fn toggle_enabled(&mut self) {
         self.settings.enabled = !self.settings.enabled;
         self.status = if self.settings.enabled {
-            "cloud sync enabled; save to persist"
+            t!("settings.syncEnabledSaveToPersist").to_string()
         } else {
-            "cloud sync disabled; save to persist"
-        }
-        .to_string();
+            t!("settings.syncDisabledSaveToPersist").to_string()
+        };
     }
 
     pub(in crate::features) fn toggle_s3_virtual_host_style(&mut self) {
         self.settings.s3.virtual_host_style = !self.settings.s3.virtual_host_style;
         self.status = if self.settings.s3.virtual_host_style {
-            "S3 virtual-host style enabled; save to persist"
+            t!("settings.s3VirtualHostStyleEnabled").to_string()
         } else {
-            "S3 path-style URLs enabled; save to persist"
-        }
-        .to_string();
+            t!("settings.s3PathStyleUrlsEnabled").to_string()
+        };
     }
 
     pub(in crate::features) fn toggle_auto_check(&mut self) {
         self.settings.auto_check_on_startup = !self.settings.auto_check_on_startup;
-        self.status = "cloud sync auto-check setting edited".to_string();
+        self.status = t!("settings.syncAutoCheckEdited").to_string();
     }
 
     pub(in crate::features) fn toggle_auto_push(&mut self) {
         self.settings.auto_push_on_change = !self.settings.auto_push_on_change;
-        self.status = "cloud sync auto-push setting edited".to_string();
+        self.status = t!("settings.syncAutoPushEdited").to_string();
     }
 
     pub(in crate::features) fn toggle_auto_pull_remote_changes(&mut self) {
         self.settings.auto_pull_remote_changes = !self.settings.auto_pull_remote_changes;
-        self.status = "cloud sync auto-pull setting edited".to_string();
+        self.status = t!("settings.syncAutoPullEdited").to_string();
     }
 
     pub(in crate::features) fn set_debounce(&mut self, value: u64) {
         self.settings.sync_debounce_seconds = value.clamp(1, 3_600);
-        self.status = "cloud sync debounce setting edited".to_string();
+        self.status = t!("settings.syncDebounceEdited").to_string();
     }
 
     pub(super) fn begin_job(&mut self) -> bool {
