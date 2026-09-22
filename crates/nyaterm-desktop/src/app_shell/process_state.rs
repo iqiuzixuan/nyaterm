@@ -113,32 +113,24 @@ impl ProcessStateStore {
             GlobalStateMutation::UpdateSettings(settings) => {
                 let local = &self.snapshot.settings;
                 let mut settings = *settings;
-                settings.ui_left_panel_width = local.ui_left_panel_width;
-                settings.ui_right_panel_width = local.ui_right_panel_width;
-                settings.ui_quick_cmd_height = local.ui_quick_cmd_height;
-                settings.ui_active_left_panel = local.ui_active_left_panel.clone();
-                settings.ui_active_right_panel = local.ui_active_right_panel.clone();
-                settings.ui_left_panel_collapsed = local.ui_left_panel_collapsed;
-                settings.ui_right_panel_collapsed = local.ui_right_panel_collapsed;
+                preserve_workspace_local_settings(local, &mut settings);
                 changed = self.snapshot.settings != settings;
                 if changed {
                     self.snapshot.settings = settings;
                 }
                 SharedStateDomain::Settings
             }
-            GlobalStateMutation::ReplaceSnapshot { snapshot, domain } => {
+            GlobalStateMutation::ReplaceSnapshot {
+                mut snapshot,
+                domain,
+            } => {
                 if domain == SharedStateDomain::Settings {
                     let mut normalized = snapshot.settings.clone();
                     let local = &self.snapshot.settings;
-                    normalized.ui_left_panel_width = local.ui_left_panel_width;
-                    normalized.ui_right_panel_width = local.ui_right_panel_width;
-                    normalized.ui_quick_cmd_height = local.ui_quick_cmd_height;
-                    normalized.ui_active_left_panel = local.ui_active_left_panel.clone();
-                    normalized.ui_active_right_panel = local.ui_active_right_panel.clone();
-                    normalized.ui_left_panel_collapsed = local.ui_left_panel_collapsed;
-                    normalized.ui_right_panel_collapsed = local.ui_right_panel_collapsed;
+                    preserve_workspace_local_settings(local, &mut normalized);
                     changed = normalized != self.snapshot.settings
                         || snapshot.keyword_highlights != self.snapshot.keyword_highlights;
+                    snapshot.settings = normalized;
                 }
                 self.snapshot = *snapshot;
                 domain
@@ -190,6 +182,28 @@ impl ProcessStateStore {
     }
 }
 
+fn preserve_workspace_local_settings(
+    local: &nyaterm_core::AppSettingsSummary,
+    incoming: &mut nyaterm_core::AppSettingsSummary,
+) {
+    incoming.ui_left_panel_width = local.ui_left_panel_width;
+    incoming.ui_right_panel_width = local.ui_right_panel_width;
+    incoming.ui_transfer_height = local.ui_transfer_height;
+    incoming.ui_quick_cmd_height = local.ui_quick_cmd_height;
+    incoming.ui_quick_cmd_visible = local.ui_quick_cmd_visible;
+    incoming.ui_serial_send_height = local.ui_serial_send_height;
+    incoming.ui_serial_send_visible = local.ui_serial_send_visible;
+    incoming.ui_active_left_panel = local.ui_active_left_panel.clone();
+    incoming.ui_active_right_panel = local.ui_active_right_panel.clone();
+    incoming.ui_left_panel_collapsed = local.ui_left_panel_collapsed;
+    incoming.ui_right_panel_collapsed = local.ui_right_panel_collapsed;
+    incoming.ui_panel_multi_open = local.ui_panel_multi_open;
+    incoming.ui_panel_open_mode = local.ui_panel_open_mode.clone();
+    incoming.ui_left_open_panels = local.ui_left_open_panels.clone();
+    incoming.ui_right_open_panels = local.ui_right_open_panels.clone();
+    incoming.ui_panel_stack_sizes = local.ui_panel_stack_sizes.clone();
+}
+
 #[cfg(test)]
 mod tests {
     use nyaterm_store::{LoadBootstrap, StoreConfig, StoreRuntime};
@@ -219,10 +233,28 @@ mod tests {
     fn settings_mutation_preserves_workspace_local_projection() {
         let (_root, mut state) = process_state();
         state.snapshot.settings.ui_left_panel_width = 731;
+        state.snapshot.settings.ui_transfer_height = 287;
+        state.snapshot.settings.ui_quick_cmd_visible = false;
+        state.snapshot.settings.ui_serial_send_visible = true;
+        state.snapshot.settings.ui_panel_multi_open = true;
+        state.snapshot.settings.ui_panel_open_mode = "floating".to_string();
+        state.snapshot.settings.ui_left_open_panels = vec!["notes".to_string()];
+        state
+            .snapshot
+            .settings
+            .ui_panel_stack_sizes
+            .insert("left:notes".to_string(), 700);
         state.snapshot.settings.ui_active_left_panel = Some("sessions".to_string());
         let mut settings = state.snapshot.settings.clone();
         settings.language = "ja".to_string();
         settings.ui_left_panel_width = 999;
+        settings.ui_transfer_height = 444;
+        settings.ui_quick_cmd_visible = true;
+        settings.ui_serial_send_visible = false;
+        settings.ui_panel_multi_open = false;
+        settings.ui_panel_open_mode = "docked".to_string();
+        settings.ui_left_open_panels.clear();
+        settings.ui_panel_stack_sizes.clear();
         settings.ui_active_left_panel = Some("notes".to_string());
 
         let event = state.apply_mutation(GlobalStateMutation::UpdateSettings(Box::new(settings)));
@@ -230,6 +262,16 @@ mod tests {
         assert_eq!(event.domain, SharedStateDomain::Settings);
         assert_eq!(state.snapshot.settings.language, "ja");
         assert_eq!(state.snapshot.settings.ui_left_panel_width, 731);
+        assert_eq!(state.snapshot.settings.ui_transfer_height, 287);
+        assert!(!state.snapshot.settings.ui_quick_cmd_visible);
+        assert!(state.snapshot.settings.ui_serial_send_visible);
+        assert!(state.snapshot.settings.ui_panel_multi_open);
+        assert_eq!(state.snapshot.settings.ui_panel_open_mode, "floating");
+        assert_eq!(state.snapshot.settings.ui_left_open_panels, ["notes"]);
+        assert_eq!(
+            state.snapshot.settings.ui_panel_stack_sizes["left:notes"],
+            700
+        );
         assert_eq!(
             state.snapshot.settings.ui_active_left_panel.as_deref(),
             Some("sessions")
@@ -241,6 +283,33 @@ mod tests {
                 ..SettingsDraftRevisions::default()
             }
         );
+    }
+
+    #[test]
+    fn settings_snapshot_refresh_applies_normalized_workspace_local_projection() {
+        let (_root, mut state) = process_state();
+        state.snapshot.settings.ui_left_panel_width = 731;
+        state.snapshot.settings.ui_quick_cmd_visible = false;
+        state.snapshot.settings.ui_serial_send_visible = true;
+        state.snapshot.settings.ui_left_open_panels = vec!["notes".to_string()];
+        let mut snapshot = state.snapshot.clone();
+        snapshot.settings.language = "ja".to_string();
+        snapshot.settings.ui_left_panel_width = 999;
+        snapshot.settings.ui_quick_cmd_visible = true;
+        snapshot.settings.ui_serial_send_visible = false;
+        snapshot.settings.ui_left_open_panels.clear();
+
+        let event = state.apply_mutation(GlobalStateMutation::ReplaceSnapshot {
+            snapshot: Box::new(snapshot),
+            domain: SharedStateDomain::Settings,
+        });
+
+        assert!(event.changed);
+        assert_eq!(state.snapshot.settings.language, "ja");
+        assert_eq!(state.snapshot.settings.ui_left_panel_width, 731);
+        assert!(!state.snapshot.settings.ui_quick_cmd_visible);
+        assert!(state.snapshot.settings.ui_serial_send_visible);
+        assert_eq!(state.snapshot.settings.ui_left_open_panels, ["notes"]);
     }
 
     #[test]

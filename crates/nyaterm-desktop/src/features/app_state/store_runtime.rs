@@ -39,6 +39,48 @@ impl WorkspaceCloseSnapshot {
 }
 
 impl NyaTermApp {
+    pub(crate) fn capture_workspace_ui_state(&self) -> WorkspaceUiState {
+        let bottom_panel_mode = match self.shell.bottom_panel_mode() {
+            crate::models::BottomPanelMode::QuickCommands => "quick_commands",
+            crate::models::BottomPanelMode::CommandSend => "command_send",
+            crate::models::BottomPanelMode::Hidden => "hidden",
+        };
+        WorkspaceUiState {
+            left_panel_width: self.shell.left_panel_width().round().clamp(160., 720.) as u32,
+            right_panel_width: self.shell.right_panel_width().round().clamp(200., 720.) as u32,
+            bottom_panel_height: self.shell.quick_commands_height().round().clamp(60., 600.) as u32,
+            transfer_panel_height: self.transfer.panel_height().round().clamp(60., 600.) as u32,
+            serial_send_panel_height: self.shell.command_send_height().round().clamp(60., 600.)
+                as u32,
+            bottom_panel_mode: bottom_panel_mode.to_string(),
+            active_left_panel: self
+                .shell
+                .active_left_panel()
+                .map(|item| item.persistence_id().to_string()),
+            active_right_panel: self
+                .shell
+                .active_right_panel()
+                .map(|item| item.persistence_id().to_string()),
+            left_panel_collapsed: self.shell.left_panel_collapsed(),
+            right_panel_collapsed: self.shell.right_panel_collapsed(),
+            panel_multi_open: self.shell.panel_multi_open(),
+            panel_open_mode: self.shell.panel_open_mode().as_setting().to_string(),
+            left_open_panels: self.shell.left_open_panels().to_vec(),
+            right_open_panels: self.shell.right_open_panels().to_vec(),
+            panel_stack_sizes: self
+                .shell
+                .panel_stack_sizes()
+                .iter()
+                .filter_map(|(key, value)| {
+                    let scaled = (*value * 1000.).round();
+                    (scaled.is_finite() && scaled > 0.).then(|| (key.clone(), scaled as u32))
+                })
+                .collect(),
+            current_page: self.shell.selected_nav().persistence_id().to_string(),
+            extra: Default::default(),
+        }
+    }
+
     pub(crate) fn capture_workspace_close_snapshot(&mut self) -> WorkspaceCloseSnapshot {
         let settings = self.settings.summary().clone();
         let sessions = if settings.startup_restore {
@@ -87,16 +129,7 @@ impl NyaTermApp {
         WorkspaceCloseSnapshot {
             workspace_id: self.workspace_id,
             sessions,
-            ui: WorkspaceUiState {
-                left_panel_width: settings.ui_left_panel_width,
-                right_panel_width: settings.ui_right_panel_width,
-                bottom_panel_height: settings.ui_quick_cmd_height,
-                active_left_panel: settings.ui_active_left_panel,
-                active_right_panel: settings.ui_active_right_panel,
-                left_panel_collapsed: settings.ui_left_panel_collapsed,
-                right_panel_collapsed: settings.ui_right_panel_collapsed,
-                ..WorkspaceUiState::default()
-            },
+            ui: self.capture_workspace_ui_state(),
         }
     }
 

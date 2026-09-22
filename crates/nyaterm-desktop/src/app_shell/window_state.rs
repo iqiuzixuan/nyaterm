@@ -19,6 +19,7 @@ pub struct AppShellStartup {
     pub(super) workspace_id: WorkspaceId,
     pub(super) workspace_restore: WorkspaceRestoreManifest,
     pub(super) device_windows: DeviceWindowManifest,
+    pub(super) workspace_seed: Option<WorkspaceRestoreState>,
 }
 
 #[derive(Clone)]
@@ -62,6 +63,7 @@ impl AppShellStartup {
                         WorkspaceRestoreState::empty(workspace_id),
                     ),
                     device_windows: DeviceWindowManifest::empty(),
+                    workspace_seed: None,
                 };
             }
         };
@@ -138,6 +140,7 @@ impl AppShellStartup {
                 workspace_id,
                 workspace_restore,
                 device_windows,
+                workspace_seed: None,
             },
             Err(error) => Self {
                 store_runtime: None,
@@ -150,6 +153,7 @@ impl AppShellStartup {
                 workspace_id,
                 workspace_restore,
                 device_windows,
+                workspace_seed: None,
             },
         }
     }
@@ -169,6 +173,7 @@ impl AppShellStartup {
                 workspace_id,
             )),
             device_windows: DeviceWindowManifest::empty(),
+            workspace_seed: None,
         }
     }
 
@@ -211,6 +216,7 @@ impl AppShellStartup {
                 workspace_id,
                 workspace_restore: self.workspace_restore.clone(),
                 device_windows: self.device_windows.clone(),
+                workspace_seed: None,
             };
         };
         Self {
@@ -221,17 +227,22 @@ impl AppShellStartup {
             workspace_id,
             workspace_restore: self.workspace_restore.clone(),
             device_windows: self.device_windows.clone(),
+            workspace_seed: None,
         }
     }
 
-    pub fn for_new_workspace(&self, workspace_id: WorkspaceId) -> Self {
+    pub fn for_new_workspace(
+        &self,
+        workspace_id: WorkspaceId,
+        ui: nyaterm_core::WorkspaceUiState,
+    ) -> Self {
         let mut startup = self.for_workspace(workspace_id);
-        startup
-            .workspace_restore
-            .workspaces
-            .push(WorkspaceRestoreState::empty(workspace_id));
+        let mut workspace = WorkspaceRestoreState::empty(workspace_id);
+        workspace.ui = ui;
+        startup.workspace_restore.workspaces.push(workspace.clone());
         startup.workspace_restore.most_recent_workspace_id = Some(workspace_id);
         startup.main_window_state = None;
+        startup.workspace_seed = Some(workspace);
         startup
     }
 
@@ -449,11 +460,14 @@ fn main_window_state_from_bounds(
 #[cfg(test)]
 mod tests {
     use gpui::{Bounds, DisplayId, WindowBounds, point, px, size};
-    use nyaterm_core::{MainWindowBounds, MainWindowState};
+    use nyaterm_core::{
+        DeviceWindowManifest, MainWindowBounds, MainWindowState, WorkspaceId,
+        WorkspaceRestoreManifest, WorkspaceRestoreState, WorkspaceUiState,
+    };
 
     use super::{
-        DisplayGeometry, MainWindowStateController, clamp_window_bounds, intersection_area,
-        main_window_state_from_bounds, resolve_saved_window_placement,
+        AppShellStartup, DisplayGeometry, MainWindowStateController, clamp_window_bounds,
+        intersection_area, main_window_state_from_bounds, resolve_saved_window_placement,
     };
 
     fn display(id: u64, x: f32, y: f32, width: f32, height: f32) -> DisplayGeometry {
@@ -465,6 +479,48 @@ mod tests {
                 size: size(px(width), px(height)),
             },
         }
+    }
+
+    #[test]
+    fn new_workspace_seed_inherits_layout_without_sessions_or_window_geometry() {
+        let source_id = WorkspaceId::new();
+        let target_id = WorkspaceId::new();
+        let source = WorkspaceRestoreState::empty(source_id);
+        let startup = AppShellStartup {
+            store_runtime: None,
+            pending_bootstrap: None,
+            recovery: None,
+            main_window_state: Some(MainWindowState::new(
+                None,
+                MainWindowBounds {
+                    x: 40,
+                    y: 60,
+                    width: 1280,
+                    height: 800,
+                },
+                false,
+            )),
+            workspace_id: source_id,
+            workspace_restore: WorkspaceRestoreManifest::single(source),
+            device_windows: DeviceWindowManifest::empty(),
+            workspace_seed: None,
+        };
+        let ui = WorkspaceUiState {
+            left_panel_width: 360,
+            right_panel_width: 420,
+            bottom_panel_mode: "command_send".to_string(),
+            ..WorkspaceUiState::default()
+        };
+
+        let opened = startup.for_new_workspace(target_id, ui.clone());
+        let seed = opened.workspace_seed.as_ref().expect("workspace seed");
+
+        assert_eq!(seed.id, target_id);
+        assert_eq!(seed.ui, ui);
+        assert!(seed.sessions.open_tabs.is_empty());
+        assert!(seed.sessions.terminal_window_layout.is_none());
+        assert!(seed.sessions.workspace_pane_layout.is_none());
+        assert!(opened.main_window_state.is_none());
     }
 
     #[test]

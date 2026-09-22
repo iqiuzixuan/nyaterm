@@ -10,7 +10,7 @@ use gpui::{
 use nyaterm_core::{
     ACTIVATION_QUEUE_CAPACITY, ActivationOpenBehavior, ActivationReceiver, ActivationRequest,
     AppRuntime, AppSettingsSummary, DeviceWindowManifest, DeviceWindowState, MainWindowState,
-    MoveTabTreeRequest, OpenWorkspaceRequest, WorkspaceId,
+    MoveTabTreeRequest, OpenWorkspaceRequest, WorkspaceId, WorkspaceUiState,
 };
 use nyaterm_store::{
     BootstrapSnapshot, FlushBarrier, LoadBootstrap, StoreDomain, StoreOperationError,
@@ -23,6 +23,7 @@ use super::{
     SharedStateDomain, SharedStateEvent,
 };
 use crate::features::{SystemTray, TraySnapshot, WorkspaceCloseSnapshot, show_tray_window};
+use crate::models::NavItem;
 
 pub struct DesktopControllerGlobal(pub gpui::Entity<DesktopController>);
 impl gpui::Global for DesktopControllerGlobal {}
@@ -30,6 +31,12 @@ impl gpui::Global for DesktopControllerGlobal {}
 struct WorkspaceWindow {
     handle: AnyWindowHandle,
     shell: WeakEntity<AppShell>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct WorkspaceTarget {
+    pub(crate) workspace_id: WorkspaceId,
+    pub(crate) ordinal: usize,
 }
 
 #[derive(Default)]
@@ -482,9 +489,44 @@ impl DesktopController {
     ) -> anyhow::Result<WorkspaceId> {
         anyhow::ensure!(!self.process_quitting, "the application is closing");
         let workspace_id = WorkspaceId::new();
-        let startup = self.startup.for_new_workspace(workspace_id);
+        let ui = self.workspace_ui_seed(request.layout_source_workspace_id, cx);
+        let startup = self.startup.for_new_workspace(workspace_id, ui);
         self.open_workspace_with_startup(startup, request.activation, request.activate, cx)?;
         Ok(workspace_id)
+    }
+
+    fn workspace_ui_seed(
+        &self,
+        requested_source: Option<WorkspaceId>,
+        cx: &mut Context<Self>,
+    ) -> WorkspaceUiState {
+        let live = requested_source
+            .into_iter()
+            .chain(self.most_recent_workspace_id)
+            .find_map(|workspace_id| self.live_workspace_ui(workspace_id, cx));
+        let ui = live
+            .or_else(|| {
+                self.startup
+                    .workspace_restore
+                    .most_recent()
+                    .map(|workspace| workspace.ui.clone())
+            })
+            .unwrap_or_default();
+        normalize_new_workspace_ui(ui)
+    }
+
+    fn live_workspace_ui(
+        &self,
+        workspace_id: WorkspaceId,
+        cx: &mut Context<Self>,
+    ) -> Option<WorkspaceUiState> {
+        let entry = self.windows.get(&workspace_id)?;
+        let app = entry
+            .shell
+            .update(cx, |shell, _| shell.app.clone())
+            .ok()
+            .flatten()?;
+        Some(app.read(cx).capture_workspace_ui_state())
     }
 
     fn open_workspace_with_startup(
@@ -1259,19 +1301,16 @@ impl DesktopController {
         self.most_recent_workspace_id == Some(workspace_id)
     }
 
-    pub fn workspace_targets(&self, source: WorkspaceId) -> Vec<(WorkspaceId, String)> {
-        self.device_windows
-            .window_order
-            .iter()
-            .copied()
-            .chain(self.windows.keys().copied())
-            .filter(|id| *id != source && self.windows.contains_key(id))
-            .fold(Vec::new(), |mut targets, id| {
-                if !targets.iter().any(|(existing, _)| *existing == id) {
-                    targets.push((id, format!("Window {}", targets.len() + 1)));
-                }
-                targets
-            })
+    pub(crate) fn workspace_targets(&self, source: WorkspaceId) -> Vec<WorkspaceTarget> {
+        let mut ordered = self.device_windows.window_order.clone();
+        for workspace_id in self.windows.keys().copied() {
+            if !ordered.contains(&workspace_id) {
+                ordered.push(workspace_id);
+            }
+        }
+        workspace_targets_from_order(source, &ordered, |workspace_id| {
+            self.windows.contains_key(&workspace_id)
+        })
     }
 
     pub fn move_tab_tree(
@@ -1339,7 +1378,13 @@ impl DesktopController {
         source_revision: u64,
         cx: &mut Context<Self>,
     ) -> anyhow::Result<WorkspaceId> {
-        let target_workspace_id = self.open_workspace(OpenWorkspaceRequest::default(), cx)?;
+        let target_workspace_id = self.open_workspace(
+            OpenWorkspaceRequest {
+                layout_source_workspace_id: Some(source_workspace_id),
+                ..Default::default()
+            },
+            cx,
+        )?;
         self.pending_tab_moves.insert(
             target_workspace_id,
             MoveTabTreeRequest {
@@ -1380,13 +1425,40 @@ fn next_recent_after_close(
         })
 }
 
+fn workspace_targets_from_order(
+    source: WorkspaceId,
+    window_order: &[WorkspaceId],
+    is_open: impl Fn(WorkspaceId) -> bool,
+) -> Vec<WorkspaceTarget> {
+    window_order
+        .iter()
+        .copied()
+        .enumerate()
+        .filter(|(_, workspace_id)| *workspace_id != source && is_open(*workspace_id))
+        .map(|(index, workspace_id)| WorkspaceTarget {
+            workspace_id,
+            ordinal: index + 1,
+        })
+        .collect()
+}
+
+fn normalize_new_workspace_ui(mut ui: WorkspaceUiState) -> WorkspaceUiState {
+    if NavItem::from_persistence_id(&ui.current_page).is_some_and(NavItem::opens_settings) {
+        ui.current_page = NavItem::Workspace.persistence_id().to_string();
+    }
+    ui
+}
+
 #[allow(dead_code)]
 fn _assert_root_type(_: gpui::WindowHandle<NyaRoot>) {}
 
 #[cfg(test)]
 mod tests {
-    use super::{RecentActivationCache, next_recent_after_close};
-    use nyaterm_core::{ACTIVATION_QUEUE_CAPACITY, WorkspaceId};
+    use super::{
+        RecentActivationCache, next_recent_after_close, normalize_new_workspace_ui,
+        workspace_targets_from_order,
+    };
+    use nyaterm_core::{ACTIVATION_QUEUE_CAPACITY, WorkspaceId, WorkspaceUiState};
 
     #[test]
     fn activation_ids_are_deduplicated_until_fifo_eviction() {
@@ -1423,5 +1495,28 @@ mod tests {
             next_recent_after_close(Some(third), third, &order, |_| false),
             None
         );
+    }
+
+    #[test]
+    fn workspace_target_ordinals_do_not_change_when_source_is_filtered_out() {
+        let first = WorkspaceId::new();
+        let source = WorkspaceId::new();
+        let third = WorkspaceId::new();
+
+        let targets = workspace_targets_from_order(source, &[first, source, third], |_| true);
+
+        assert_eq!(targets.len(), 2);
+        assert_eq!((targets[0].workspace_id, targets[0].ordinal), (first, 1));
+        assert_eq!((targets[1].workspace_id, targets[1].ordinal), (third, 3));
+    }
+
+    #[test]
+    fn new_workspace_normalizes_single_owner_settings_page() {
+        let ui = WorkspaceUiState {
+            current_page: "settings".to_string(),
+            ..WorkspaceUiState::default()
+        };
+
+        assert_eq!(normalize_new_workspace_ui(ui).current_page, "workspace");
     }
 }

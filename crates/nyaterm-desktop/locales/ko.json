@@ -2777,6 +2777,7 @@
     "lockedTabsSkipped": "잠긴 탭은 건너뛰었습니다",
     "moveToWindow": "이동할 창",
     "moveToNewWindow": "새 창으로 이동",
+    "windowNumber": "창 %{number}",
     "multiplexSsh": "SSH 연결 재사용",
     "multiplexSshFailed": "SSH 채널을 재사용하지 못했습니다",
     "multiplexSshWithCommand": "SSH 연결 재사용 및 명령 실행",

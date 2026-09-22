@@ -3105,6 +3105,18 @@ fn legacy_workspace_fields_migrate_and_new_manifest_dual_writes_recent_workspace
         None,
     );
     second.sessions.open_tabs.push(recent_tab.clone());
+    second.ui.left_panel_width = 333;
+    second.ui.right_panel_width = 444;
+    second.ui.transfer_panel_height = 275;
+    second.ui.bottom_panel_height = 225;
+    second.ui.serial_send_panel_height = 195;
+    second.ui.bottom_panel_mode = "command_send".to_string();
+    second.ui.panel_multi_open = true;
+    second.ui.left_open_panels = vec!["fileExplorer".to_string(), "notes".to_string()];
+    second
+        .ui
+        .panel_stack_sizes
+        .insert("left:fileExplorer".to_string(), 600);
     let manifest = nyaterm_core::WorkspaceRestoreManifest {
         version: nyaterm_core::WORKSPACE_RESTORE_MANIFEST_VERSION,
         workspaces: vec![migrated.workspaces[0].clone(), second],

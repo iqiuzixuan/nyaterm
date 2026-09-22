@@ -1523,10 +1523,25 @@ impl ConnectionStore {
                 left_panel_width: settings.ui_left_panel_width,
                 right_panel_width: settings.ui_right_panel_width,
                 bottom_panel_height: settings.ui_quick_cmd_height,
+                transfer_panel_height: settings.ui_transfer_height,
+                serial_send_panel_height: settings.ui_serial_send_height,
+                bottom_panel_mode: if settings.ui_serial_send_visible {
+                    "command_send"
+                } else if settings.ui_quick_cmd_visible {
+                    "quick_commands"
+                } else {
+                    "hidden"
+                }
+                .to_string(),
                 active_left_panel: settings.ui_active_left_panel,
                 active_right_panel: settings.ui_active_right_panel,
                 left_panel_collapsed: settings.ui_left_panel_collapsed,
                 right_panel_collapsed: settings.ui_right_panel_collapsed,
+                panel_multi_open: settings.ui_panel_multi_open,
+                panel_open_mode: settings.ui_panel_open_mode,
+                left_open_panels: settings.ui_left_open_panels,
+                right_open_panels: settings.ui_right_open_panels,
+                panel_stack_sizes: settings.ui_panel_stack_sizes.into_iter().collect(),
                 ..WorkspaceUiState::default()
             },
             extra: Default::default(),
@@ -1581,6 +1596,26 @@ impl ConnectionStore {
             );
             set_nested_json_value(
                 &mut value,
+                &["ui", "transfer_height"],
+                serde_json::Value::from(workspace.ui.transfer_panel_height),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "serial_send_height"],
+                serde_json::Value::from(workspace.ui.serial_send_panel_height),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "show_quick_cmd_bar"],
+                serde_json::Value::Bool(workspace.ui.bottom_panel_mode == "quick_commands"),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "show_serial_send_panel"],
+                serde_json::Value::Bool(workspace.ui.bottom_panel_mode == "command_send"),
+            );
+            set_nested_json_value(
+                &mut value,
                 &["ui", "active_left_panel"],
                 serde_json::to_value(&workspace.ui.active_left_panel)?,
             );
@@ -1598,6 +1633,31 @@ impl ConnectionStore {
                 &mut value,
                 &["ui", "right_panel_collapsed"],
                 serde_json::Value::Bool(workspace.ui.right_panel_collapsed),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "panel_multi_open"],
+                serde_json::Value::Bool(workspace.ui.panel_multi_open),
+            );
+            set_nested_json_string(
+                &mut value,
+                &["ui", "panel_open_mode"],
+                normalize_panel_open_mode(&workspace.ui.panel_open_mode),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "left_open_panels"],
+                string_vec_json_value(&workspace.ui.left_open_panels, 32),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "right_open_panels"],
+                string_vec_json_value(&workspace.ui.right_open_panels, 32),
+            );
+            set_nested_json_value(
+                &mut value,
+                &["ui", "panel_stack_sizes"],
+                serde_json::to_value(&workspace.ui.panel_stack_sizes)?,
             );
         }
         self.save_settings_value(&value)

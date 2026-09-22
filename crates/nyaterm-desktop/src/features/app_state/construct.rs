@@ -6,7 +6,7 @@ use crate::models::{
 };
 use crate::terminal::initial_terminal_screen;
 use gpui::{AppContext as _, Context};
-use nyaterm_core::{AppRuntime, uuid};
+use nyaterm_core::{AppRuntime, WorkspaceUiState, uuid};
 use nyaterm_store::BootstrapSnapshot;
 #[cfg(test)]
 use nyaterm_store::{LoadBootstrap, StoreConfig, StoreRuntime};
@@ -68,26 +68,17 @@ impl NyaTermApp {
         } = store_clients;
         let workspace_id = workspace_init.workspace_id;
         let mut bootstrap = process_state.read(cx).snapshot().clone();
+        let workspace_ui = workspace_init
+            .state
+            .as_ref()
+            .map(|workspace| workspace.ui.clone())
+            .unwrap_or_default();
         if let Some(workspace) = workspace_init.state.as_ref() {
             bootstrap.open_tabs = workspace.sessions.open_tabs.clone();
-            bootstrap.settings.ui_left_panel_width = workspace.ui.left_panel_width;
-            bootstrap.settings.ui_right_panel_width = workspace.ui.right_panel_width;
-            bootstrap.settings.ui_quick_cmd_height = workspace.ui.bottom_panel_height;
-            bootstrap.settings.ui_active_left_panel = workspace.ui.active_left_panel.clone();
-            bootstrap.settings.ui_active_right_panel = workspace.ui.active_right_panel.clone();
-            bootstrap.settings.ui_left_panel_collapsed = workspace.ui.left_panel_collapsed;
-            bootstrap.settings.ui_right_panel_collapsed = workspace.ui.right_panel_collapsed;
         } else {
             bootstrap.open_tabs.clear();
-            let ui = nyaterm_core::WorkspaceUiState::default();
-            bootstrap.settings.ui_left_panel_width = ui.left_panel_width;
-            bootstrap.settings.ui_right_panel_width = ui.right_panel_width;
-            bootstrap.settings.ui_quick_cmd_height = ui.bottom_panel_height;
-            bootstrap.settings.ui_active_left_panel = ui.active_left_panel;
-            bootstrap.settings.ui_active_right_panel = ui.active_right_panel;
-            bootstrap.settings.ui_left_panel_collapsed = ui.left_panel_collapsed;
-            bootstrap.settings.ui_right_panel_collapsed = ui.right_panel_collapsed;
         }
+        apply_workspace_ui_to_settings(&mut bootstrap.settings, &workspace_ui);
         let BootstrapSnapshot {
             database_path,
             custom_icons,
@@ -200,6 +191,9 @@ impl NyaTermApp {
         let panel_multi_open = settings.ui_panel_multi_open;
         let panel_open_mode =
             crate::models::PanelOpenMode::from_setting(&settings.ui_panel_open_mode);
+        let selected_nav = NavItem::from_persistence_id(&workspace_ui.current_page)
+            .filter(|item| !item.opens_settings())
+            .unwrap_or(NavItem::Workspace);
         if panel_open_mode.is_floating() {
             active_left_panel = None;
             active_right_panel = None;
@@ -374,6 +368,7 @@ impl NyaTermApp {
             selects: SelectRegistry::default(),
             shell: ShellFeatureState::new(ShellFeatureInit {
                 status: "idle".to_string(),
+                selected_nav,
                 bottom_panel_mode: if settings.ui_serial_send_visible {
                     BottomPanelMode::CommandSend
                 } else if settings.ui_quick_cmd_visible {
@@ -482,4 +477,26 @@ impl NyaTermApp {
         app._test_config_dir = Some(test_config_dir);
         app
     }
+}
+
+fn apply_workspace_ui_to_settings(
+    settings: &mut nyaterm_core::AppSettingsSummary,
+    ui: &WorkspaceUiState,
+) {
+    settings.ui_left_panel_width = ui.left_panel_width;
+    settings.ui_right_panel_width = ui.right_panel_width;
+    settings.ui_transfer_height = ui.transfer_panel_height;
+    settings.ui_quick_cmd_height = ui.bottom_panel_height;
+    settings.ui_serial_send_height = ui.serial_send_panel_height;
+    settings.ui_quick_cmd_visible = ui.bottom_panel_mode == "quick_commands";
+    settings.ui_serial_send_visible = ui.bottom_panel_mode == "command_send";
+    settings.ui_active_left_panel = ui.active_left_panel.clone();
+    settings.ui_active_right_panel = ui.active_right_panel.clone();
+    settings.ui_left_panel_collapsed = ui.left_panel_collapsed;
+    settings.ui_right_panel_collapsed = ui.right_panel_collapsed;
+    settings.ui_panel_multi_open = ui.panel_multi_open;
+    settings.ui_panel_open_mode = ui.panel_open_mode.clone();
+    settings.ui_left_open_panels = ui.left_open_panels.clone();
+    settings.ui_right_open_panels = ui.right_open_panels.clone();
+    settings.ui_panel_stack_sizes = ui.panel_stack_sizes.clone().into_iter().collect();
 }

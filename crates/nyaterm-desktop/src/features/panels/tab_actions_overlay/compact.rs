@@ -7,13 +7,16 @@ use super::{
     tab_actions_menu_visible_height,
 };
 use crate::features::NyaTermApp;
-use crate::features::view_widgets::{tab_menu_item, tab_menu_item_enabled, tab_menu_separator};
+use crate::features::view_widgets::{
+    tab_menu_item, tab_menu_item_enabled, tab_menu_item_with_icon, tab_menu_separator,
+};
 use crate::models::{StartupCommandAction, TabActionsSubmenu, WorkspaceSplitDirection};
 use crate::theme::ThemePalette;
 use gpui::{
     AnyElement, App, ClickEvent, Context, IntoElement, KeyDownEvent, MouseButton, SharedString,
     Window, div, prelude::*, px, rgb, rgba, svg,
 };
+use nyaterm_core::WorkspaceId;
 use nyaterm_ui::{NyaPopover, NyaPopoverAlign, NyaPopoverPlacement, NyaScrollable};
 
 use super::super::TAB_PRESET_COLORS;
@@ -39,6 +42,51 @@ struct TabActionsSubmenuItem {
 struct TabActionsSubmenuHandlers<OnHover, OnClick> {
     on_hover: OnHover,
     on_click: OnClick,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MoveWindowMenuDestination {
+    NewWindow,
+    Workspace {
+        workspace_id: WorkspaceId,
+        ordinal: usize,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct MoveWindowMenuItemSpec {
+    id: String,
+    icon_path: &'static str,
+    separator_before: bool,
+    destination: MoveWindowMenuDestination,
+}
+
+fn move_window_menu_items(
+    targets: impl IntoIterator<Item = (WorkspaceId, usize)>,
+) -> Vec<MoveWindowMenuItemSpec> {
+    let mut items = vec![MoveWindowMenuItemSpec {
+        id: "tab-ctx-move-new-window".to_string(),
+        icon_path: "icons/menu/external.svg",
+        separator_before: false,
+        destination: MoveWindowMenuDestination::NewWindow,
+    }];
+    items.extend(
+        targets
+            .into_iter()
+            .map(|(workspace_id, ordinal)| MoveWindowMenuItemSpec {
+                id: format!("tab-ctx-move-window-{workspace_id:?}"),
+                icon_path: "icons/workspace.svg",
+                separator_before: false,
+                destination: MoveWindowMenuDestination::Workspace {
+                    workspace_id,
+                    ordinal,
+                },
+            }),
+    );
+    if items.len() > 1 {
+        items[1].separator_before = true;
+    }
+    items
 }
 
 impl NyaTermApp {
@@ -69,10 +117,12 @@ impl NyaTermApp {
             .and_then(gpui::WeakEntity::upgrade)
             .map(|controller| controller.read(cx).workspace_targets(self.workspace_id))
             .unwrap_or_default();
-        let menu_visible_height = (tab_actions_menu_visible_height(policy, viewport_h)
-            + (targets.len() + 1) as f32 * 28.
-            + 9.)
-            .min((viewport_h - 16.).max(0.));
+        let move_window_items = move_window_menu_items(
+            targets
+                .iter()
+                .map(|target| (target.workspace_id, target.ordinal)),
+        );
+        let menu_visible_height = tab_actions_menu_visible_height(policy, viewport_h);
         let (menu_x, menu_y) = if let Some((x, y)) = self.session.dialog_tab_actions_anchor() {
             clamp_tab_actions_position(
                 x,
@@ -171,45 +221,10 @@ impl NyaTermApp {
         let explain_session_id = session_id.clone();
         let analyze_session_id = session_id.clone();
         let secure_attention_session_id = session_id.clone();
-        let mut move_window_rows = div().flex_col().child(tab_menu_separator(palette));
-        let new_window_tab_id = tab_root_id.clone();
-        move_window_rows = move_window_rows.child(tab_menu_item(
-            palette,
-            "tab-ctx-move-new-window",
-            t!("tabCtx.moveToNewWindow"),
-            cx.listener(move |this, _, _, cx| {
-                this.close_tab_actions(cx);
-                this.move_tab_tree_to_new_window(new_window_tab_id.clone(), cx);
-            }),
-        ));
-        for (workspace_id, label) in targets {
-            let moved_tab_id = tab_root_id.clone();
-            move_window_rows = move_window_rows.child(tab_menu_item(
-                palette,
-                format!("tab-ctx-move-window-{workspace_id:?}"),
-                format!("{} {label}", t!("tabCtx.moveToWindow")),
-                cx.listener(move |this, _, _, cx| {
-                    this.close_tab_actions(cx);
-                    this.move_tab_tree_to_workspace(
-                        this.workspace_id,
-                        moved_tab_id.clone(),
-                        this.workspace_revision(),
-                        workspace_id,
-                        nyaterm_core::MoveTabPlacement::Append,
-                        cx,
-                    );
-                }),
-            ));
-        }
-
         let submenu_panel = active_submenu
             .filter(|submenu| policy.supports_submenu(*submenu))
             .map(|submenu| {
-            let submenu_width = if submenu == TabActionsSubmenu::Color {
-                160.
-            } else {
-                240.
-            };
+            let submenu_width = if submenu == TabActionsSubmenu::Color { 160. } else { 240. };
             let mut panel = div()
                 .max_h(px((viewport_h - 16.).max(80.)))
                 .overflow_y_scrollbar()
@@ -230,6 +245,47 @@ impl NyaTermApp {
                                 this.select_session(reset_color_session_id.clone(), cx);
                                 this.close_tab_actions(cx);
                                 this.set_active_session_tab_color(None, cx);
+                            }),
+                        ));
+                    }
+                }
+                TabActionsSubmenu::MoveWindow => {
+                    for item in &move_window_items {
+                        if item.separator_before {
+                            panel = panel.child(tab_menu_separator(palette));
+                        }
+                        let moved_tab_id = tab_root_id.clone();
+                        let label = match item.destination {
+                            MoveWindowMenuDestination::NewWindow => {
+                                t!("tabCtx.moveToNewWindow").to_string()
+                            }
+                            MoveWindowMenuDestination::Workspace { ordinal, .. } => {
+                                t!("tabCtx.windowNumber", number = ordinal).to_string()
+                            }
+                        };
+                        let destination = item.destination;
+                        panel = panel.child(tab_menu_item_with_icon(
+                            palette,
+                            item.id.clone(),
+                            label,
+                            item.icon_path,
+                            cx.listener(move |this, _, _, cx| {
+                                this.close_tab_actions(cx);
+                                match destination {
+                                    MoveWindowMenuDestination::NewWindow => {
+                                        this.move_tab_tree_to_new_window(moved_tab_id.clone(), cx);
+                                    }
+                                    MoveWindowMenuDestination::Workspace { workspace_id, .. } => {
+                                        this.move_tab_tree_to_workspace(
+                                            this.workspace_id,
+                                            moved_tab_id.clone(),
+                                            this.workspace_revision(),
+                                            workspace_id,
+                                            nyaterm_core::MoveTabPlacement::Append,
+                                            cx,
+                                        );
+                                    }
+                                }
                             }),
                         ));
                     }
@@ -359,12 +415,14 @@ impl NyaTermApp {
                 .child(panel)
                 .into_any_element()
         });
-        let (color_submenu, ssh_submenu, ai_submenu) = match (active_submenu, submenu_panel) {
-            (Some(TabActionsSubmenu::Color), panel) => (panel, None, None),
-            (Some(TabActionsSubmenu::SshAdvanced), panel) => (None, panel, None),
-            (Some(TabActionsSubmenu::Ai), panel) => (None, None, panel),
-            (None, _) => (None, None, None),
-        };
+        let (color_submenu, move_window_submenu, ssh_submenu, ai_submenu) =
+            match (active_submenu, submenu_panel) {
+                (Some(TabActionsSubmenu::Color), panel) => (panel, None, None, None),
+                (Some(TabActionsSubmenu::MoveWindow), panel) => (None, panel, None, None),
+                (Some(TabActionsSubmenu::SshAdvanced), panel) => (None, None, panel, None),
+                (Some(TabActionsSubmenu::Ai), panel) => (None, None, None, panel),
+                (None, _) => (None, None, None, None),
+            };
 
         div()
             .id(SharedString::from("tab-actions-overlay"))
@@ -485,7 +543,38 @@ impl NyaTermApp {
                                     this.copy_session_name(&copy_name_session_id, cx);
                                 }),
                             ))
-                            .child(move_window_rows)
+                            .child(tab_menu_separator(palette))
+                            .child(tab_actions_submenu_host(
+                                "tab-actions-move-window-submenu",
+                                tab_actions_submenu_item(
+                                    palette,
+                                    TabActionsSubmenuItem {
+                                        id: "tab-ctx-move-window",
+                                        icon_path: "icons/net/move.svg",
+                                        label: t!("tabCtx.moveToWindow"),
+                                        enabled: true,
+                                        active: active_submenu
+                                            == Some(TabActionsSubmenu::MoveWindow),
+                                    },
+                                    TabActionsSubmenuHandlers {
+                                        on_hover: cx.listener(|this, hovered: &bool, _, cx| {
+                                            if *hovered {
+                                                this.open_tab_actions_submenu(
+                                                    TabActionsSubmenu::MoveWindow,
+                                                    cx,
+                                                );
+                                            }
+                                        }),
+                                        on_click: cx.listener(|this, _, _, cx| {
+                                            this.open_tab_actions_submenu(
+                                                TabActionsSubmenu::MoveWindow,
+                                                cx,
+                                            );
+                                        }),
+                                    },
+                                ),
+                                move_window_submenu,
+                            ))
                             .when(support.copy_ssh_host, |this| {
                                 this.child(tab_menu_item(
                                     palette,
@@ -904,4 +993,49 @@ where
                 .path("icons/fe/forward.svg")
                 .text_color(icon_color),
         )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{MoveWindowMenuDestination, move_window_menu_items};
+    use nyaterm_core::WorkspaceId;
+
+    #[test]
+    fn tab_actions_menu_keeps_new_window_when_no_existing_target_is_available() {
+        let items = move_window_menu_items([]);
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].icon_path, "icons/menu/external.svg");
+        assert!(!items[0].separator_before);
+        assert_eq!(items[0].destination, MoveWindowMenuDestination::NewWindow);
+    }
+
+    #[test]
+    fn tab_actions_menu_orders_and_icons_move_window_targets() {
+        let second = WorkspaceId::new();
+        let fourth = WorkspaceId::new();
+        let items = move_window_menu_items([(second, 2), (fourth, 4)]);
+
+        assert_eq!(items.len(), 3);
+        assert_eq!(items[0].destination, MoveWindowMenuDestination::NewWindow);
+        assert_eq!(items[0].icon_path, "icons/menu/external.svg");
+        assert!(items[1].separator_before);
+        assert_eq!(items[1].icon_path, "icons/workspace.svg");
+        assert_eq!(
+            items[1].destination,
+            MoveWindowMenuDestination::Workspace {
+                workspace_id: second,
+                ordinal: 2,
+            }
+        );
+        assert!(!items[2].separator_before);
+        assert_eq!(items[2].icon_path, "icons/workspace.svg");
+        assert_eq!(
+            items[2].destination,
+            MoveWindowMenuDestination::Workspace {
+                workspace_id: fourth,
+                ordinal: 4,
+            }
+        );
+    }
 }

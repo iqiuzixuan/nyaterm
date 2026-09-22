@@ -45,6 +45,7 @@ pub enum ActivationOpenBehavior {
 pub struct OpenWorkspaceRequest {
     pub activation: Option<ActivationRequest>,
     pub activate: bool,
+    pub layout_source_workspace_id: Option<WorkspaceId>,
 }
 
 impl Default for OpenWorkspaceRequest {
@@ -52,6 +53,7 @@ impl Default for OpenWorkspaceRequest {
         Self {
             activation: None,
             activate: true,
+            layout_source_workspace_id: None,
         }
     }
 }
@@ -105,6 +107,12 @@ pub struct WorkspaceUiState {
     pub right_panel_width: u32,
     #[serde(default = "default_bottom_panel_height")]
     pub bottom_panel_height: u32,
+    #[serde(default = "default_transfer_panel_height")]
+    pub transfer_panel_height: u32,
+    #[serde(default = "default_serial_send_panel_height")]
+    pub serial_send_panel_height: u32,
+    #[serde(default = "default_bottom_panel_mode")]
+    pub bottom_panel_mode: String,
     #[serde(default)]
     pub active_left_panel: Option<String>,
     #[serde(default)]
@@ -113,6 +121,16 @@ pub struct WorkspaceUiState {
     pub left_panel_collapsed: bool,
     #[serde(default)]
     pub right_panel_collapsed: bool,
+    #[serde(default)]
+    pub panel_multi_open: bool,
+    #[serde(default = "default_panel_open_mode")]
+    pub panel_open_mode: String,
+    #[serde(default)]
+    pub left_open_panels: Vec<String>,
+    #[serde(default)]
+    pub right_open_panels: Vec<String>,
+    #[serde(default)]
+    pub panel_stack_sizes: BTreeMap<String, u32>,
     #[serde(default = "default_current_page")]
     pub current_page: String,
     #[serde(flatten)]
@@ -125,10 +143,18 @@ impl Default for WorkspaceUiState {
             left_panel_width: default_left_panel_width(),
             right_panel_width: default_right_panel_width(),
             bottom_panel_height: default_bottom_panel_height(),
+            transfer_panel_height: default_transfer_panel_height(),
+            serial_send_panel_height: default_serial_send_panel_height(),
+            bottom_panel_mode: default_bottom_panel_mode(),
             active_left_panel: None,
             active_right_panel: None,
             left_panel_collapsed: false,
             right_panel_collapsed: false,
+            panel_multi_open: false,
+            panel_open_mode: default_panel_open_mode(),
+            left_open_panels: Vec::new(),
+            right_open_panels: Vec::new(),
+            panel_stack_sizes: BTreeMap::new(),
             current_page: default_current_page(),
             extra: BTreeMap::new(),
         }
@@ -372,7 +398,12 @@ fn validate_tab_index(
 }
 
 fn validate_ui(ui: &WorkspaceUiState) -> Result<(), WorkspaceManifestValidationError> {
-    if ui.left_panel_width == 0 || ui.right_panel_width == 0 || ui.bottom_panel_height == 0 {
+    if ui.left_panel_width == 0
+        || ui.right_panel_width == 0
+        || ui.bottom_panel_height == 0
+        || ui.transfer_panel_height == 0
+        || ui.serial_send_panel_height == 0
+    {
         return Err(WorkspaceManifestValidationError::InvalidUiDimensions);
     }
     Ok(())
@@ -390,6 +421,22 @@ fn default_bottom_panel_height() -> u32 {
     180
 }
 
+fn default_transfer_panel_height() -> u32 {
+    180
+}
+
+fn default_serial_send_panel_height() -> u32 {
+    180
+}
+
+fn default_bottom_panel_mode() -> String {
+    "quick_commands".to_string()
+}
+
+fn default_panel_open_mode() -> String {
+    "docked".to_string()
+}
+
 fn default_current_page() -> String {
     "workspace".to_string()
 }
@@ -403,7 +450,7 @@ mod tests {
     use super::{
         DEVICE_WINDOW_MANIFEST_VERSION, DeviceWindowManifest, DeviceWindowState, MainWindowState,
         RestorableWorkspacePaneNode, WorkspaceId, WorkspaceManifestValidationError,
-        WorkspaceRestoreManifest, WorkspaceRestoreState,
+        WorkspaceRestoreManifest, WorkspaceRestoreState, WorkspaceUiState,
     };
     use crate::MainWindowBounds;
 
@@ -424,6 +471,9 @@ mod tests {
         });
         let manifest: WorkspaceRestoreManifest = serde_json::from_value(raw.clone()).unwrap();
         manifest.validate().unwrap();
+        let mut ui = manifest.workspaces[0].ui.clone();
+        assert_eq!(ui.extra.remove("future_ui"), Some(json!("kept")));
+        assert_eq!(ui, WorkspaceUiState::default());
         let encoded = serde_json::to_value(manifest).unwrap();
         assert_eq!(encoded["future_manifest"], raw["future_manifest"]);
         assert_eq!(
@@ -438,6 +488,36 @@ mod tests {
             encoded["workspaces"][0]["ui"]["future_ui"],
             raw["workspaces"][0]["ui"]["future_ui"]
         );
+    }
+
+    #[test]
+    fn workspace_ui_state_round_trips_window_local_layout() {
+        let mut stack_sizes = BTreeMap::new();
+        stack_sizes.insert("left:fileExplorer".to_string(), 625);
+        let ui = WorkspaceUiState {
+            left_panel_width: 340,
+            right_panel_width: 420,
+            bottom_panel_height: 210,
+            transfer_panel_height: 260,
+            serial_send_panel_height: 190,
+            bottom_panel_mode: "command_send".to_string(),
+            active_left_panel: Some("fileExplorer".to_string()),
+            active_right_panel: Some("savedConnections".to_string()),
+            left_panel_collapsed: false,
+            right_panel_collapsed: true,
+            panel_multi_open: true,
+            panel_open_mode: "docked".to_string(),
+            left_open_panels: vec!["fileExplorer".to_string(), "notes".to_string()],
+            right_open_panels: vec!["savedConnections".to_string()],
+            panel_stack_sizes: stack_sizes,
+            current_page: "fileExplorer".to_string(),
+            extra: BTreeMap::from([("future".to_string(), json!(true))]),
+        };
+
+        let encoded = serde_json::to_value(&ui).unwrap();
+        let decoded: WorkspaceUiState = serde_json::from_value(encoded).unwrap();
+
+        assert_eq!(decoded, ui);
     }
 
     #[test]

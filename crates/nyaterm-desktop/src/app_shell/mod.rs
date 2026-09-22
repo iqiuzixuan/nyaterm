@@ -111,6 +111,7 @@ pub struct AppShell {
     lifecycle: AppShellLifecycle,
     app: Option<Entity<NyaTermApp>>,
     store_runtime: Option<StoreRuntime>,
+    workspace_seed: Option<nyaterm_core::WorkspaceRestoreState>,
     startup_restore: Entity<StartupRestoreStore>,
     overlays: Entity<OverlayStore>,
     pending_activations: VecDeque<ActivationRequest>,
@@ -171,6 +172,7 @@ impl AppShell {
             lifecycle,
             app: None,
             store_runtime: startup.store_runtime,
+            workspace_seed: startup.workspace_seed,
             startup_restore,
             overlays,
             pending_activations: initial_activation.into_iter().collect(),
@@ -303,7 +305,10 @@ impl AppShell {
             cx.notify();
             return;
         };
-        let workspace_init = process_state.read(cx).workspace_init(self.workspace_id);
+        let mut workspace_init = process_state.read(cx).workspace_init(self.workspace_id);
+        if workspace_init.state.is_none() {
+            workspace_init.state = self.workspace_seed.take();
+        }
         let workspace_revision = if let Some(workspace) = workspace_init.state.as_ref() {
             self.startup_restore.update(cx, |store, _| {
                 store.set_loaded_window_layouts(
@@ -551,7 +556,13 @@ impl AppShell {
 
     pub fn request_new_window(&mut self, cx: &mut Context<Self>) {
         if let Err(error) = self.controller.update(cx, |controller, cx| {
-            controller.open_workspace(Default::default(), cx)
+            controller.open_workspace(
+                nyaterm_core::OpenWorkspaceRequest {
+                    layout_source_workspace_id: Some(self.workspace_id),
+                    ..Default::default()
+                },
+                cx,
+            )
         }) {
             tracing::error!(%error, "failed to open a new NyaTerm window");
         }
