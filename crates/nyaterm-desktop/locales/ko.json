@@ -1871,6 +1871,7 @@
     "appKey": "App Key",
     "appVersionLabel": "앱 버전",
     "appearance": "모양",
+    "applyBlocked": "설정 적용이 차단되었습니다: %{detail}",
     "applySettingsFirst": "먼저 설정을 적용하세요.",
     "ascendNpuMonitorInterval": "Ascend NPU 간격(초)",
     "ascendNpuMonitorIntervalDesc": "Ascend NPU 지표를 가져오는 빈도입니다. 기본값: 3초.",

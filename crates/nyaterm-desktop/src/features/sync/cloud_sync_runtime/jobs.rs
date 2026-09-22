@@ -4,10 +4,11 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use gpui::Context;
 use nyaterm_core::{
-    CLOUD_SYNC_HISTORY_LIMIT, CloudLocalStore, CloudSyncError, CloudSyncHistoryEntry,
-    CloudSyncSettings, LocalCloudSyncOptions, LocalDirectoryRemote, RemoteSyncPointer,
-    append_cloud_sync_history, cleanup_sync_snapshots_with_remote, pull_local_snapshot,
-    push_local_snapshot, read_cloud_sync_history, recover_local_current_snapshot,
+    CLOUD_SYNC_HISTORY_LIMIT, CloudSyncError, CloudSyncHistoryEntry, CloudSyncOutcome,
+    CloudSyncSettings, CloudSyncState, LocalCloudSyncOptions, LocalDirectoryRemote,
+    RemoteSyncPointer, append_cloud_sync_history, cleanup_sync_snapshots_with_remote,
+    pull_local_snapshot, push_local_snapshot, read_cloud_sync_history,
+    recover_local_current_snapshot,
 };
 
 use crate::blocking_jobs::{BlockingJobScheduler, JobRejected, JobTask};
@@ -29,7 +30,6 @@ impl NyaTermApp {
             return;
         }
         let settings = self.cloud_sync.settings().clone();
-        let state = self.cloud_sync.state().clone();
         let local_store = self.store_blocking_client();
         let provider = configured_cloud_sync_provider(&settings);
         self.cloud_sync
@@ -38,17 +38,7 @@ impl NyaTermApp {
             .set_status(t!("settings.syncConnectionTestStarted"));
         let task = self.blocking_jobs.submit_task("cloud-sync-test", move |_| {
             test_provider_connection(&local_store, &settings)?;
-            // A successful manual check records when the remote was last reachable
-            // without counting as a transfer, so only the check time is bumped.
-            let mut checked = state;
-            checked.last_checked_at_ms = Some(current_time_ms());
-            if let Err(error) = local_store.persist_cloud_sync_state(&checked) {
-                tracing::warn!(
-                    provider = %provider,
-                    "failed to persist cloud-sync check time: {error}"
-                );
-            }
-            Ok(checked)
+            record_cloud_sync_connection_check(&local_store, current_time_ms())
         });
         cx.spawn(async move |this, cx| {
             let result = await_cloud_sync_job(task).await;
@@ -61,7 +51,7 @@ impl NyaTermApp {
                     }
                     Err(error) => {
                         let status = t!("settings.syncTestFailed", detail = error).to_string();
-                        this.cloud_sync.finish_job_with_status(status);
+                        this.cloud_sync.fail_job_with_status(status);
                         this.shell.set_status(this.cloud_sync.status().to_string());
                     }
                 }
@@ -88,7 +78,6 @@ impl NyaTermApp {
         let options = self.local_cloud_sync_options(master_password);
         let cleanup_options = options.clone();
         let state = self.cloud_sync.state().clone();
-        let previous_payload_hash = state.last_synced_payload_hash.clone();
         let local_store = self.store_blocking_client();
         let started_at = Instant::now();
         self.cloud_sync.set_status(if force {
@@ -115,12 +104,7 @@ impl NyaTermApp {
                             result.pointer.clone(),
                             cx,
                         );
-                        let message =
-                            if result.state.last_synced_payload_hash != previous_payload_hash {
-                                t!("settings.syncPushSuccess").to_string()
-                            } else {
-                                t!("settings.syncUpToDate").to_string()
-                            };
+                        let message = cloud_sync_outcome_message(result.outcome);
                         let mut history = CloudSyncHistoryEntry::sync(
                             "success",
                             if force {
@@ -187,7 +171,6 @@ impl NyaTermApp {
         let options = self.local_cloud_sync_options(master_password);
         let cleanup_options = options.clone();
         let state = self.cloud_sync.state().clone();
-        let previous_payload_hash = state.last_synced_payload_hash.clone();
         let local_store = self.store_blocking_client();
         let started_at = Instant::now();
         self.cloud_sync.set_status(if force {
@@ -214,12 +197,7 @@ impl NyaTermApp {
                             result.pointer.clone(),
                             cx,
                         );
-                        let message =
-                            if result.state.last_synced_payload_hash != previous_payload_hash {
-                                t!("settings.syncPullSuccess").to_string()
-                            } else {
-                                t!("settings.syncUpToDate").to_string()
-                            };
+                        let message = cloud_sync_outcome_message(result.outcome);
                         let mut history = CloudSyncHistoryEntry::sync(
                             "success",
                             if force {
@@ -287,7 +265,6 @@ impl NyaTermApp {
         let options = self.local_cloud_sync_options(master_password);
         let cleanup_options = options.clone();
         let state = self.cloud_sync.state().clone();
-        let previous_payload_hash = state.last_synced_payload_hash.clone();
         let settings = self.cloud_sync.settings().clone();
         let local_store = self.store_blocking_client();
         let cleanup_settings = settings.clone();
@@ -319,12 +296,7 @@ impl NyaTermApp {
                             result.pointer.clone(),
                             cx,
                         );
-                        let message =
-                            if result.state.last_synced_payload_hash != previous_payload_hash {
-                                t!("settings.syncPushSuccess").to_string()
-                            } else {
-                                t!("settings.syncUpToDate").to_string()
-                            };
+                        let message = cloud_sync_outcome_message(result.outcome);
                         let mut history = CloudSyncHistoryEntry::sync(
                             "success",
                             if force {
@@ -391,7 +363,6 @@ impl NyaTermApp {
         let options = self.local_cloud_sync_options(master_password);
         let cleanup_options = options.clone();
         let state = self.cloud_sync.state().clone();
-        let previous_payload_hash = state.last_synced_payload_hash.clone();
         let settings = self.cloud_sync.settings().clone();
         let local_store = self.store_blocking_client();
         let cleanup_settings = settings.clone();
@@ -423,12 +394,7 @@ impl NyaTermApp {
                             result.pointer.clone(),
                             cx,
                         );
-                        let message =
-                            if result.state.last_synced_payload_hash != previous_payload_hash {
-                                t!("settings.syncPullSuccess").to_string()
-                            } else {
-                                t!("settings.syncUpToDate").to_string()
-                            };
+                        let message = cloud_sync_outcome_message(result.outcome);
                         let mut history = CloudSyncHistoryEntry::sync(
                             "success",
                             if force {
@@ -541,7 +507,7 @@ impl NyaTermApp {
                             result.pointer.clone(),
                             cx,
                         );
-                        let message = t!("settings.syncRecoverCurrentSuccess").to_string();
+                        let message = cloud_sync_outcome_message(result.outcome);
                         let mut history = CloudSyncHistoryEntry::sync(
                             "success",
                             "recover_current_remote",
@@ -701,4 +667,27 @@ fn current_time_ms() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| duration.as_millis() as u64)
         .unwrap_or(0)
+}
+
+fn record_cloud_sync_connection_check(
+    local_store: &nyaterm_store::StoreBlockingClient,
+    checked_at: u64,
+) -> Result<CloudSyncState, CloudSyncError> {
+    local_store
+        .request_fn(StoreDomain::CloudSync, move |store| {
+            let mut state = store.load_cloud_sync_state()?;
+            state.last_checked_at_ms = Some(checked_at);
+            store.save_cloud_sync_state(&state)?;
+            Ok(state)
+        })
+        .map_err(|error| CloudSyncError::LocalStore(format!("{}: {error}", error.category())))
+}
+
+fn cloud_sync_outcome_message(outcome: CloudSyncOutcome) -> String {
+    match outcome {
+        CloudSyncOutcome::UpToDate => t!("settings.syncUpToDate").to_string(),
+        CloudSyncOutcome::Uploaded => t!("settings.syncPushSuccess").to_string(),
+        CloudSyncOutcome::Downloaded => t!("settings.syncPullSuccess").to_string(),
+        CloudSyncOutcome::Recovered => t!("settings.syncRecoverCurrentSuccess").to_string(),
+    }
 }

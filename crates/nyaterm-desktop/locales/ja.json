@@ -1877,6 +1877,7 @@
     "appKey": "アプリキー",
     "appVersionLabel": "アプリバージョン",
     "appearance": "外観",
+    "applyBlocked": "設定の適用がブロックされました: %{detail}",
     "applySettingsFirst": "先に設定を適用してください。",
     "ascendNpuMonitorInterval": "Ascend NPU 間隔 (秒)",
     "ascendNpuMonitorIntervalDesc": "Ascend NPU メトリクスを取得する頻度。既定: 3 秒。",

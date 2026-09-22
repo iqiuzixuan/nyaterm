@@ -106,6 +106,7 @@ impl NyaTermApp {
                 secret_draft: self.cloud_sync.secret_draft().clone(),
                 status: self.cloud_sync.status().to_string(),
                 job_running: self.cloud_sync.job_running(),
+                live_state: self.cloud_sync.live_state(),
                 conflict: self.cloud_sync.conflict().cloned(),
                 github_auth: self.cloud_sync.github_auth().clone(),
             },

@@ -1918,6 +1918,7 @@
     "appKey": "App Key",
     "appVersionLabel": "应用版本",
     "appearance": "外观",
+    "applyBlocked": "设置应用已被阻止：%{detail}",
     "applySettingsFirst": "请先应用设置。",
     "ascendNpuMonitorInterval": "Ascend NPU 采集间隔（秒）",
     "ascendNpuMonitorIntervalDesc": "从远程主机采集 Ascend NPU 指标的频率。默认 3 秒。",

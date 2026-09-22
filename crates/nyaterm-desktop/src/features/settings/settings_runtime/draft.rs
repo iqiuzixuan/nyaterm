@@ -106,12 +106,12 @@ impl NyaTermApp {
         if !self.settings.summary().has_master_password && master_password.draft.is_empty() {
             return Some(t!("settings.syncMasterPasswordRequired").to_string());
         }
-        let missing = match settings.provider.as_str() {
+        let missing_key = match settings.provider.as_str() {
             "webdav" if settings.webdav.endpoint.trim().is_empty() => {
-                Some("WebDAV endpoint is required")
+                Some("settings.webdavEndpointRequired")
             }
-            "s3" if settings.s3.endpoint.trim().is_empty() => Some("S3 endpoint is required"),
-            "s3" if settings.s3.bucket.trim().is_empty() => Some("S3 bucket is required"),
+            "s3" if settings.s3.endpoint.trim().is_empty() => Some("settings.s3EndpointRequired"),
+            "s3" if settings.s3.bucket.trim().is_empty() => Some("settings.s3BucketRequired"),
             "s3" if settings
                 .s3
                 .access_key_id
@@ -127,13 +127,13 @@ impl NyaTermApp {
                     .trim()
                     .is_empty() =>
             {
-                Some("S3 access key and secret must be provided together")
+                Some("settings.s3CredentialsIncomplete")
             }
             "gitee_snippet" if settings.gitee_snippet.api_endpoint.trim().is_empty() => {
-                Some("Gitee Snippet API endpoint is required")
+                Some("settings.giteeSnippetEndpointRequired")
             }
             "gitee_snippet" if settings.gitee_snippet.gist_id.trim().is_empty() => {
-                Some("Gitee Snippet ID is required")
+                Some("settings.giteeSnippetIdRequired")
             }
             "gitee_snippet"
                 if settings
@@ -144,25 +144,25 @@ impl NyaTermApp {
                     .trim()
                     .is_empty() =>
             {
-                Some("Gitee Snippet token is required")
+                Some("settings.giteeSnippetTokenRequired")
             }
-            "google_drive" => drive_validation_error(
+            "google_drive" => drive_validation_key(
                 settings.google_drive.refresh_token.as_deref(),
                 settings.google_drive.client_id.as_deref(),
                 settings.google_drive.client_secret.as_deref(),
             ),
-            "onedrive" => drive_validation_error(
+            "onedrive" => drive_validation_key(
                 settings.onedrive.refresh_token.as_deref(),
                 settings.onedrive.client_id.as_deref(),
                 settings.onedrive.client_secret.as_deref(),
             ),
-            "aliyun_drive" => drive_validation_error(
+            "aliyun_drive" => drive_validation_key(
                 settings.aliyun_drive.refresh_token.as_deref(),
                 settings.aliyun_drive.client_id.as_deref(),
                 settings.aliyun_drive.client_secret.as_deref(),
             ),
             "github_gist" if settings.github_gist.gist_id.trim().is_empty() => {
-                Some("GitHub Gist ID is required")
+                Some("settings.githubGistRequired")
             }
             "github_gist"
                 if settings
@@ -173,11 +173,11 @@ impl NyaTermApp {
                     .trim()
                     .is_empty() =>
             {
-                Some("GitHub Gist token is required")
+                Some("settings.githubGistTokenRequired")
             }
             _ => None,
         };
-        missing.map(str::to_string)
+        missing_key.map(|key| t!(key).to_string())
     }
 
     /// Reasons the settings draft must not be persisted right now.
@@ -252,7 +252,7 @@ impl NyaTermApp {
         if let Some(error) = self.pending_settings_validation_error() {
             self.settings.update_store_status(error.clone(), false);
             self.shell
-                .set_status(format!("settings apply blocked: {error}"));
+                .set_status(t!("settings.applyBlocked", detail = error));
             cx.notify();
             self.request_settings_panel_refresh(cx);
             return;
@@ -613,19 +613,19 @@ impl NyaTermApp {
     }
 }
 
-fn drive_validation_error(
+fn drive_validation_key(
     refresh_token: Option<&str>,
     client_id: Option<&str>,
     client_secret: Option<&str>,
 ) -> Option<&'static str> {
     if refresh_token.unwrap_or("").trim().is_empty() {
-        return Some("Drive refresh token is required");
+        return Some("settings.driveRefreshTokenRequired");
     }
     if client_id.unwrap_or("").trim().is_empty() {
-        return Some("Drive client ID is required");
+        return Some("settings.driveClientIdRequired");
     }
     if client_secret.unwrap_or("").trim().is_empty() {
-        return Some("Drive client secret is required");
+        return Some("settings.driveClientSecretRequired");
     }
     None
 }

@@ -7,6 +7,7 @@ use gpui::{
 use nyaterm_core::{CloudConflictKind, CloudSyncSettings};
 use nyaterm_ui::NyaSelectOption;
 
+use crate::features::sync::CloudSyncLiveState;
 use crate::features::{
     formatting::compact_id, formatting::configured_cloud_sync_provider,
     formatting::format_cloud_provider, formatting::format_history_timestamp_ms,
@@ -234,7 +235,7 @@ impl SettingsPanel {
         let sync_state_key = cloud_sync_state_i18n_key(
             self.cloud_sync.settings().enabled,
             cloud_conflict.is_some(),
-            self.cloud_sync.job_running(),
+            self.cloud_sync.live_state(),
             self.cloud_sync
                 .history()
                 .first()
@@ -763,7 +764,7 @@ fn cloud_sync_provider_label(provider: &str) -> &'static str {
 fn cloud_sync_state_i18n_key(
     enabled: bool,
     has_conflict: bool,
-    running: bool,
+    live_state: CloudSyncLiveState,
     last_history_status: Option<&str>,
 ) -> &'static str {
     if has_conflict {
@@ -772,8 +773,11 @@ fn cloud_sync_state_i18n_key(
     if !enabled {
         return "settings.syncState.disabled";
     }
-    if running {
-        return "settings.syncState.running";
+    match live_state {
+        CloudSyncLiveState::Running => return "settings.syncState.running",
+        CloudSyncLiveState::Failed => return "settings.syncState.failed",
+        CloudSyncLiveState::Success => return "settings.syncState.success",
+        CloudSyncLiveState::Idle => {}
     }
     match last_history_status {
         Some("failed") => "settings.syncState.failed",
@@ -931,4 +935,37 @@ fn cloud_sync_status_item(
                 .overflow_hidden()
                 .child(value),
         )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CloudSyncLiveState, cloud_sync_state_i18n_key};
+
+    #[test]
+    fn cloud_sync_badge_prioritizes_availability_conflict_and_live_state() {
+        assert_eq!(
+            cloud_sync_state_i18n_key(false, false, CloudSyncLiveState::Idle, None),
+            "settings.syncState.disabled"
+        );
+        assert_eq!(
+            cloud_sync_state_i18n_key(true, true, CloudSyncLiveState::Failed, Some("success")),
+            "settings.syncState.conflict"
+        );
+        assert_eq!(
+            cloud_sync_state_i18n_key(true, false, CloudSyncLiveState::Running, None),
+            "settings.syncState.running"
+        );
+        assert_eq!(
+            cloud_sync_state_i18n_key(true, false, CloudSyncLiveState::Failed, Some("success"),),
+            "settings.syncState.failed"
+        );
+        assert_eq!(
+            cloud_sync_state_i18n_key(true, false, CloudSyncLiveState::Success, Some("failed"),),
+            "settings.syncState.success"
+        );
+        assert_eq!(
+            cloud_sync_state_i18n_key(true, false, CloudSyncLiveState::Idle, Some("success"),),
+            "settings.syncState.success"
+        );
+    }
 }

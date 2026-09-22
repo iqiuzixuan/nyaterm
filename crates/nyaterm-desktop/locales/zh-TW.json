@@ -1871,6 +1871,7 @@
     "appKey": "App Key",
     "appVersionLabel": "應用版本",
     "appearance": "外觀",
+    "applyBlocked": "設定套用已遭阻止：%{detail}",
     "applySettingsFirst": "請先套用設定。",
     "ascendNpuMonitorInterval": "Ascend NPU 採集間隔（秒）",
     "ascendNpuMonitorIntervalDesc": "從遠端主機採集 Ascend NPU 指標的頻率。預設 3 秒。",

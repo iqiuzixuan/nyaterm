@@ -1871,6 +1871,7 @@
     "appKey": "Clé d'application",
     "appVersionLabel": "Version de l'application",
     "appearance": "Apparence",
+    "applyBlocked": "Application des paramètres bloquée : %{detail}",
     "applySettingsFirst": "Appliquez d'abord les paramètres.",
     "ascendNpuMonitorInterval": "Intervalle NPU Ascend (s)",
     "ascendNpuMonitorIntervalDesc": "Fréquence de récupération des métriques du NPU Ascend. Par défaut : 3 s.",

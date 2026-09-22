@@ -652,10 +652,11 @@ mod tests {
         AppContext as _, Context, Entity, IntoElement, Render, Subscription, TestAppContext,
         VisualTestContext, Window, div,
     };
-    use nyaterm_core::{AppRuntime, RuntimeMode};
+    use nyaterm_core::{AppRuntime, CloudSyncState, RuntimeMode};
 
     use crate::entities::{OverlayStore, StartupRestoreStore, UiStoreHandles};
     use crate::features::NyaTermApp;
+    use crate::features::sync::CloudSyncLiveState;
     use crate::models::{AiActionEditorField, AiActionListKind, NavItem, SettingsTab};
     use crate::test_support::TestConfigDir;
 
@@ -1227,6 +1228,7 @@ mod tests {
                 !presentation.job_running,
                 "the panel must not stay stuck in a running state"
             );
+            assert_eq!(presentation.live_state(), CloudSyncLiveState::Failed);
         });
     }
 
@@ -1240,6 +1242,25 @@ mod tests {
         let app = app(&mut cx, test_dir.path());
 
         let (endpoint, server) = crate::test_support::spawn_webdav_healthy_server();
+        let preserved_state = CloudSyncState {
+            device_id: "new-device".to_string(),
+            last_synced_payload_hash: Some("new-hash".to_string()),
+            last_applied_remote_revision: Some("new-revision".to_string()),
+            last_checked_at_ms: Some(11),
+            last_synced_at_ms: Some(22),
+            last_validated_remote_revision: Some("validated-revision".to_string()),
+            last_full_validation_at_ms: Some(33),
+            last_gc_attempt_at_ms: Some(44),
+        };
+        let state_to_persist = preserved_state.clone();
+        cx.update_entity(&app, |app, _| {
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::CloudSync, move |store| {
+                    store.save_cloud_sync_state(&state_to_persist)?;
+                    Ok(())
+                })
+                .expect("seed newer cloud sync state");
+        });
 
         let persisted = cx.update_entity(&app, |app, _| {
             app.store_blocking_client()
@@ -1291,22 +1312,29 @@ mod tests {
         cx.run_until_parked();
 
         cx.update_entity(&app, |app, _| {
-            let checked_at = app
-                .cloud_sync
-                .state()
+            let checked_state = app.cloud_sync.state();
+            let checked_at = checked_state
                 .last_checked_at_ms
                 .expect("a successful test records the check time");
-            assert!(checked_at > 0, "the recorded check time must be non-zero");
-            assert_eq!(
-                app.cloud_sync.state().last_synced_at_ms,
-                None,
-                "a connection test is not a transfer and must not bump the sync time"
-            );
+            assert_ne!(checked_at, preserved_state.last_checked_at_ms.unwrap());
+            let expected = CloudSyncState {
+                last_checked_at_ms: Some(checked_at),
+                ..preserved_state.clone()
+            };
+            assert_eq!(checked_state, &expected);
+            let persisted = app
+                .store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::CloudSync, |store| {
+                    store.load_cloud_sync_state()
+                })
+                .expect("load checked cloud sync state");
+            assert_eq!(persisted, expected);
             assert!(
                 app.cloud_sync.status().contains("Cloud test passed"),
                 "expected a success, got: {}",
                 app.cloud_sync.status()
             );
+            assert_eq!(app.cloud_sync.live_state(), CloudSyncLiveState::Success);
         });
         server.join().expect("mock WebDAV server finishes");
     }

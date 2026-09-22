@@ -15,6 +15,15 @@ use crate::models::{
     GithubGistAuthState,
 };
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(in crate::features) enum CloudSyncLiveState {
+    #[default]
+    Idle,
+    Running,
+    Success,
+    Failed,
+}
+
 pub(in crate::features) struct CloudSyncFeatureState {
     settings: CloudSyncSettings,
     state: CloudSyncState,
@@ -24,7 +33,7 @@ pub(in crate::features) struct CloudSyncFeatureState {
     secret_draft: CloudSyncSecretDraft,
     status: String,
     /// Prevent overlapping network jobs from applying cloud state out of order.
-    job_running: bool,
+    live_state: CloudSyncLiveState,
     focused_field: CloudSyncInputField,
     github: GithubGistAuthFeatureState,
 }
@@ -80,7 +89,7 @@ impl CloudSyncFeatureState {
             conflict: None,
             secret_draft: CloudSyncSecretDraft::default(),
             status: String::new(),
-            job_running: false,
+            live_state: CloudSyncLiveState::Idle,
             focused_field: CloudSyncInputField::RemoteRoot,
             github: GithubGistAuthFeatureState {
                 auth: GithubGistAuthState::default(),
@@ -132,7 +141,11 @@ impl CloudSyncFeatureState {
     }
 
     pub(in crate::features) fn job_running(&self) -> bool {
-        self.job_running
+        self.live_state == CloudSyncLiveState::Running
+    }
+
+    pub(in crate::features) fn live_state(&self) -> CloudSyncLiveState {
+        self.live_state
     }
 
     pub(in crate::features) fn github_auth(&self) -> &GithubGistAuthState {
@@ -282,22 +295,22 @@ impl CloudSyncFeatureState {
     }
 
     pub(super) fn begin_job(&mut self) -> bool {
-        if self.job_running {
+        if self.job_running() {
             return false;
         }
-        self.job_running = true;
+        self.live_state = CloudSyncLiveState::Running;
         true
     }
 
     pub(super) fn complete_job(&mut self, state: CloudSyncState, status: String) {
-        self.job_running = false;
+        self.live_state = CloudSyncLiveState::Success;
         self.conflict = None;
         self.state = state;
         self.status = status;
     }
 
-    pub(super) fn finish_job_with_status(&mut self, status: String) {
-        self.job_running = false;
+    pub(super) fn fail_job_with_status(&mut self, status: String) {
+        self.live_state = CloudSyncLiveState::Failed;
         self.status = status;
     }
 
@@ -308,7 +321,7 @@ impl CloudSyncFeatureState {
         provider: String,
         provider_action: bool,
     ) {
-        self.job_running = false;
+        self.live_state = CloudSyncLiveState::Failed;
         self.status = status;
         self.capture_conflict(error, provider, provider_action);
     }
@@ -645,7 +658,7 @@ mod tests {
         CloudSyncInputField, CloudSyncSecretDraft, GithubGistAuthEvent, GithubGistAuthJobEvent,
     };
 
-    use super::CloudSyncFeatureState;
+    use super::{CloudSyncFeatureState, CloudSyncLiveState};
 
     #[test]
     fn cloud_sync_state_owns_loaded_data_and_github_job_channel() {
@@ -678,6 +691,7 @@ mod tests {
             "the device-flow channel starts empty"
         );
         assert!(!cloud_sync.job_running());
+        assert_eq!(cloud_sync.live_state(), CloudSyncLiveState::Idle);
         assert!(cloud_sync.conflict().is_none());
 
         let mut settings = cloud_sync.settings().clone();
@@ -744,6 +758,7 @@ mod tests {
             true,
         );
         assert!(!cloud_sync.job_running());
+        assert_eq!(cloud_sync.live_state(), CloudSyncLiveState::Failed);
         assert_eq!(cloud_sync.status(), "push failed");
         assert_eq!(cloud_sync.conflict().unwrap().preview.provider, "webdav");
 
@@ -754,6 +769,7 @@ mod tests {
         };
         cloud_sync.complete_job(completed_state, "push complete".to_string());
         assert!(!cloud_sync.job_running());
+        assert_eq!(cloud_sync.live_state(), CloudSyncLiveState::Success);
         assert!(cloud_sync.conflict().is_none());
         assert_eq!(cloud_sync.state().device_id, "device-2");
         assert_eq!(cloud_sync.status(), "push complete");
@@ -793,11 +809,13 @@ mod tests {
         assert_eq!(conflict.preview, preview);
         assert!(conflict.provider_action);
         assert!(!cloud_sync.job_running());
+        assert_eq!(cloud_sync.live_state(), CloudSyncLiveState::Failed);
 
         assert!(cloud_sync.begin_job());
         cloud_sync.complete_job(CloudSyncState::default(), "recovered".to_string());
         assert!(cloud_sync.conflict().is_none());
         assert!(!cloud_sync.job_running());
+        assert_eq!(cloud_sync.live_state(), CloudSyncLiveState::Success);
         assert_eq!(cloud_sync.status(), "recovered");
     }
 

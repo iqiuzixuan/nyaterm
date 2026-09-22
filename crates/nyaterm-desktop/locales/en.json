@@ -1918,6 +1918,7 @@
     "appKey": "App Key",
     "appVersionLabel": "App Version",
     "appearance": "Appearance",
+    "applyBlocked": "Settings apply blocked: %{detail}",
     "applySettingsFirst": "Apply settings first.",
     "ascendNpuMonitorInterval": "Ascend NPU Interval (s)",
     "ascendNpuMonitorIntervalDesc": "How often to fetch Ascend NPU metrics. Default: 3s.",
