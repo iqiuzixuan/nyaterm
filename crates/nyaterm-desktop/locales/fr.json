@@ -11,6 +11,9 @@
     "quit": "Quitter",
     "unavailable": "Le masquage dans la zone de notification est indisponible. La fenêtre a été réduite normalement."
 },
+  "appShell": {
+    "savingBeforeClose": "Enregistrement des modifications avant la fermeture..."
+  },
   "documentEditor": {
     "fold": "Replier au curseur",
     "unfoldAll": "Tout déplier",

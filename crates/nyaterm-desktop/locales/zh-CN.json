@@ -11,6 +11,9 @@
     "quit": "退出",
     "unavailable": "当前桌面会话不支持隐藏到托盘，窗口已正常最小化。"
 },
+  "appShell": {
+    "savingBeforeClose": "正在保存数据..."
+  },
   "documentEditor": {
     "fold": "折叠光标处代码",
     "unfoldAll": "全部展开",

@@ -11,6 +11,9 @@
     "quit": "Quit",
     "unavailable": "Tray hiding is unavailable in this desktop session. The window was minimized normally."
 },
+  "appShell": {
+    "savingBeforeClose": "Saving changes before closing..."
+  },
   "documentEditor": {
     "fold": "Fold at cursor",
     "unfoldAll": "Unfold all",
