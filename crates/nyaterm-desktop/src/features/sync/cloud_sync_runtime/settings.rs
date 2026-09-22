@@ -21,6 +21,7 @@ impl NyaTermApp {
             self.cancel_github_gist_auth(cx);
         }
         self.cloud_sync.select_provider(provider);
+        self.request_settings_panel_refresh(cx);
         cx.notify();
     }
 
@@ -38,6 +39,7 @@ impl NyaTermApp {
             return;
         }
         self.cloud_sync.toggle_enabled();
+        self.request_settings_panel_refresh(cx);
         cx.notify();
     }
 
@@ -46,6 +48,7 @@ impl NyaTermApp {
             return;
         }
         self.cloud_sync.toggle_s3_virtual_host_style();
+        self.request_settings_panel_refresh(cx);
         cx.notify();
     }
 
@@ -54,6 +57,7 @@ impl NyaTermApp {
             return;
         }
         self.cloud_sync.toggle_auto_check();
+        self.request_settings_panel_refresh(cx);
         cx.notify();
     }
 
@@ -62,6 +66,7 @@ impl NyaTermApp {
             return;
         }
         self.cloud_sync.toggle_auto_push();
+        self.request_settings_panel_refresh(cx);
         cx.notify();
     }
 
@@ -73,6 +78,7 @@ impl NyaTermApp {
             return;
         }
         self.cloud_sync.toggle_auto_pull_remote_changes();
+        self.request_settings_panel_refresh(cx);
         cx.notify();
     }
 
@@ -88,20 +94,26 @@ impl NyaTermApp {
             return;
         }
         self.cloud_sync.set_debounce(value);
+        self.request_settings_panel_refresh(cx);
         cx.notify();
     }
 
     /// Apply an edit from one of the cloud sync inputs.
+    ///
+    /// Field edits are not gated on the master password the way the enable switch
+    /// is: the provider fields stay editable while the form is dimmed so a config
+    /// can be prepared before any password exists. Dropping them here would let a
+    /// keystroke disappear silently and leave the settings draft clean, which looks
+    /// like an unclickable apply button. `pending_settings_validation_error` reports
+    /// the missing master password instead.
     pub(in crate::features) fn apply_cloud_sync_input(
         &mut self,
         field: CloudSyncInputField,
         text: String,
         cx: &mut Context<Self>,
     ) {
-        if !self.cloud_sync_form_enabled() {
-            return;
-        }
         if self.cloud_sync.apply_input(field, text) {
+            self.request_settings_panel_refresh(cx);
             cx.notify();
         }
     }

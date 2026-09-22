@@ -178,6 +178,26 @@ impl NyaTermApp {
         missing.map(str::to_string)
     }
 
+    /// Reasons the settings draft must not be persisted right now.
+    ///
+    /// The master-password case is the one the report cares about: enabling the
+    /// switch with no stored password and no draft leaves nothing to save, so the
+    /// post-apply rebase which reads `has_master_password` from disk would turn the
+    /// switch back off. Block instead of silently reverting.
+    pub(in crate::features) fn pending_settings_validation_error(&self) -> Option<String> {
+        if let Some(error) = self.pending_settings_cloud_error() {
+            return Some(error);
+        }
+        let master_password = self.settings.master_password();
+        if master_password.enabled
+            && !self.settings.summary().has_master_password
+            && master_password.draft.is_empty()
+        {
+            return Some("Enter a master password before enabling the master password".to_string());
+        }
+        None
+    }
+
     pub(in crate::features) fn block_cloud_sync_for_settings_draft(
         &mut self,
         cx: &mut Context<Self>,
@@ -228,7 +248,7 @@ impl NyaTermApp {
             self.request_settings_panel_refresh(cx);
             return;
         }
-        if let Some(error) = self.pending_settings_cloud_error() {
+        if let Some(error) = self.pending_settings_validation_error() {
             self.settings.update_store_status(error.clone(), false);
             self.shell
                 .set_status(format!("settings apply blocked: {error}"));
@@ -553,10 +573,16 @@ impl NyaTermApp {
                 Err(error) => error.to_string(),
             },
         );
+        self.request_settings_panel_refresh(cx);
         cx.notify();
     }
 
     /// Apply an edit from the master password box.
+    ///
+    /// Like the cloud sync fields, the box must publish into the panel snapshot:
+    /// the switch state, the "is set" badge, and the apply button all read the
+    /// flushed snapshot, so an edit that only notifies leaves the button grey and
+    /// looks like the keystroke never arrived.
     pub(in crate::features) fn apply_settings_master_password(
         &mut self,
         text: String,
@@ -567,6 +593,7 @@ impl NyaTermApp {
         }
         self.shell
             .set_status("master password edited; apply to persist".to_string());
+        self.request_settings_panel_refresh(cx);
         cx.notify();
     }
 
@@ -816,5 +843,277 @@ mod tests {
         });
         assert!(saved.enabled);
         assert_eq!(stored_header_status(&app, &mut cx).0, "host");
+    }
+
+    #[test]
+    fn enabling_master_password_without_a_password_blocks_apply() {
+        let mut cx = TestAppContext::single();
+        let app = app(&mut cx);
+        let draft_survived = cx.update_entity(&app, |app, cx| {
+            app.begin_settings_draft(cx);
+            app.settings
+                .toggle_master_password(false)
+                .expect("enable staged");
+            assert!(app.settings.master_password().enabled, "switch is on");
+
+            app.apply_settings_draft(false, cx);
+
+            assert!(
+                app.settings.master_password().enabled,
+                "apply must not silently turn the master password switch off"
+            );
+            assert!(
+                app.shell.status().contains("master password"),
+                "the block must report why settings did not apply"
+            );
+            app.shell.has_settings_draft()
+        });
+        assert!(draft_survived, "the rejected draft must survive");
+        let summary = cx.update_entity(&app, |app, _| {
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, |store| {
+                    store.load_app_settings_summary()
+                })
+                .expect("load stored settings")
+        });
+        assert!(
+            !summary.has_master_password,
+            "nothing may reach disk while the draft is blocked"
+        );
+    }
+
+    #[test]
+    fn enabling_master_password_with_a_password_persists() {
+        let mut cx = TestAppContext::single();
+        let app = app(&mut cx);
+        cx.update_entity(&app, |app, cx| {
+            app.begin_settings_draft(cx);
+            app.settings
+                .toggle_master_password(false)
+                .expect("enable staged");
+            assert!(
+                app.settings
+                    .edit_master_password_draft("staged secret".to_string()),
+                "the draft is editable while enabled"
+            );
+            app.apply_settings_draft(false, cx);
+        });
+        cx.run_until_parked();
+        let summary = cx.update_entity(&app, |app, _| {
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, |store| {
+                    store.load_app_settings_summary()
+                })
+                .expect("load stored settings")
+        });
+        assert!(
+            summary.has_master_password,
+            "apply must persist the typed master password"
+        );
+    }
+
+    #[test]
+    fn webdav_edits_apply_with_a_persisted_master_password() {
+        use crate::models::CloudSyncInputField;
+
+        let mut cx = TestAppContext::single();
+        let app = app(&mut cx);
+        cx.update_entity(&app, |app, cx| {
+            app.begin_settings_draft(cx);
+            app.settings
+                .toggle_master_password(false)
+                .expect("enable staged");
+            assert!(app.settings.edit_master_password_draft("msk".to_string()));
+            app.apply_settings_draft(false, cx);
+        });
+        cx.run_until_parked();
+        let persisted = cx.update_entity(&app, |app, _| {
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, |store| {
+                    store.load_app_settings_summary()
+                })
+                .expect("load stored settings")
+        });
+        assert!(
+            persisted.has_master_password,
+            "the password must reach disk"
+        );
+        cx.update_entity(&app, |app, cx| {
+            // Replicate the post-apply callback, which the harness leaves undelivered.
+            app.settings.replace_summary(persisted.clone());
+            app.settings.rebase_master_password();
+            assert!(app.settings.master_password().enabled);
+            assert!(app.cloud_sync_form_enabled());
+
+            app.begin_settings_draft(cx);
+            app.toggle_cloud_sync_enabled(cx);
+            app.apply_cloud_sync_input(
+                CloudSyncInputField::WebdavEndpoint,
+                "https://dav.example.com".to_string(),
+                cx,
+            );
+            assert!(
+                app.settings_draft_dirty(),
+                "the webdav edit must mark the draft dirty"
+            );
+            assert_eq!(
+                app.pending_settings_validation_error(),
+                None,
+                "no reason to block a valid webdav apply"
+            );
+            app.apply_settings_draft(false, cx);
+        });
+        cx.run_until_parked();
+        let cloud = cx.update_entity(&app, |app, _| {
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, |store| {
+                    store.load_cloud_sync_settings()
+                })
+                .expect("load cloud sync settings")
+        });
+        assert_eq!(cloud.webdav.endpoint, "https://dav.example.com");
+        assert!(cloud.enabled);
+    }
+
+    /// The exact state behind "WebDAV edits never reach the apply button": the
+    /// master password switch is staged on but no password is stored and none is
+    /// typed, so the cloud form is not enabled. The field edits must still land in
+    /// the draft -- otherwise the draft stays clean, the apply button stays grey and
+    /// no message explains the block -- and apply must report the missing password.
+    #[test]
+    fn webdav_edits_with_a_staged_master_password_report_the_missing_password() {
+        use crate::models::CloudSyncInputField;
+
+        let mut cx = TestAppContext::single();
+        let app = app(&mut cx);
+        let draft_survived = cx.update_entity(&app, |app, cx| {
+            app.begin_settings_draft(cx);
+            app.settings
+                .toggle_master_password(false)
+                .expect("enable staged");
+            assert!(
+                app.settings.master_password().enabled,
+                "the switch is on without a stored password"
+            );
+            assert!(
+                !app.cloud_sync_form_enabled(),
+                "the reported state: on-disk has no master password"
+            );
+
+            app.apply_cloud_sync_input(
+                CloudSyncInputField::WebdavEndpoint,
+                "https://dav.example.com".to_string(),
+                cx,
+            );
+            assert_eq!(
+                app.cloud_sync.settings().webdav.endpoint,
+                "https://dav.example.com",
+                "the field edit must land in the draft"
+            );
+            assert!(
+                app.settings_draft_dirty(),
+                "the webdav edit must mark the draft dirty"
+            );
+            assert_eq!(
+                app.pending_settings_validation_error(),
+                Some("Enter a master password before enabling the master password".to_string()),
+                "the block must explain itself once the draft is dirty"
+            );
+            app.apply_settings_draft(false, cx);
+            app.shell.has_settings_draft()
+        });
+        assert!(draft_survived, "the blocked draft must survive");
+        let cloud = cx.update_entity(&app, |app, _| {
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, |store| {
+                    store.load_cloud_sync_settings()
+                })
+                .expect("load cloud sync settings")
+        });
+        assert_eq!(
+            cloud.webdav.endpoint, "",
+            "the blocked draft must not reach disk"
+        );
+    }
+
+    /// A provider config can be prepared before any master password exists: cloud
+    /// sync stays disabled, but the endpoint edit persists when applied.
+    #[test]
+    fn webdav_edits_persist_without_a_master_password_while_cloud_stays_disabled() {
+        use crate::models::CloudSyncInputField;
+
+        let mut cx = TestAppContext::single();
+        let app = app(&mut cx);
+        cx.update_entity(&app, |app, cx| {
+            app.begin_settings_draft(cx);
+            assert!(
+                !app.settings.master_password().enabled,
+                "fixture: no master password set up at all"
+            );
+            app.apply_cloud_sync_input(
+                CloudSyncInputField::WebdavEndpoint,
+                "https://dav.example.com".to_string(),
+                cx,
+            );
+            assert!(
+                app.settings_draft_dirty(),
+                "the webdav edit must mark the draft dirty"
+            );
+            assert_eq!(
+                app.pending_settings_validation_error(),
+                None,
+                "cloud sync is not enabled, so no validation blocks a config save"
+            );
+            app.apply_settings_draft(false, cx);
+        });
+        cx.run_until_parked();
+        let cloud = cx.update_entity(&app, |app, _| {
+            app.store_blocking_client()
+                .request_fn(nyaterm_store::StoreDomain::Settings, |store| {
+                    store.load_cloud_sync_settings()
+                })
+                .expect("load cloud sync settings")
+        });
+        assert_eq!(cloud.webdav.endpoint, "https://dav.example.com");
+        assert!(!cloud.enabled, "cloud sync must stay disabled");
+    }
+
+    /// The apply button reads the panel's flushed snapshot, not the draft directly.
+    /// A webdav edit must make that snapshot dirty so the button stops being grey
+    /// once the draft is valid -- and must keep it blocked with a visible reason
+    /// while a master password is staged without a stored one.
+    #[test]
+    fn flushed_panel_snapshot_reports_webdav_edits() {
+        use crate::models::CloudSyncInputField;
+
+        let mut cx = TestAppContext::single();
+        let app = app(&mut cx);
+        let panel = cx.update_entity(&app, |app, cx| {
+            app.begin_settings_draft(cx);
+            app.settings
+                .toggle_master_password(false)
+                .expect("enable staged");
+            app.apply_cloud_sync_input(
+                CloudSyncInputField::WebdavEndpoint,
+                "https://dav.example.com".to_string(),
+                cx,
+            );
+            // The main window's settings view requests a panel refresh on every
+            // render; flushing is how that reaches the panel, so drive it directly.
+            app.flush_settings_panel_snapshots(cx);
+            app.settings_panel.clone()
+        });
+        let snapshot = cx
+            .update_entity(&panel, |panel, _| panel.snapshot().cloned())
+            .expect("the test app builds the settings panel");
+        assert!(
+            snapshot.draft_dirty,
+            "the flushed snapshot must report the webdav edit as dirty"
+        );
+        assert!(
+            snapshot.validation_error.is_some(),
+            "a staged master password with no stored one blocks apply, and the \
+             reason must reach the panel"
+        );
     }
 }

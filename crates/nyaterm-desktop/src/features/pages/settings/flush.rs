@@ -123,7 +123,7 @@ impl NyaTermApp {
             draft_open: self.shell.has_settings_draft(),
             draft_dirty,
             validation_error: draft_dirty
-                .then(|| self.pending_settings_cloud_error())
+                .then(|| self.pending_settings_validation_error())
                 .flatten(),
             backup_prompt,
             expanded_groups: Arc::from(
