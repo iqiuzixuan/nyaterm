@@ -1,3 +1,5 @@
+use rust_i18n::t;
+
 use gpui::Context;
 use nyaterm_store::{StoreDomain, store_request};
 use nyaterm_transport::SftpDuplicatePolicy;
@@ -99,10 +101,10 @@ impl NyaTermApp {
         }
         let master_password = self.settings.master_password();
         if !master_password.enabled {
-            return Some("Enable a master password before enabling cloud sync".to_string());
+            return Some(t!("settings.syncEnableMasterPasswordFirst").to_string());
         }
         if !self.settings.summary().has_master_password && master_password.draft.is_empty() {
-            return Some("Enter a master password before enabling cloud sync".to_string());
+            return Some(t!("settings.syncMasterPasswordRequired").to_string());
         }
         let missing = match settings.provider.as_str() {
             "webdav" if settings.webdav.endpoint.trim().is_empty() => {
@@ -193,7 +195,7 @@ impl NyaTermApp {
             && !self.settings.summary().has_master_password
             && master_password.draft.is_empty()
         {
-            return Some("Enter a master password before enabling the master password".to_string());
+            return Some(t!("settings.masterPasswordEnterBeforeEnabling").to_string());
         }
         None
     }
@@ -206,7 +208,7 @@ impl NyaTermApp {
             return false;
         }
         self.cloud_sync
-            .set_status("apply settings before running cloud sync");
+            .set_status(t!("settings.applySettingsFirst"));
         self.shell.set_status(self.cloud_sync.status().to_string());
         cx.notify();
         true
@@ -219,8 +221,7 @@ impl NyaTermApp {
         if !self.settings_draft_dirty() {
             return false;
         }
-        self.shell
-            .set_status("apply or cancel settings before importing".to_string());
+        self.shell.set_status(t!("settings.syncApplyOrCancelFirst"));
         self.settings
             .update_store_status(self.shell.status().to_string(), false);
         cx.notify();
@@ -1016,7 +1017,7 @@ mod tests {
             );
             assert_eq!(
                 app.pending_settings_validation_error(),
-                Some("Enter a master password before enabling the master password".to_string()),
+                Some("Enter a master password before enabling the master password.".to_string()),
                 "the block must explain itself once the draft is dirty"
             );
             app.apply_settings_draft(false, cx);

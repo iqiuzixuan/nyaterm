@@ -1,3 +1,5 @@
+use rust_i18n::t;
+
 use gpui::Context;
 
 use crate::features::NyaTermApp;
@@ -33,7 +35,7 @@ impl NyaTermApp {
         {
             self.focus_settings_tab(SettingsTab::Security, cx);
             self.cloud_sync
-                .set_status("configure a master password before enabling cloud sync");
+                .set_status(t!("settings.syncMasterPasswordRequired"));
             self.shell.set_status(self.cloud_sync.status().to_string());
             cx.notify();
             return;
