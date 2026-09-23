@@ -39,7 +39,7 @@ export function MarkdownContent({ content }: { content: string }) {
             </blockquote>
           ),
           pre: ({ children }: MarkdownNodeProps) => (
-            <pre className="terminal-scroll my-2 max-h-64 overflow-auto rounded-md border border-border/60 bg-muted/30 p-3 font-mono text-[0.6875rem] leading-5">
+            <pre className="terminal-scroll my-2 max-h-64 overflow-auto rounded-md border border-border bg-muted/30 p-3 font-mono text-[0.6875rem] leading-5">
               {children}
             </pre>
           ),
@@ -54,10 +54,10 @@ export function MarkdownContent({ content }: { content: string }) {
             </div>
           ),
           th: ({ children }: MarkdownNodeProps) => (
-            <th className="border border-border/60 px-2 py-1 font-medium">{children}</th>
+            <th className="border border-border px-2 py-1 font-medium">{children}</th>
           ),
           td: ({ children }: MarkdownNodeProps) => (
-            <td className="border border-border/60 px-2 py-1">{children}</td>
+            <td className="border border-border px-2 py-1">{children}</td>
           ),
         }}
       >

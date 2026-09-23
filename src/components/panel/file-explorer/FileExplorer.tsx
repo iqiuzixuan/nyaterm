@@ -4074,7 +4074,7 @@ function FileExplorerPane({
                     className="nyaterm-wallpaper-transparent-surface sticky top-0 z-[1] h-7 border-b"
                     style={{
                       backgroundColor: "var(--df-bg-section-header)",
-                      borderColor: "var(--df-border)",
+                      borderColor: "var(--border)",
                       minWidth: fileListTableWidth,
                     }}
                   >
@@ -4101,7 +4101,7 @@ function FileExplorerPane({
                               index === 0 && "border-l",
                             )}
                             style={{
-                              borderColor: "var(--df-border)",
+                              borderColor: "var(--border)",
                               backgroundColor: isActiveSort
                                 ? "color-mix(in srgb, var(--df-primary) 8%, var(--df-bg-section-header))"
                                 : undefined,
@@ -4428,7 +4428,7 @@ function FileExplorerPane({
           className="nyaterm-wallpaper-control-surface px-2 py-1.5 text-[0.6875rem] border-t flex items-center justify-between shrink-0"
           style={{
             color: "var(--df-text-dimmed)",
-            borderColor: "var(--df-border)",
+            borderColor: "var(--border)",
             backgroundColor: "var(--df-bg-panel)",
           }}
         >

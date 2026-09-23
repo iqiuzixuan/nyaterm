@@ -352,7 +352,7 @@ export function TunnelFormContent({
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                     )}
                     style={{
-                      borderColor: checked ? "var(--df-primary)" : "var(--df-border)",
+                      borderColor: checked ? "var(--df-primary)" : "var(--border)",
                       backgroundColor: checked
                         ? "color-mix(in srgb, var(--df-bg-hover) 65%, transparent)"
                         : "transparent",
@@ -369,7 +369,7 @@ export function TunnelFormContent({
                       <span
                         className="flex size-4 items-center justify-center rounded-full border"
                         style={{
-                          borderColor: checked ? "var(--df-primary)" : "var(--df-border)",
+                          borderColor: checked ? "var(--df-primary)" : "var(--border)",
                         }}
                       >
                         <span
@@ -393,7 +393,7 @@ export function TunnelFormContent({
           <label
             className="flex items-center justify-between rounded-md border px-3 py-2"
             style={{
-              borderColor: "var(--df-border)",
+              borderColor: "var(--border)",
               backgroundColor: "color-mix(in srgb, var(--df-bg-hover) 55%, transparent)",
             }}
           >
@@ -414,7 +414,7 @@ export function TunnelFormContent({
           <div
             className="rounded-md border px-3 py-3"
             style={{
-              borderColor: "var(--df-border)",
+              borderColor: "var(--border)",
               backgroundColor: "color-mix(in srgb, var(--df-bg-hover) 45%, transparent)",
             }}
           >

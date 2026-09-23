@@ -116,9 +116,9 @@ export function AgentStepView({
 
       {isCommand && step.action.command ? (
         <div
-          className={`mt-2 overflow-hidden rounded-md border-l-[3px] ${borderColor} border border-border/60 bg-muted/20`}
+          className={`mt-2 overflow-hidden rounded-md border-l-[3px] ${borderColor} border border-border bg-muted/20`}
         >
-          <div className="flex items-center gap-1.5 border-b border-border/40 px-2.5 py-1 text-[0.625rem] text-muted-foreground">
+          <div className="flex items-center gap-1.5 border-b border-border px-2.5 py-1 text-[0.625rem] text-muted-foreground">
             <span className="font-medium uppercase tracking-wider">shell</span>
             {step.action.target ? (
               <span className="min-w-0 truncate">
@@ -155,7 +155,7 @@ export function AgentStepView({
               <CollapsibleTrigger asChild>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-1.5 border-t border-border/40 px-2.5 py-1 text-[0.625rem] text-muted-foreground hover:bg-muted/30"
+                  className="flex w-full items-center gap-1.5 border-t border-border px-2.5 py-1 text-[0.625rem] text-muted-foreground hover:bg-muted/30"
                 >
                   <MdExpandMore
                     className={`text-sm transition-transform ${outputOpen ? "rotate-180" : ""}`}
@@ -171,7 +171,7 @@ export function AgentStepView({
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <pre className="max-h-48 overflow-auto border-t border-border/40 bg-muted/10 px-2.5 py-2 font-mono text-[0.625rem] leading-5 terminal-scroll whitespace-pre-wrap break-all text-muted-foreground">
+                <pre className="max-h-48 overflow-auto border-t border-border bg-muted/10 px-2.5 py-2 font-mono text-[0.625rem] leading-5 terminal-scroll whitespace-pre-wrap break-all text-muted-foreground">
                   {step.observation.output || "(no output)"}
                 </pre>
               </CollapsibleContent>
@@ -179,13 +179,13 @@ export function AgentStepView({
           ) : null}
 
           {isRunning ? (
-            <div className="border-t border-border/40 px-2.5 py-1.5">
+            <div className="border-t border-border px-2.5 py-1.5">
               <AnimatedStatusText label={t("ai.agentExecuting")} />
             </div>
           ) : null}
 
           {step.status === "needs_approval" ? (
-            <div className="space-y-2 border-t border-border/40 px-2.5 py-1.5">
+            <div className="space-y-2 border-t border-border px-2.5 py-1.5">
               <div className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-1.5 gap-y-1 text-[0.625rem] leading-4 text-muted-foreground">
                 {approvalReason ? (
                   <>

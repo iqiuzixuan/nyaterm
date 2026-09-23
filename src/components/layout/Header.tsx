@@ -453,12 +453,12 @@ function HeaderHardwarePager({
 
   return (
     <span
-      className="pointer-events-auto grid h-[1.625rem] w-5 shrink-0 grid-rows-2 overflow-hidden rounded-sm border border-[var(--df-border)] text-[0.625rem] text-[var(--df-text-muted)]"
+      className="pointer-events-auto grid h-[1.625rem] w-5 shrink-0 grid-rows-2 overflow-hidden rounded-sm border border-[var(--border)] text-[0.625rem] text-[var(--df-text-muted)]"
       title={`${label} +${hiddenCount}`}
     >
       <button
         type="button"
-        className="flex min-h-0 items-center justify-center border-b border-[var(--df-border)] leading-none transition-colors hover:bg-[color-mix(in_srgb,var(--df-text-muted)_10%,transparent)] hover:text-[var(--df-text)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--df-primary)]"
+        className="flex min-h-0 items-center justify-center border-b border-[var(--border)] leading-none transition-colors hover:bg-[color-mix(in_srgb,var(--df-text-muted)_10%,transparent)] hover:text-[var(--df-text)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--df-primary)]"
         aria-label={`${label} previous cards`}
         onClick={(event) => {
           event.stopPropagation();

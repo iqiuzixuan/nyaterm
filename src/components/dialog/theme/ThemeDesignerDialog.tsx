@@ -304,7 +304,7 @@ export function ThemeDesignerDialog({
                   >
                     <span
                       className="h-4 w-4 shrink-0 rounded-sm border"
-                      style={{ backgroundColor: theme.swatch, borderColor: "var(--df-border)" }}
+                      style={{ backgroundColor: theme.swatch, borderColor: "var(--border)" }}
                     />
                     <span className="min-w-0 flex-1 truncate">{theme.name}</span>
                     {(appearance.theme === theme.id || appearance.terminal_theme === theme.id) && (

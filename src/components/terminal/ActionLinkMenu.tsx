@@ -63,7 +63,7 @@ export default function ActionLinkMenu({ state, onClose }: ActionLinkMenuProps) 
       style={{ left: pos.left, top: pos.top }}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border/60 bg-muted/40">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/40">
         <span className="text-base leading-none">{getKindIcon(link.ctx.kind)}</span>
         <span className="text-xs text-muted-foreground shrink-0">
           {t(`terminal.actionLinkKind_${link.ctx.kind}`, { defaultValue: link.ctx.kind })}

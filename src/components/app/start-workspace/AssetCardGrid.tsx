@@ -185,7 +185,7 @@ function AssetCard({
 
       <div
         className="flex min-h-9 shrink-0 items-center justify-end gap-1.5 border-t px-2.5"
-        style={{ borderColor: "color-mix(in srgb, var(--df-border) 70%, transparent)" }}
+        style={{ borderColor: "var(--border)" }}
       >
         <CardActionButton
           label={t("savedConnections.connect")}

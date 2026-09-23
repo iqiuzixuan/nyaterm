@@ -78,6 +78,26 @@ the release NyaTerm window, including their terminal content insets.
 This changes presentation only. Theme palettes, terminal font sizes, saved
 connections, tab actions and application behavior are retained.
 
+## Shared UI rules
+
+- `--border` and `--input` resolve to the workspace's 45% theme border. Use these
+  tokens for neutral outlines and dividers, including inline styles, child
+  windows and custom overlays. Do not read the raw `--df-border` or add individual
+  `border-border/NN` opacity overrides to UI surfaces. Chart fills, theme palette
+  values, warning colors and active/focus indicators are separate semantics.
+- Radix popups and custom `.workbench-popover` surfaces share a 6px radius,
+  1px neutral outline and theme-derived shadow. The custom class also covers AI
+  session mentions, history, execution menus and terminal suggestion popups.
+- Searchable model/command lists, Select menus, context menus, dropdown menus
+  and submenus share 24px minimum rows, 12px text with 16px line-height, 4px row
+  corners and 16px icons. Search rows are 28px; headings use 11px labels. Rich
+  options can grow vertically to keep descriptions readable.
+- Chat mode/model controls use flex wrappers, 22px targets and the same 16px text
+  line-height. They stay aligned; the model label truncates in narrow sidebars.
+  Model results and provider labels are bounded by the available popup space.
+- Theme customization and increased-contrast preferences flow through the shared
+  tokens. Focus, selection, warning and disabled states retain their meaning.
+
 ## VS Code source detail pass
 
 The reference checkout uses VS Code tag `1.138.0`, commit

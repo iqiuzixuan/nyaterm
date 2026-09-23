@@ -60,7 +60,7 @@ export function AssistantResponse({
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="border-t border-border/40 px-2 py-2">
+          <div className="border-t border-border px-2 py-2">
             <pre className="max-h-48 overflow-auto font-mono text-[0.6875rem] leading-5 terminal-scroll whitespace-pre-wrap break-all text-muted-foreground">
               {displayContent || message.content}
             </pre>

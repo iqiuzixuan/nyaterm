@@ -77,7 +77,7 @@ export function McpApprovalHost() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         {current ? (
-          <div className="space-y-2 rounded-md border border-border/70 bg-muted/20 p-3 text-sm">
+          <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3 text-sm">
             <div>
               <span className="text-muted-foreground">
                 {t("ai.externalMcpClient")}:

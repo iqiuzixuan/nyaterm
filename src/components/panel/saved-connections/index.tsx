@@ -1420,7 +1420,7 @@ export default function SavedConnections({
         <div
           className="nyaterm-wallpaper-transparent-surface relative flex items-center gap-1.5 px-2 py-1 min-h-8 shrink-0 border-b"
           style={{
-            borderColor: "color-mix(in srgb, var(--df-border) 40%, transparent)",
+            borderColor: "var(--border)",
             backgroundColor: "var(--df-bg-section-header)",
           }}
         >
@@ -1646,7 +1646,7 @@ export default function SavedConnections({
                     <div
                       className="mt-1 pt-1 border-t"
                       style={{
-                        borderColor: "color-mix(in srgb, var(--df-border) 50%, transparent)",
+                        borderColor: "var(--border)",
                       }}
                     />
                   )}

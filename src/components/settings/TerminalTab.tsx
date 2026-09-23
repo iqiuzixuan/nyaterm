@@ -669,7 +669,7 @@ export function TerminalTab() {
             ).map(({ key, label, example, desc }) => (
               <div
                 key={key}
-                className="flex flex-col gap-3 rounded-lg border border-border/70 bg-background/70 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-lg border border-border bg-background/70 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -746,7 +746,7 @@ export function TerminalTab() {
             {builtinRules.map((rule) => (
               <div
                 key={rule.id}
-                className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border/70 bg-background/70 px-3 py-2.5"
+                className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-background/70 px-3 py-2.5"
               >
                 <div className="flex min-w-0 items-center gap-2">
                   <span
@@ -793,7 +793,7 @@ export function TerminalTab() {
 
           <div className="space-y-2">
             {userRules.length === 0 && (
-              <div className="rounded-xl border border-dashed border-border/70 bg-background/40 px-4 py-8 text-center text-sm text-muted-foreground">
+              <div className="rounded-xl border border-dashed border-border bg-background/40 px-4 py-8 text-center text-sm text-muted-foreground">
                 {t("settings.keywordHighlightNoRules")}
               </div>
             )}
@@ -805,7 +805,7 @@ export function TerminalTab() {
               return (
                 <div
                   key={rule.id}
-                  className="overflow-hidden rounded-xl border border-border/70 bg-background/75"
+                  className="overflow-hidden rounded-xl border border-border bg-background/75"
                 >
                   <div
                     className="cursor-pointer select-none px-4 py-3 transition-colors hover:bg-accent/40"
@@ -857,7 +857,7 @@ export function TerminalTab() {
 
                   {isOpen && (
                     <div
-                      className="space-y-4 border-t border-border/70 bg-accent/15 px-4 pb-4 pt-3"
+                      className="space-y-4 border-t border-border bg-accent/15 px-4 pb-4 pt-3"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex flex-col gap-4 xl:flex-row xl:items-end">

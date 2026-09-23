@@ -262,7 +262,7 @@ function ContainerSnapshot({
   const stats = details?.stats;
 
   return (
-    <div className="rounded-md border border-border/70 bg-muted/[0.04] p-3">
+    <div className="rounded-md border border-border bg-muted/[0.04] p-3">
       <div className="mb-3 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3">
         <div className="min-w-0">
           <div className="truncate font-mono text-xs text-foreground/90" title={container.image}>
@@ -299,7 +299,7 @@ function DetailSection({ children, title }: { children: ReactNode; title: string
       <h3 className="px-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
         {title}
       </h3>
-      <div className="divide-y rounded-md border border-border/70 bg-muted/[0.03]">{children}</div>
+      <div className="divide-y rounded-md border border-border bg-muted/[0.03]">{children}</div>
     </section>
   );
 }

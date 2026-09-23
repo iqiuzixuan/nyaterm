@@ -56,7 +56,7 @@ export function AssistantReasoning({ message, loading }: { message: AIMessage; l
         </button>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="border-t border-border/40 px-2 py-2">
+        <div className="border-t border-border px-2 py-2">
           <MarkdownContent content={reasoningContent} />
         </div>
       </CollapsibleContent>

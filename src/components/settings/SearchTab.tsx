@@ -57,7 +57,7 @@ function SearchEngineListItem({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background transition-colors hover:bg-secondary"
+                className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background transition-colors hover:bg-secondary"
                 title={t("settings.selectIcon")}
               >
                 {engine.icon && SEARCH_ICONS[engine.icon] ? (
@@ -163,7 +163,7 @@ function SearchEngineListItem({
         </div>
 
         <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0">
-          <div className="mt-3 space-y-3 border-t border-border/60 pt-3">
+          <div className="mt-3 space-y-3 border-t border-border pt-3">
             <div className="space-y-2">
               <Label
                 htmlFor={`search-engine-name-${index}`}
@@ -306,7 +306,7 @@ export function SearchTab() {
         contentClassName="space-y-3"
       >
         {appSettings.search.custom_engines.length > 0 ? (
-          <div className="overflow-hidden rounded-xl border border-border/70 bg-background/75 divide-y divide-border/60">
+          <div className="overflow-hidden rounded-xl border border-border bg-background/75 divide-y divide-border">
             {appSettings.search.custom_engines.map((engine, index) => (
               <SearchEngineListItem
                 key={engineListKeysRef.current[index]}
@@ -321,7 +321,7 @@ export function SearchTab() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border/70 bg-background/40 px-4 py-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-border bg-background/40 px-4 py-8 text-center text-sm text-muted-foreground">
             {t("settings.noCustomEngines")}
           </div>
         )}

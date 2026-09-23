@@ -499,7 +499,7 @@ export default function SettingsPage() {
           <div className="workspace-settings-layout min-h-0 flex-1 overflow-hidden bg-background">
             <div className="workspace-settings-nav flex w-14 shrink-0 flex-col sm:w-48 lg:w-56">
               <div
-                className="flex items-center justify-center gap-3 border-b border-border/70 px-3 py-4 sm:justify-start sm:px-4 sm:py-5"
+                className="flex items-center justify-center gap-3 border-b border-border px-3 py-4 sm:justify-start sm:px-4 sm:py-5"
                 data-tauri-drag-region
               >
                 <MdSettings className="shrink-0 text-2xl text-primary" />
@@ -527,7 +527,7 @@ export default function SettingsPage() {
                           className={`h-auto w-full justify-center gap-3 rounded-xl border px-2 py-2.5 text-sm font-semibold transition-colors sm:justify-start sm:px-3 ${
                             isActive
                               ? "border-primary/20 bg-primary/12 text-foreground shadow-xs hover:bg-primary/16"
-                              : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground"
+                              : "border-transparent text-muted-foreground hover:border-border hover:bg-background hover:text-foreground"
                           }`}
                         >
                           <DynamicIcon
@@ -553,7 +553,7 @@ export default function SettingsPage() {
                           className={`h-auto w-full justify-center sm:justify-between rounded-xl px-2 py-2.5 text-sm font-semibold transition-colors sm:px-3 ${
                             isGroupActive && !isExpanded
                               ? "border border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10"
-                              : "border border-transparent text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground"
+                              : "border border-transparent text-muted-foreground hover:border-border hover:bg-background hover:text-foreground"
                           }`}
                         >
                           <div className="flex items-center justify-center sm:justify-start gap-3">
@@ -573,7 +573,7 @@ export default function SettingsPage() {
                         <div
                           className={`relative flex flex-col gap-1 overflow-hidden transition-all duration-200 ${
                             isExpanded ? "max-h-64 opacity-100 mt-1" : "max-h-0 opacity-0"
-                          } sm:ml-[1.3125rem] sm:pl-3 sm:border-l-2 sm:border-border/40`}
+                          } sm:ml-[1.3125rem] sm:pl-3 sm:border-l-2 sm:border-border`}
                         >
                           {category.items.map((tabId) => {
                             const tabItem = tabs.find((t) => t.id === tabId);
@@ -588,7 +588,7 @@ export default function SettingsPage() {
                                 className={`h-auto w-full justify-center gap-3 rounded-lg border px-2 py-2 text-[0.85rem] font-medium transition-colors sm:justify-start sm:px-3 ${
                                   isActive
                                     ? "border-primary/20 bg-primary/12 text-foreground shadow-xs hover:bg-primary/16"
-                                    : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/50 hover:text-foreground"
+                                    : "border-transparent text-muted-foreground hover:border-border hover:bg-background/50 hover:text-foreground"
                                 }`}
                               >
                                 <DynamicIcon
@@ -609,7 +609,7 @@ export default function SettingsPage() {
 
             <div className="workspace-settings-content flex flex-1 min-h-0 min-w-0 flex-col">
               <div
-                className="flex shrink-0 items-center justify-between border-b border-border/70 bg-background/90 px-4 py-4 backdrop-blur sm:px-6 sm:py-5"
+                className="flex shrink-0 items-center justify-between border-b border-border bg-background/90 px-4 py-4 backdrop-blur sm:px-6 sm:py-5"
                 data-tauri-drag-region
               >
                 <h3 className="text-lg font-semibold sm:text-2xl">{activeTabConfig?.label}</h3>
@@ -632,7 +632,7 @@ export default function SettingsPage() {
               </div>
 
               <ActionFooter
-                className="border-border/70 px-4 sm:px-6"
+                className="border-border px-4 sm:px-6"
                 leading={
                   saveBlockState ? (
                     <div className="flex flex-wrap items-center gap-2 text-sm text-amber-700 dark:text-amber-300">

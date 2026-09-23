@@ -424,7 +424,7 @@ export default function ProcessManager({ activeSessionId }: ProcessManagerProps)
 
             <div
               className="min-h-0 flex-1 overflow-hidden rounded-lg border"
-              style={{ borderColor: "var(--df-border)" }}
+              style={{ borderColor: "var(--border)" }}
             >
               {!isCompactMode && (
                 <ProcessTableHeader mode={displayMode} sort={sort} onToggleSort={toggleSort} />
@@ -446,7 +446,7 @@ export default function ProcessManager({ activeSessionId }: ProcessManagerProps)
                         "border-b border-l-2 border-l-transparent text-xs transition-colors hover:bg-muted/30",
                         process.pid === selectedProcess?.pid && "bg-muted/40",
                       )}
-                      style={{ borderBottomColor: "var(--df-border)" }}
+                      style={{ borderBottomColor: "var(--border)" }}
                     >
                       {isCompactMode ? (
                         <CompactProcessRow
@@ -630,7 +630,7 @@ function ProcessTableHeader({
         "grid h-8 items-center gap-1 border-b px-2 font-mono text-[0.625rem] font-semibold uppercase text-muted-foreground",
         getProcessTableColumns(mode),
       )}
-      style={{ borderColor: "var(--df-border)" }}
+      style={{ borderColor: "var(--border)" }}
     >
       <ProcessColumnHeader
         active={sort.key === "command"}
@@ -819,7 +819,7 @@ function ProcessDetails({
   return (
     <div
       className={cn("overflow-hidden border-t px-2 py-2", detailHeight)}
-      style={{ backgroundColor: "var(--df-bg)", borderTopColor: "var(--df-border)" }}
+      style={{ backgroundColor: "var(--df-bg)", borderTopColor: "var(--border)" }}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[0.6875rem] text-muted-foreground">
         <span>PPID {process.ppid}</span>

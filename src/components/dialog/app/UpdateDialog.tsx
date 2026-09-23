@@ -79,7 +79,7 @@ function MarkdownContent({ content }: { content: string }) {
             </ol>
           ),
           li: ({ children }: MarkdownNodeProps) => <li className="pl-0.5">{children}</li>,
-          hr: () => <hr className="my-3 border-border/70" />,
+          hr: () => <hr className="my-3 border-border" />,
           a: ({ children, href }: MarkdownNodeProps) => (
             <button
               className="inline max-w-full cursor-pointer break-all text-left align-baseline text-primary underline underline-offset-2 transition-opacity hover:opacity-80"
@@ -99,7 +99,7 @@ function MarkdownContent({ content }: { content: string }) {
             </blockquote>
           ),
           pre: ({ children }: MarkdownNodeProps) => (
-            <pre className="terminal-scroll my-3 max-h-52 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all rounded-md border border-border/70 bg-muted/40 p-3 font-mono text-[11px] leading-5 shadow-sm [&_code]:whitespace-pre-wrap [&_code]:break-all">
+            <pre className="terminal-scroll my-3 max-h-52 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all rounded-md border border-border bg-muted/40 p-3 font-mono text-[11px] leading-5 shadow-sm [&_code]:whitespace-pre-wrap [&_code]:break-all">
               {children}
             </pre>
           ),
@@ -108,13 +108,13 @@ function MarkdownContent({ content }: { content: string }) {
               return <code className={className}>{children}</code>;
             }
             return (
-              <code className="break-all rounded border border-border/50 bg-muted/50 px-1 py-0.5 font-mono text-[11px]">
+              <code className="break-all rounded border border-border bg-muted/50 px-1 py-0.5 font-mono text-[11px]">
                 {children}
               </code>
             );
           },
           table: ({ children }: MarkdownNodeProps) => (
-            <div className="my-3 min-w-0 overflow-hidden rounded-md border border-border/60">
+            <div className="my-3 min-w-0 overflow-hidden rounded-md border border-border">
               <table className="w-full table-fixed border-collapse text-left text-[11px] leading-5">
                 {children}
               </table>
@@ -127,7 +127,7 @@ function MarkdownContent({ content }: { content: string }) {
             <tbody className="[&_tr:last-child]:border-0">{children}</tbody>
           ),
           tr: ({ children }: MarkdownNodeProps) => (
-            <tr className="border-b border-border/60">{children}</tr>
+            <tr className="border-b border-border">{children}</tr>
           ),
           th: ({ children }: MarkdownNodeProps) => (
             <th className="break-words px-2.5 py-1.5 font-semibold text-foreground">{children}</th>

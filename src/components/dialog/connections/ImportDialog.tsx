@@ -293,7 +293,7 @@ export default function ImportDialog({ open, onClose }: ImportDialogProps) {
                 key={source.id}
                 type="button"
                 className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-colors hover:border-[var(--df-primary)] hover:bg-[color-mix(in_srgb,var(--df-primary)_8%,transparent)] cursor-pointer"
-                style={{ borderColor: "var(--df-border)" }}
+                style={{ borderColor: "var(--border)" }}
                 onClick={() => handleSelect(source)}
               >
                 {renderSourceIcon(source)}

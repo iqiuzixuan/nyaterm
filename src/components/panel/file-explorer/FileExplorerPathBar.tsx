@@ -298,7 +298,7 @@ export function FileExplorerPathBar({
     <div
       ref={containerRef}
       className="relative flex items-center border-b px-2 py-1"
-      style={{ borderColor: "var(--df-border)", minHeight: "26px" }}
+      style={{ borderColor: "var(--border)", minHeight: "26px" }}
       onKeyDown={(event) => {
         if (
           !isEditingPath &&
@@ -472,7 +472,7 @@ export function FileExplorerPathBar({
           className="terminal-scroll absolute inset-x-0 top-full z-30 mt-px overflow-y-auto rounded-b-md border shadow-lg"
           style={{
             backgroundColor: "var(--df-bg-panel)",
-            borderColor: "var(--df-border)",
+            borderColor: "var(--border)",
             maxHeight: `${HISTORY_ROW_HEIGHT * HISTORY_VISIBLE_ROWS}px`,
           }}
           aria-label={t("fileExplorer.directoryHistory")}
@@ -792,7 +792,7 @@ function DirectoryChildrenMenu({
             {showSearch && (
               <div
                 className="mb-1 flex h-7 items-center gap-1 rounded border px-2"
-                style={{ borderColor: "var(--df-border)" }}
+                style={{ borderColor: "var(--border)" }}
               >
                 <VscSearch className="h-3.5 w-3.5 text-muted-foreground" />
                 <input

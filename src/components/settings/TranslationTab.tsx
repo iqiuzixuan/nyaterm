@@ -45,7 +45,7 @@ function ProviderStatus({ configured, free }: { configured: boolean; free?: bool
       {t("settings.configured")}
     </span>
   ) : (
-    <span className={cn(sharedClassName, "border-border/70 bg-muted/40 text-muted-foreground")}>
+    <span className={cn(sharedClassName, "border-border bg-muted/40 text-muted-foreground")}>
       <MdClose className="text-sm" />
       {t("settings.notConfigured")}
     </span>
@@ -62,7 +62,7 @@ function ProviderCard({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-background/75 p-4">
+    <div className="rounded-xl border border-border bg-background/75 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-sm font-medium">{title}</span>
         {status}

@@ -120,7 +120,7 @@ export default function MoveDialog({ data, onClose, onSuccess }: MoveDialogProps
             <div
               className="terminal-scroll max-h-32 overflow-y-auto rounded-md border px-2 py-1.5 text-xs"
               style={{
-                borderColor: "var(--df-border)",
+                borderColor: "var(--border)",
                 color: "var(--df-text-dimmed)",
               }}
             >

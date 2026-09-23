@@ -142,7 +142,7 @@ function QuickCommandScriptEditor({
     >
       <div
         ref={gutterRef}
-        className="pointer-events-none absolute inset-y-0 left-0 z-20 w-10 overflow-hidden border-r border-border/40 bg-muted/40 py-2"
+        className="pointer-events-none absolute inset-y-0 left-0 z-20 w-10 overflow-hidden border-r border-border bg-muted/40 py-2"
         aria-hidden="true"
       >
         {lineRows.map((line, index) => (

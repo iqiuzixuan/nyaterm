@@ -206,7 +206,7 @@ function PercentSlider({
           <Label className="text-sm font-medium leading-5">{label}</Label>
           {desc && <p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p>}
         </div>
-        <span className="shrink-0 rounded-md border border-border/70 bg-background/60 px-2 py-1 font-mono text-xs text-muted-foreground">
+        <span className="shrink-0 rounded-md border border-border bg-background/60 px-2 py-1 font-mono text-xs text-muted-foreground">
           {percent}%
         </span>
       </div>
@@ -269,7 +269,7 @@ function BackgroundImageSection({
       contentClassName="space-y-5"
     >
       <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="flex min-h-9 min-w-0 flex-1 items-center rounded-md border border-border/70 bg-background/60 px-3 py-2 text-xs">
+        <div className="flex min-h-9 min-w-0 flex-1 items-center rounded-md border border-border bg-background/60 px-3 py-2 text-xs">
           {hasImage ? (
             <span className="truncate font-mono text-foreground/85">
               {appearance.background_image_path}
@@ -541,7 +541,7 @@ const SortableFontRow = memo(function SortableFontRow({
         className={`rounded-lg border bg-background/70 p-3 ${
           isDragging
             ? "border-primary/60 bg-background cursor-grabbing will-change-transform"
-            : "border-border/70"
+            : "border-border"
         }`}
       >
         <div className="flex items-center gap-2">

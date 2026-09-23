@@ -58,7 +58,7 @@ export function AICommandCardView({
         {card.rollback ? <p>{card.rollback}</p> : null}
       </div>
       {status !== "idle" ? (
-        <div className="mt-3 rounded-md border border-border/70 bg-muted/20 p-3">
+        <div className="mt-3 rounded-md border border-border bg-muted/20 p-3">
           <div className="flex items-center gap-2 text-xs font-medium">
             {status === "executed" ? <MdCheck /> : null}
             {status === "pending_approval" ? <MdErrorOutline /> : null}

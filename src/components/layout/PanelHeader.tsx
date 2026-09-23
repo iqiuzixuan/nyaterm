@@ -36,7 +36,7 @@ export default function PanelHeader({
         className,
       )}
       style={{
-        borderColor: "var(--df-border)",
+        borderColor: "var(--border)",
         backgroundColor: "transparent",
       }}
     >

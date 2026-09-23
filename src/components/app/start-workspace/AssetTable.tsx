@@ -298,7 +298,7 @@ function HeaderCell({
     <th
       className={`relative border-b px-2 py-1 font-medium ${className}`}
       style={{
-        borderColor: "var(--df-border)",
+        borderColor: "var(--border)",
         backgroundColor: "var(--nyaterm-asset-sticky-bg, var(--df-bg-terminal))",
         width,
       }}
@@ -356,7 +356,7 @@ function BodyCell({ children, className = "" }: { children: React.ReactNode; cla
     <td
       className={`border-b px-2 py-0.5 align-middle ${className}`}
       style={{
-        borderColor: "color-mix(in srgb, var(--df-border) 25%, transparent)",
+        borderColor: "var(--border)",
         backgroundColor: className.includes("asset-col-actions")
           ? "var(--nyaterm-asset-sticky-bg, var(--df-bg-terminal))"
           : undefined,

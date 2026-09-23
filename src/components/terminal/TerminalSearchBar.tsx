@@ -174,7 +174,7 @@ export default function TerminalSearchBar({
               style={{
                 backgroundColor: wrapAround ? "var(--df-accent)" : "transparent",
                 color: wrapAround ? "var(--df-bg)" : "var(--df-text-muted)",
-                border: "1px solid var(--df-border)",
+                border: "1px solid var(--border)",
               }}
               title={t("terminalCtx.searchWrapAround")}
               aria-label={t("terminalCtx.searchWrapAround")}
@@ -248,7 +248,7 @@ function FlagButton({
       style={{
         backgroundColor: active ? "var(--df-accent)" : "transparent",
         color: active ? "var(--df-bg)" : "var(--df-text-muted)",
-        border: "1px solid var(--df-border)",
+        border: "1px solid var(--border)",
       }}
       title={title}
       onClick={onClick}
@@ -304,7 +304,7 @@ function HistoryResults({
   return (
     <div
       className="max-h-64 overflow-y-auto border-t pt-1"
-      style={{ borderColor: "var(--df-border)" }}
+      style={{ borderColor: "var(--border)" }}
     >
       <div className="mb-1 text-[11px]" style={{ color: "var(--df-text-muted)" }}>
         {t("terminalCtx.searchHistorySummary", {
@@ -334,7 +334,7 @@ function HistoryResults({
             {expandedLineId === result.lineId && (
               <div
                 className="mt-1 space-y-0.5 whitespace-pre-wrap border-t pt-1 font-mono text-[11px]"
-                style={{ borderColor: "var(--df-border)", color: "var(--df-text-muted)" }}
+                style={{ borderColor: "var(--border)", color: "var(--df-text-muted)" }}
               >
                 {result.before.map((line, index) => (
                   <div key={`before-${result.lineId}-${index}`}>{line}</div>

@@ -879,7 +879,7 @@ export default function SendCommandPanel({
   return (
     <div className="h-full flex flex-col overflow-hidden px-2 py-1.5 gap-2">
       <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-        <div className="flex h-8 min-w-[8.5rem] flex-[1_1_10rem] items-center overflow-hidden rounded-md border border-border/70 bg-background/60">
+        <div className="flex h-8 min-w-[8.5rem] flex-[1_1_10rem] items-center overflow-hidden rounded-md border border-border bg-background/60">
           <Label className="shrink-0 px-2 text-[0.625rem] text-muted-foreground">
             {t("serialSend.dataType", "Data Type")}
           </Label>
@@ -902,7 +902,7 @@ export default function SendCommandPanel({
           </Select>
         </div>
 
-        <div className="flex h-8 min-w-[10rem] flex-[1.2_1_12rem] items-center overflow-hidden rounded-md border border-border/70 bg-background/60">
+        <div className="flex h-8 min-w-[10rem] flex-[1.2_1_12rem] items-center overflow-hidden rounded-md border border-border bg-background/60">
           <Label className="shrink-0 px-2 text-[0.625rem] text-muted-foreground">
             {t("serialSend.sendMode", "Send Mode")}
           </Label>
@@ -938,7 +938,7 @@ export default function SendCommandPanel({
           </Select>
         </div>
 
-        <div className="flex h-8 min-w-[10rem] flex-[1.2_1_12rem] items-center overflow-hidden rounded-md border border-border/70 bg-background/60">
+        <div className="flex h-8 min-w-[10rem] flex-[1.2_1_12rem] items-center overflow-hidden rounded-md border border-border bg-background/60">
           <Label className="shrink-0 px-2 text-[0.625rem] text-muted-foreground">
             {t("serialSend.target", "Target")}
           </Label>
@@ -1018,11 +1018,11 @@ export default function SendCommandPanel({
           </DropdownMenu>
         </div>
 
-        <div className="flex h-8 min-w-[8.5rem] flex-[1_1_9.5rem] items-center overflow-hidden rounded-md border border-border/70 bg-background/60">
+        <div className="flex h-8 min-w-[8.5rem] flex-[1_1_9.5rem] items-center overflow-hidden rounded-md border border-border bg-background/60">
           <Label className="shrink-0 px-2 text-[0.625rem] text-muted-foreground">
             {t("serialSend.count", "Count")}
           </Label>
-          <div className="flex min-w-0 flex-1 items-center border-l border-border/60">
+          <div className="flex min-w-0 flex-1 items-center border-l border-border">
             <Button
               type="button"
               variant="ghost"
@@ -1057,11 +1057,11 @@ export default function SendCommandPanel({
           </div>
         </div>
 
-        <div className="flex h-8 min-w-[9rem] flex-[1_1_10rem] items-center overflow-hidden rounded-md border border-border/70 bg-background/60">
+        <div className="flex h-8 min-w-[9rem] flex-[1_1_10rem] items-center overflow-hidden rounded-md border border-border bg-background/60">
           <Label className="shrink-0 px-2 text-[0.625rem] text-muted-foreground">
             {t("serialSend.interval", "Interval")}
           </Label>
-          <div className="flex min-w-0 flex-1 items-center border-l border-border/60">
+          <div className="flex min-w-0 flex-1 items-center border-l border-border">
             <Input
               className="h-8 min-w-14 rounded-none border-0 bg-transparent px-2 text-right text-[0.75rem] font-medium shadow-none focus-visible:ring-0"
               value={intervalInput}
@@ -1082,7 +1082,7 @@ export default function SendCommandPanel({
           </div>
         </div>
         {targetKind === "serial" && dataType === "text" && sendMode === "line" && (
-          <div className="flex h-8 min-w-[7.5rem] flex-[0.8_1_8.5rem] items-center overflow-hidden rounded-md border border-border/70 bg-background/60">
+          <div className="flex h-8 min-w-[7.5rem] flex-[0.8_1_8.5rem] items-center overflow-hidden rounded-md border border-border bg-background/60">
             <Label className="shrink-0 px-2 text-[0.625rem] text-muted-foreground">
               {t("serialSend.lineEnding", "Line Ending")}
             </Label>
@@ -1139,7 +1139,7 @@ export default function SendCommandPanel({
         ) : (
           <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] gap-1.5 pr-36 pb-10">
             <div className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-background">
-              <div className="flex h-8 shrink-0 items-center border-b border-border/70 px-2">
+              <div className="flex h-8 shrink-0 items-center border-b border-border px-2">
                 <span className="text-[0.625rem] font-medium text-muted-foreground">
                   {t("serialSend.hexEditor", "HEX Editor")}
                 </span>
@@ -1193,8 +1193,8 @@ export default function SendCommandPanel({
                 />
               </div>
             </div>
-            <div className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border/70 bg-muted/30">
-              <div className="flex h-8 shrink-0 items-center border-b border-border/70 px-2">
+            <div className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-muted/30">
+              <div className="flex h-8 shrink-0 items-center border-b border-border px-2">
                 <span className="text-[0.625rem] font-medium text-muted-foreground">
                   {t("serialSend.hexPreview", "Preview")}
                 </span>
@@ -1213,7 +1213,7 @@ export default function SendCommandPanel({
           </div>
         )}
 
-        <div className="absolute top-2 right-2 z-20 flex h-6 items-center gap-1.5 rounded-md border border-border/70 bg-background/95 px-2 shadow-sm backdrop-blur">
+        <div className="absolute top-2 right-2 z-20 flex h-6 items-center gap-1.5 rounded-md border border-border bg-background/95 px-2 shadow-sm backdrop-blur">
           <Label
             htmlFor={clearAfterSendId}
             className="cursor-pointer whitespace-nowrap text-[0.625rem] text-muted-foreground"

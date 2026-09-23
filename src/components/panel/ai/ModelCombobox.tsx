@@ -65,10 +65,10 @@ export function ModelCombobox({
           <VscChevronDown className="shrink-0 text-sm" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 max-w-[calc(100vw-24px)] p-0" side="top" align="start">
+      <PopoverContent className="ai-chat-model-menu w-80 max-w-[calc(100vw-24px)] p-0" side="top" align="start">
         <Command>
           <CommandInput placeholder={t("ai.searchModels")} className="text-xs" />
-          <CommandList className="max-h-64 terminal-scroll">
+          <CommandList className="terminal-scroll">
             <CommandEmpty>{t("ai.noModelMatches")}</CommandEmpty>
             <CommandGroup heading={t("ai.reasoning")}>
               {REASONING_OPTIONS.map((effort) => (
@@ -103,7 +103,7 @@ export function ModelCombobox({
                     />
                     <span className="min-w-0 flex-1 truncate">{model.name}</span>
                     {providerLabel ? (
-                      <span className="shrink-0 text-[0.625rem] text-muted-foreground">
+                      <span className="ai-chat-model-provider" title={providerLabel}>
                         {providerLabel}
                       </span>
                     ) : null}

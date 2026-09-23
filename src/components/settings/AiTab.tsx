@@ -558,7 +558,7 @@ export function AiAgentsTab() {
         }
         contentClassName="space-y-4"
       >
-        <div className="rounded-md border border-border/70 bg-background/75 p-4">
+        <div className="rounded-md border border-border bg-background/75 p-4">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium">OpenAI Codex</div>
@@ -643,7 +643,7 @@ export function AiAgentsTab() {
             </div>
 
             {deviceLogin?.verificationUrl && deviceLogin.userCode ? (
-              <div className="rounded-md border border-border/70 bg-muted/20 p-3 text-xs">
+              <div className="rounded-md border border-border bg-muted/20 p-3 text-xs">
                 <div className="font-medium">{t("ai.codexDeviceLogin")}</div>
                 <div className="mt-2 font-mono">{deviceLogin.verificationUrl}</div>
                 <div className="mt-1 font-mono text-sm">{deviceLogin.userCode}</div>
@@ -681,7 +681,7 @@ export function AiAgentsTab() {
           </div>
         </div>
 
-        <div className="rounded-md border border-border/70 bg-background/75 p-4">
+        <div className="rounded-md border border-border bg-background/75 p-4">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium">Claude Code</div>
@@ -832,7 +832,7 @@ export function AiAgentsTab() {
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           {(["codex", "claudeCode", "cursor"] as const).map((client) => (
-            <div key={client} className="rounded-md border border-border/70 p-3">
+            <div key={client} className="rounded-md border border-border p-3">
               <div className="text-sm font-medium">
                 {client === "codex" ? "Codex" : client === "claudeCode" ? "Claude Code" : "Cursor"}
               </div>
@@ -1172,7 +1172,7 @@ export function AiModelsTab() {
             <MdRefresh className={refreshing ? "animate-spin" : ""} />
           </Button>
         </div>
-        <div className="max-h-[22rem] overflow-auto rounded-md border border-border/70 terminal-scroll">
+        <div className="max-h-[22rem] overflow-auto rounded-md border border-border terminal-scroll">
           {groupedModels.length === 0 ? (
             <div className="px-3 py-8 text-center text-xs text-muted-foreground">
               {visibleModels.length === 0 ? t("ai.noModels") : t("ai.noModelMatches")}
@@ -1185,7 +1185,7 @@ export function AiModelsTab() {
                 <div key={group.groupKey}>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 border-b border-border/60 bg-muted/30 px-3 py-2 text-left text-xs font-semibold hover:bg-muted/50"
+                    className="flex w-full items-center gap-2 border-b border-border bg-muted/30 px-3 py-2 text-left text-xs font-semibold hover:bg-muted/50"
                     onClick={() => toggleGroupCollapsed(group.groupKey)}
                   >
                     {isCollapsed ? (
@@ -1201,8 +1201,8 @@ export function AiModelsTab() {
                   {!isCollapsed ? (
                     <>
                       {group.credential ? (
-                        <div className="border-b border-border/60 px-3 py-2 pl-8">
-                          <div className="flex h-8 overflow-hidden rounded-md border border-border/60 bg-muted/12 transition-colors focus-within:border-primary/45 focus-within:bg-background/70 focus-within:ring-1 focus-within:ring-primary/15">
+                        <div className="border-b border-border px-3 py-2 pl-8">
+                          <div className="flex h-8 overflow-hidden rounded-md border border-border bg-muted/12 transition-colors focus-within:border-primary/45 focus-within:bg-background/70 focus-within:ring-1 focus-within:ring-primary/15">
                             <Input
                               value={manualModelNames[group.groupKey] ?? ""}
                               placeholder={t("ai.manualModelPlaceholder")}
@@ -1225,7 +1225,7 @@ export function AiModelsTab() {
                               variant="ghost"
                               disabled={!manualModelNames[group.groupKey]?.trim()}
                               title={t("common.add")}
-                              className="h-full rounded-none border-l border-border/60 px-3 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:opacity-35"
+                              className="h-full rounded-none border-l border-border px-3 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:opacity-35"
                               onClick={() => group.credential && addManualModel(group.credential)}
                             >
                               <MdAdd />
@@ -1242,14 +1242,14 @@ export function AiModelsTab() {
                       {group.models.map((model) => (
                         <div
                           key={model.id}
-                          className="flex items-center gap-3 border-b border-border/60 px-3 py-2 pl-8 last:border-b-0"
+                          className="flex items-center gap-3 border-b border-border px-3 py-2 pl-8 last:border-b-0"
                         >
                           <div className="flex min-w-0 flex-1 items-center gap-2">
                             <div className="min-w-0 truncate text-xs">{model.name}</div>
                             {model.source === "manual" ? (
                               <Badge
                                 variant="outline"
-                                className="h-5 border-border/70 px-1.5 text-[0.625rem] font-normal text-muted-foreground"
+                                className="h-5 border-border px-1.5 text-[0.625rem] font-normal text-muted-foreground"
                               >
                                 {t("ai.manualModelBadge")}
                               </Badge>
@@ -1297,7 +1297,7 @@ export function AiModelsTab() {
           return (
             <div
               key={credential.id}
-              className="rounded-md border border-border/70 bg-background/75 p-4"
+              className="rounded-md border border-border bg-background/75 p-4"
             >
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="min-w-0 truncate text-sm font-medium">{credential.name}</div>
@@ -1450,7 +1450,7 @@ function ActionListEditor({
       contentClassName="space-y-4"
     >
       {actions.map((action) => (
-        <div key={action.id} className="rounded-md border border-border/70 bg-background/75 p-4">
+        <div key={action.id} className="rounded-md border border-border bg-background/75 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0 truncate text-sm font-medium">{action.name}</div>
             <div className="flex items-center gap-2">

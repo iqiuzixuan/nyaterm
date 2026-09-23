@@ -244,7 +244,7 @@
 .workspace-resize-handle > span {
   position: absolute;
   border-radius: 3px;
-  background: var(--df-border);
+  background: var(--border);
   pointer-events: none;
 }
 .workspace-resize-handle[data-direction="horizontal"] > span {

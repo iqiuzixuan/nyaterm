@@ -76,7 +76,7 @@ export function OtpCodePanel({
   const containerClassName = useMemo(
     () =>
       [
-        "min-w-0 rounded-md border border-border/70 bg-background/70 px-3 py-3",
+        "min-w-0 rounded-md border border-border bg-background/70 px-3 py-3",
         variant === "dialog" ? "space-y-3" : "space-y-2.5",
         className,
       ]
@@ -134,7 +134,7 @@ export function OtpCodePanel({
     <div className={containerClassName}>
       <div className="flex items-center justify-between gap-2">
         <Label className="text-[0.6875rem] text-muted-foreground">{t("otp.currentCode")}</Label>
-        <span className="rounded-full border border-border/70 px-2 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="rounded-full border border-border px-2 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {resolvedType.toUpperCase()}
         </span>
       </div>

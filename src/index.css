@@ -98,8 +98,9 @@
   --accent: var(--df-bg-hover);
   --accent-foreground: var(--df-text);
   --destructive: var(--df-danger);
-  --border: var(--df-border);
-  --input: var(--df-border);
+  /* All neutral UI outlines share the workspace treatment, including portals. */
+  --border: var(--workspace-border);
+  --input: var(--border);
   --ring: var(--df-focus-ring);
 }
 
@@ -260,7 +261,7 @@ body[data-window-transparency="true"] #root {
   z-index: 20;
   max-width: min(36rem, calc(100% - 1rem));
   padding: 0.5rem 0.625rem;
-  border: 1px solid var(--df-border);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
   background: color-mix(in srgb, var(--df-bg-panel) 96%, black 4%);
   box-shadow: 0 8px 24px rgb(0 0 0 / 22%);
@@ -387,8 +388,8 @@ body[data-window-transparency="true"] #root {
   --baseBg: var(--df-bg-hover);
   --baseBgHover: color-mix(in srgb, var(--df-text) 10%, transparent);
   --baseBgActive: color-mix(in srgb, var(--df-primary) 18%, transparent);
-  --baseLine: var(--df-border);
-  --baseBorder: var(--df-border);
+  --baseLine: var(--border);
+  --baseBorder: var(--border);
   --baseBorderHover: color-mix(in srgb, var(--df-text-muted) 50%, var(--df-border));
   --baseSolid: var(--df-text-muted);
   --baseSolidHover: var(--df-text);
@@ -415,7 +416,7 @@ body[data-window-transparency="true"] #root {
   --admonitionDangerBg: color-mix(in srgb, #ef4444 13%, transparent);
   --admonitionDangerBorder: color-mix(in srgb, #ef4444 58%, var(--df-border));
   --admonitionNoteBg: var(--df-bg-hover);
-  --admonitionNoteBorder: var(--df-border);
+  --admonitionNoteBorder: var(--border);
   --error-color: #ef4444;
   background: var(--df-bg-panel);
   color: var(--df-text);
@@ -425,7 +426,7 @@ body[data-window-transparency="true"] #root {
   position: sticky;
   top: 0;
   z-index: 5;
-  border-bottom: 1px solid var(--df-border);
+  border-bottom: 1px solid var(--border);
   background: var(--df-bg-section-header);
   color: var(--df-text);
   gap: 4px;
@@ -455,7 +456,7 @@ body[data-window-transparency="true"] #root {
 }
 
 .nyaterm-note-mdxeditor .cm-gutters {
-  border-right-color: var(--df-border);
+  border-right-color: var(--border);
   color: var(--df-text-dimmed);
 }
 
@@ -468,7 +469,7 @@ body[data-window-transparency="true"] #root {
 .nyaterm-note-mdxeditor textarea {
   background: var(--df-bg-input);
   color: var(--df-text);
-  border-color: var(--df-border);
+  border-color: var(--border);
 }
 
 .nyaterm-note-content {
@@ -532,6 +533,6 @@ body[data-window-transparency="true"] #root {
 
 .nyaterm-note-content th,
 .nyaterm-note-content td {
-  border: 1px solid var(--df-border);
+  border: 1px solid var(--border);
   padding: 0.4rem 0.55rem;
 }

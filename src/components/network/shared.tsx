@@ -113,7 +113,7 @@ export function ConnectionField({
     <div
       className="rounded-md border px-3 py-2"
       style={{
-        borderColor: "var(--df-border)",
+        borderColor: "var(--border)",
         backgroundColor: "color-mix(in srgb, var(--df-bg-hover) 55%, transparent)",
       }}
     >

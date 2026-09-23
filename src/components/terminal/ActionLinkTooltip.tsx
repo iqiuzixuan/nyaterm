@@ -83,9 +83,9 @@ export default function ActionLinkTooltip({ state }: ActionLinkTooltipProps) {
         top: pos?.top ?? state.y + 16,
       }}
     >
-      <div className="rounded-xl border border-[var(--workspace-border)] bg-popover backdrop-blur-md text-popover-foreground shadow-2xl shadow-black/20 text-xs max-w-[340px] overflow-hidden select-none">
+      <div className="workbench-popover bg-popover backdrop-blur-md text-popover-foreground text-xs max-w-[340px] overflow-hidden select-none">
         {/* Header Section */}
-        <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border/40 bg-muted/20">
+        <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border bg-muted/20">
           <div
             className={`flex items-center justify-center rounded-md border px-1.5 py-1 gap-1.5 text-[10px] font-medium tracking-wide ${config.color}`}
           >
@@ -105,7 +105,7 @@ export default function ActionLinkTooltip({ state }: ActionLinkTooltipProps) {
           <div className="px-3 py-2.5 flex flex-col gap-2 bg-popover/50">
             <div className="flex items-center gap-2 font-mono text-[11px] truncate">
               <div className="flex items-center gap-1 shrink-0">
-                <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border/80 bg-muted/60 px-1 font-sans font-medium text-foreground/80 shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
+                <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border bg-muted/60 px-1 font-sans font-medium text-foreground/80 shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
                   {modLabel}
                 </kbd>
                 <span className="text-muted-foreground/50">+</span>
@@ -124,7 +124,7 @@ export default function ActionLinkTooltip({ state }: ActionLinkTooltipProps) {
             </div>
 
             {hasMoreActions && (
-              <div className="text-[10px] text-muted-foreground/70 flex items-center gap-1.5 pt-1.5 border-t border-border/30">
+              <div className="text-[10px] text-muted-foreground/70 flex items-center gap-1.5 pt-1.5 border-t border-border">
                 <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
                 {t("terminal.actionLinkAltClickHint")}
               </div>

@@ -8,6 +8,10 @@
   --workbench-icon-size: 16px;
   --workbench-action-size: 22px;
   --workbench-control-radius: 4px;
+  --workbench-menu-row-height: 24px;
+  --workbench-menu-font-size: 12px;
+  --workbench-menu-line-height: 16px;
+  --workbench-popup-radius: 6px;
 }
 
 /* Radix portals live outside workspace cards; share their theme-derived border. */
@@ -20,11 +24,75 @@
 [data-slot="dropdown-menu-content"],
 [data-slot="dropdown-menu-sub-content"],
 [data-slot="menubar-content"],
-[data-slot="menubar-sub-content"] {
-  border-color: var(--workspace-border);
+[data-slot="menubar-sub-content"],
+.workbench-popover {
+  border: 1px solid var(--border);
+  border-radius: var(--workbench-popup-radius);
+  box-shadow: 0 4px 12px var(--df-shadow);
 }
 [data-slot="tooltip-arrow"] {
-  stroke: var(--workspace-border);
+  stroke: var(--border);
+}
+
+/* One menu scale for searchable pickers, selects, context menus and submenus. */
+[data-slot="command-item"],
+[data-slot="select-item"],
+[data-slot="context-menu-item"],
+[data-slot="context-menu-checkbox-item"],
+[data-slot="context-menu-radio-item"],
+[data-slot="context-menu-sub-trigger"],
+[data-slot="dropdown-menu-item"],
+[data-slot="dropdown-menu-checkbox-item"],
+[data-slot="dropdown-menu-radio-item"],
+[data-slot="dropdown-menu-sub-trigger"],
+[data-slot="menubar-item"],
+[data-slot="menubar-checkbox-item"],
+[data-slot="menubar-radio-item"],
+[data-slot="menubar-sub-trigger"],
+.workbench-menu-item {
+  min-height: var(--workbench-menu-row-height);
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-radius: var(--workbench-control-radius);
+  font-size: var(--workbench-menu-font-size);
+  line-height: var(--workbench-menu-line-height);
+}
+[data-slot="command-group"] [cmdk-group-heading],
+[data-slot="select-label"],
+[data-slot="context-menu-label"],
+[data-slot="dropdown-menu-label"],
+[data-slot="menubar-label"],
+.workbench-menu-label {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: var(--workbench-menu-line-height);
+}
+[data-slot="command-input-wrapper"] {
+  flex-shrink: 0;
+  height: 28px;
+  gap: 6px;
+  padding: 0 8px;
+  border-color: var(--border);
+}
+[data-slot="command-input"] {
+  height: 26px;
+  min-width: 0;
+  padding: 0;
+  font-size: var(--workbench-menu-font-size);
+  line-height: var(--workbench-menu-line-height);
+}
+[data-slot="command-input-wrapper"] > svg,
+[data-slot="command-item"] > svg,
+[data-slot="select-item-indicator"] svg {
+  width: var(--workbench-icon-size);
+  height: var(--workbench-icon-size);
+}
+[data-slot="command-empty"],
+.workbench-menu-empty {
+  padding: 8px;
+  font-size: var(--workbench-menu-font-size);
+  line-height: var(--workbench-menu-line-height);
 }
 
 .workspace-panel-tools {

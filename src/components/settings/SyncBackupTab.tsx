@@ -808,7 +808,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
               </div>
             </SettingRow>
             {githubAuth.flow ? (
-              <div className="rounded-lg border border-border/70 bg-muted/15 px-4 py-3">
+              <div className="rounded-lg border border-border bg-muted/15 px-4 py-3">
                 <div className="text-xs text-muted-foreground">
                   {t("settings.githubGistUserCode")}
                 </div>
@@ -837,7 +837,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
               </div>
             ) : null}
             {githubAuth.message || githubAuth.login || settings.github_gist.gist_id ? (
-              <div className="min-w-0 rounded-lg border border-border/70 bg-card/60 px-4 py-3 text-sm text-muted-foreground break-words [overflow-wrap:anywhere]">
+              <div className="min-w-0 rounded-lg border border-border bg-card/60 px-4 py-3 text-sm text-muted-foreground break-words [overflow-wrap:anywhere]">
                 {githubAuth.login ? (
                   <div>{t("settings.githubGistConnectedAs", { login: githubAuth.login })}</div>
                 ) : null}
@@ -1018,7 +1018,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
           {statusItems.map((item) => (
             <div
               key={item.label}
-              className="rounded-lg border border-border/70 bg-muted/15 px-3 py-3"
+              className="rounded-lg border border-border bg-muted/15 px-3 py-3"
             >
               <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {item.label}
@@ -1031,7 +1031,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
         </div>
 
         {status.message ? (
-          <div className="min-w-0 rounded-lg border border-border/70 bg-card/60 px-4 py-3 text-sm text-muted-foreground break-words [overflow-wrap:anywhere]">
+          <div className="min-w-0 rounded-lg border border-border bg-card/60 px-4 py-3 text-sm text-muted-foreground break-words [overflow-wrap:anywhere]">
             {status.message}
           </div>
         ) : null}
@@ -1090,7 +1090,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
               </span>
             </p>
             <div className="mt-3 grid gap-2 md:grid-cols-2">
-              <div className="rounded-md border border-border/70 bg-background/70 px-3 py-3">
+              <div className="rounded-md border border-border bg-background/70 px-3 py-3">
                 <div className="text-[0.6875rem] uppercase tracking-[0.14em] text-muted-foreground">
                   {t("settings.localSnapshot")}
                 </div>
@@ -1098,7 +1098,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
                   {shortValue(status.conflict.local_payload_hash, 10)}
                 </div>
               </div>
-              <div className="rounded-md border border-border/70 bg-background/70 px-3 py-3">
+              <div className="rounded-md border border-border bg-background/70 px-3 py-3">
                 <div className="text-[0.6875rem] uppercase tracking-[0.14em] text-muted-foreground">
                   {t("settings.remoteSnapshot")}
                 </div>
@@ -1110,7 +1110,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
                 </div>
               </div>
               {isRemoteInconsistent ? (
-                <div className="rounded-md border border-border/70 bg-background/70 px-3 py-3 md:col-span-2">
+                <div className="rounded-md border border-border bg-background/70 px-3 py-3 md:col-span-2">
                   <div className="text-[0.6875rem] uppercase tracking-[0.14em] text-muted-foreground">
                     {t("settings.currentRemoteSnapshot")}
                   </div>
@@ -1185,7 +1185,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
         ) : null}
 
         {!status.conflict ? (
-          <div className="rounded-lg border border-dashed border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
             {t("settings.noSyncConflict")}
           </div>
         ) : null}

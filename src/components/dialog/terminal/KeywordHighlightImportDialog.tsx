@@ -92,7 +92,7 @@ export function KeywordHighlightImportDialog({
             type="button"
             disabled={importing}
             className="flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-colors hover:border-[var(--df-primary)] hover:bg-[color-mix(in_srgb,var(--df-primary)_8%,transparent)] disabled:cursor-default disabled:opacity-60"
-            style={{ borderColor: "var(--df-border)" }}
+            style={{ borderColor: "var(--border)" }}
             onClick={handleSelectJson}
           >
             <MdDataObject className="h-10 w-10 text-[var(--df-primary)]" />

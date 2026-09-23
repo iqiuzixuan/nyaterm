@@ -50,7 +50,7 @@ export default function AssetToolbar({
           spellCheck={false}
           className="h-7 w-full rounded border bg-transparent pl-9 pr-8 text-xs outline-none transition-colors placeholder:text-[var(--df-text-dimmed)] focus:border-[var(--df-primary)]"
           style={{
-            borderColor: "var(--df-border)",
+            borderColor: "var(--border)",
             color: "var(--df-text)",
             backgroundColor: "color-mix(in srgb, var(--df-bg-hover) 55%, transparent)",
           }}

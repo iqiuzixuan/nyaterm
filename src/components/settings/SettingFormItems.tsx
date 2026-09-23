@@ -59,10 +59,10 @@ export function SettingSection({
 }: SettingSectionProps) {
   return (
     <section
-      className={cn("min-w-0 rounded-lg border border-border/40 bg-card/60", className)}
+      className={cn("min-w-0 rounded-lg border border-border bg-card/60", className)}
     >
       {(title || desc || action) && (
-        <div className="flex flex-col gap-2 border-b border-border/30 px-3 py-3">
+        <div className="flex flex-col gap-2 border-b border-border px-3 py-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             {(title || desc) && (
               <div className="min-w-0">

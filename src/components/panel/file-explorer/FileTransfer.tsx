@@ -302,7 +302,7 @@ function TransferRow({
               : item.totalSize > 0) && (
               <div
                 className="mt-1 h-1 rounded-full overflow-hidden"
-                style={{ backgroundColor: "var(--df-border)" }}
+                style={{ backgroundColor: "var(--border)" }}
               >
                 <div
                   className="h-full rounded-full transition-all duration-200"
@@ -680,7 +680,7 @@ export default function FileTransfer({ activeSessionId }: FileTransferProps) {
             <div
               className="shrink-0 border-t px-2 py-1.5 font-mono text-[0.75rem] leading-tight"
               style={{
-                borderColor: "var(--df-border)",
+                borderColor: "var(--border)",
                 color: "var(--df-text-dimmed)",
               }}
               onClick={() => void handleOpenDownloadDir()}

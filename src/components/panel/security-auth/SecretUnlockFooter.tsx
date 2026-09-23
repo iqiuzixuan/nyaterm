@@ -112,7 +112,7 @@ export function SecretUnlockFooter({
           <TooltipTrigger asChild>
             <button
               type="button"
-              className="group flex h-10 w-full shrink-0 cursor-pointer items-center justify-between gap-3 border-t border-[var(--df-border)] bg-primary/10 px-3 text-xs text-foreground transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
+              className="group flex h-10 w-full shrink-0 cursor-pointer items-center justify-between gap-3 border-t border-[var(--border)] bg-primary/10 px-3 text-xs text-foreground transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
               onClick={unlocked ? onLock : handleRequestUnlock}
             >
               <span className="flex min-w-0 items-center gap-2">

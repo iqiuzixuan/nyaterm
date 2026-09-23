@@ -112,7 +112,7 @@ export default function DeleteDialog({ data, onClose, onSuccess }: DeleteDialogP
         {data.items.length > 1 && (
           <div
             className="terminal-scroll max-h-40 overflow-y-auto rounded-md border px-2 py-1.5 text-xs"
-            style={{ borderColor: "var(--df-border)", color: "var(--df-text-dimmed)" }}
+            style={{ borderColor: "var(--border)", color: "var(--df-text-dimmed)" }}
           >
             {previewItems.map((item) => (
               <div key={item.path} className="truncate py-0.5" title={item.path}>

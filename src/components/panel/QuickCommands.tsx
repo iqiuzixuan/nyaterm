@@ -1054,7 +1054,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
       <Badge
         variant="outline"
         className={cn(
-          "max-w-[6.5rem] gap-1 border-border/40 bg-background/35 px-1.5 py-0 text-[0.625rem] leading-4 text-muted-foreground",
+          "max-w-[6.5rem] gap-1 border-border bg-background/35 px-1.5 py-0 text-[0.625rem] leading-4 text-muted-foreground",
           className,
         )}
       >
@@ -1076,7 +1076,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
     (cmd: QuickCommand) => (
       <div className="relative">
         <pre
-          className="custom-scrollbar terminal-scroll max-h-[120px] overflow-y-auto whitespace-pre-wrap break-all rounded-md border border-border/40 bg-background/50 p-2.5 pr-9 font-mono text-[0.6875rem] text-foreground/80"
+          className="custom-scrollbar terminal-scroll max-h-[120px] overflow-y-auto whitespace-pre-wrap break-all rounded-md border border-border bg-background/50 p-2.5 pr-9 font-mono text-[0.6875rem] text-foreground/80"
           title={cmd.command}
         >
           {cmd.command}
@@ -1125,10 +1125,10 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
             side="top"
             align="end"
             sideOffset={6}
-            className="w-[320px] overflow-hidden rounded-xl border-border/60 bg-popover/95 p-0 shadow-2xl backdrop-blur-md"
+            className="w-[320px] overflow-hidden rounded-xl border-border bg-popover/95 p-0 shadow-2xl backdrop-blur-md"
           >
             <div className="flex flex-col">
-              <div className="flex flex-col gap-1.5 border-b border-border/30 bg-muted/30 p-3">
+              <div className="flex flex-col gap-1.5 border-b border-border bg-muted/30 p-3">
                 <div className="flex items-center gap-2">
                   <span className="flex h-4 w-4 shrink-0 items-center justify-center">
                     {renderCommandIcon(cmd, "text-[0.875rem]")}
@@ -1281,7 +1281,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
             onDrop={(event) => handleCommandDrop(event, cmd.id)}
             onDragEnd={resetCommandDrag}
             className={cn(
-              "group flex min-h-11 w-full min-w-0 items-center gap-2 rounded-md border border-border/35 bg-muted/15 px-2 py-1.5 text-xs transition-colors hover:bg-muted/45 hover:text-foreground",
+              "group flex min-h-11 w-full min-w-0 items-center gap-2 rounded-md border border-border bg-muted/15 px-2 py-1.5 text-xs transition-colors hover:bg-muted/45 hover:text-foreground",
               draggable && "cursor-grab active:cursor-grabbing",
               isDragging && "opacity-50",
               isDropTarget && "ring-1 ring-primary/70",
@@ -1416,7 +1416,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                   onDrop={(event) => handleCommandDrop(event, cmd.id)}
                   onDragEnd={resetCommandDrag}
                   className={cn(
-                    "group flex max-w-full shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-border/35 bg-muted/20 px-2 py-1 text-left text-[0.6875rem] font-medium text-foreground/80 transition-colors hover:bg-muted/50 hover:text-foreground",
+                    "group flex max-w-full shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-muted/20 px-2 py-1 text-left text-[0.6875rem] font-medium text-foreground/80 transition-colors hover:bg-muted/50 hover:text-foreground",
                     draggable && "cursor-grab active:cursor-grabbing",
                     isDragging && "opacity-50",
                     isDropTarget && "ring-1 ring-primary/70",
@@ -1441,10 +1441,10 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
               side="top"
               align="start"
               showArrow={false}
-              className="w-[320px] overflow-hidden rounded-xl border-border/60 bg-popover/95 p-0 shadow-2xl backdrop-blur-md"
+              className="w-[320px] overflow-hidden rounded-xl border-border bg-popover/95 p-0 shadow-2xl backdrop-blur-md"
             >
               <div className="flex flex-col">
-                <div className="flex flex-col gap-1.5 border-b border-border/30 bg-muted/30 p-3">
+                <div className="flex flex-col gap-1.5 border-b border-border bg-muted/30 p-3">
                   <div className="flex items-center gap-2">
                     <span className="flex h-4 w-4 shrink-0 items-center justify-center">
                       {renderCommandIcon(cmd, "text-[0.875rem]")}

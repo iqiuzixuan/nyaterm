@@ -78,7 +78,7 @@ export default function NotesPanelHeader({
       <div
         className="nyaterm-wallpaper-transparent-surface flex shrink-0 items-center gap-1.5 border-b px-2 py-1.5"
         style={{
-          borderColor: "color-mix(in srgb, var(--df-border) 40%, transparent)",
+          borderColor: "var(--border)",
           backgroundColor: "var(--df-bg-section-header)",
         }}
       >

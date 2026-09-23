@@ -49,7 +49,7 @@ function ToolbarDivider() {
     <span
       aria-hidden="true"
       className="mx-1 h-3 w-px shrink-0 rounded-full"
-      style={{ backgroundColor: "var(--df-border)" }}
+      style={{ backgroundColor: "var(--border)" }}
     />
   );
 }
@@ -114,7 +114,7 @@ export function FileExplorerToolbar({
   return (
     <div
       className="nyaterm-wallpaper-transparent-surface relative flex items-center px-1.5 py-1 border-b gap-0.5"
-      style={{ backgroundColor: "var(--df-bg-panel)", borderColor: "var(--df-border)" }}
+      style={{ backgroundColor: "var(--df-bg-panel)", borderColor: "var(--border)" }}
     >
       <ToolbarIconButton
         label={t("fileExplorer.newFile")}

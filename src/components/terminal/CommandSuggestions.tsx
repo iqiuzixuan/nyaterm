@@ -147,12 +147,11 @@ function CommandSuggestions({
 
   return (
     <div
-      className="fixed z-[9999] w-[380px] overflow-y-auto rounded-lg border backdrop-blur-sm shadow-2xl terminal-scroll"
+      className="workbench-popover fixed z-[9999] w-[380px] overflow-y-auto backdrop-blur-sm terminal-scroll"
       ref={listRef}
       style={{
         ...popupStyle,
         backgroundColor: "color-mix(in srgb, var(--df-bg-panel) 95%, transparent)",
-        borderColor: "var(--workspace-border)",
       }}
       onMouseDown={(e) => {
         // Prevent the terminal from losing focus
@@ -162,7 +161,7 @@ function CommandSuggestions({
       {/* Unified header */}
       <div
         className="px-2 py-1.5 text-[0.625rem] uppercase tracking-wider border-b flex items-center gap-1.5"
-        style={{ color: "var(--df-text-dimmed)", borderColor: "var(--df-border)" }}
+        style={{ color: "var(--df-text-dimmed)", borderColor: "var(--border)" }}
       >
         <MdTipsAndUpdates className="text-[0.75rem]" />
         <span>{t("suggestions.title")}</span>
@@ -234,7 +233,7 @@ function CommandSuggestions({
 
       <div
         className="px-2 py-1 border-t flex items-center gap-3 text-[0.625rem]"
-        style={{ borderColor: "var(--df-border)", color: "var(--df-text-dimmed)" }}
+        style={{ borderColor: "var(--border)", color: "var(--df-text-dimmed)" }}
       >
         <span>
           <Kbd

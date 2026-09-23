@@ -79,7 +79,7 @@ export function GeneralTab() {
         </SettingRow>
 
         {appSettings.general.startup_restore && (
-          <div className="border-l pl-4 ml-1" style={{ borderColor: "var(--df-border)" }}>
+          <div className="border-l pl-4 ml-1" style={{ borderColor: "var(--border)" }}>
             <SettingRow
               label={t("settings.startupRestoreWindowLayout")}
               desc={t("settings.startupRestoreWindowLayoutDesc")}

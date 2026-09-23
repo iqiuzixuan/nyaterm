@@ -1335,7 +1335,7 @@ function TabBar({
           isActive ? "" : "df-hover"
         } ${draggedTabId === tab.id ? "opacity-60" : ""}`}
         style={{
-          borderColor: "var(--df-border)",
+          borderColor: "var(--border)",
           backgroundColor: isActive
             ? accentColor
               ? `color-mix(in srgb, ${accentColor} 16%, var(--df-bg))`
@@ -1708,7 +1708,7 @@ function TabBar({
                     className="workspace-tabbar-actions flex h-full w-8 shrink-0 items-center justify-center border-l transition-colors df-hover"
                     style={{
                       color: "var(--df-text-muted)",
-                      borderColor: "var(--df-border)",
+                      borderColor: "var(--border)",
                     }}
                     aria-label={t("terminal.openTabs")}
                   >
@@ -1751,7 +1751,7 @@ function TabBar({
                   className="workspace-tabbar-actions flex h-full w-9 shrink-0 items-center justify-center border-l transition-colors df-hover"
                   style={{
                     color: "var(--df-text-muted)",
-                    borderColor: "var(--df-border)",
+                    borderColor: "var(--border)",
                   }}
                   aria-label={t("terminal.newSession")}
                 >

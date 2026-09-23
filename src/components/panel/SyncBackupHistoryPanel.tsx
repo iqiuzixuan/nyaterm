@@ -137,7 +137,7 @@ interface StatRowProps {
 
 function StatRow({ label, value }: StatRowProps) {
   return (
-    <div className="min-w-0 rounded-md border border-border/50 bg-background/30 px-3 py-2">
+    <div className="min-w-0 rounded-md border border-border bg-background/30 px-3 py-2">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="mt-0.5 truncate font-mono text-xs text-foreground/80">{value}</div>
     </div>
@@ -152,7 +152,7 @@ interface HistoryDetailFieldProps {
 
 function HistoryDetailField({ label, value, monospace = false }: HistoryDetailFieldProps) {
   return (
-    <div className="rounded-md border border-border/50 bg-background/30 px-3 py-2">
+    <div className="rounded-md border border-border bg-background/30 px-3 py-2">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className={cn("mt-0.5 text-sm text-foreground/85", monospace && "font-mono text-xs")}>
         {value}
@@ -335,7 +335,7 @@ function SyncBackupHistoryPanel() {
       />
 
       <div className="terminal-scroll flex-1 overflow-y-auto">
-        <div className="border-b border-border/60 px-3 py-2.5">
+        <div className="border-b border-border px-3 py-2.5">
           <div className="flex min-w-0 items-center gap-2 text-sm">
             <span
               className={cn(
@@ -433,7 +433,7 @@ function SyncBackupHistoryPanel() {
         ) : null}
 
         <div className="p-2">
-          <div className="overflow-hidden rounded-md border border-border/60 bg-background/20">
+          <div className="overflow-hidden rounded-md border border-border bg-background/20">
             {loading ? (
               <div className="flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground/60">
                 <MdRefresh className="animate-spin text-2xl" />
@@ -497,7 +497,7 @@ const HistoryEntryRow = memo(function HistoryEntryRow({
   }, [entry.message, t]);
 
   return (
-    <div className="border-b border-border/50 px-3 py-3 last:border-b-0">
+    <div className="border-b border-border px-3 py-3 last:border-b-0">
       <div className="flex items-start gap-2.5">
         <span
           className={cn("mt-2 h-1.5 w-1.5 shrink-0 rounded-full", statusDotClass(entry.status))}

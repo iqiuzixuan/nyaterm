@@ -1525,10 +1525,9 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
       {showExecutionMenu ? (
         <div
           ref={executionMenuRef}
-          className="absolute right-2 top-10 z-30 w-64 overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg"
-          style={{ borderColor: "var(--workspace-border)" }}
+          className="workbench-popover absolute right-2 top-10 z-30 w-64 overflow-hidden bg-popover p-1 text-popover-foreground"
         >
-          <div className="px-2 py-1.5 text-xs font-medium">{t("ai.agentCommandExecutionMode")}</div>
+          <div className="workbench-menu-label">{t("ai.agentCommandExecutionMode")}</div>
           {renderExecutionModeItem(
             "confirm_each",
             <VscChecklist />,
@@ -1550,7 +1549,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
             true,
           )}
           <div className="-mx-1 my-1 h-px bg-border" />
-          <div className="px-2 py-1.5 text-xs font-medium">{t("ai.executionMethod")}</div>
+          <div className="workbench-menu-label">{t("ai.executionMethod")}</div>
           <button
             type="button"
             className="flex w-full items-start gap-2 rounded px-2 py-2 text-left hover:bg-muted/60"
@@ -1577,19 +1576,18 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
       {showHistory ? (
         <div
           ref={historyCardRef}
-          className="absolute left-2 right-2 top-10 z-30 flex flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg"
+          className="workbench-popover absolute left-2 right-2 top-10 z-30 flex flex-col overflow-hidden bg-popover text-popover-foreground"
           style={{
-            borderColor: "var(--workspace-border)",
             maxHeight: "min(22rem, calc(100% - 3rem))",
           }}
         >
-          <div className="border-b border-border/70 p-2">
+          <div className="border-b border-border p-2">
             <div className="relative">
               <VscSearch className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground" />
               <Input
                 value={historyQuery}
                 placeholder={t("ai.historySearchPlaceholder")}
-                className="h-8 pl-8 text-xs"
+                className="h-7 pl-7 text-xs"
                 autoFocus
                 onChange={(event) => setHistoryQuery(event.target.value)}
                 onKeyDown={(event) => {
@@ -1600,7 +1598,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
               />
             </div>
           </div>
-          <div className="flex items-center justify-between gap-2 border-b border-border/70 px-2 py-1.5">
+          <div className="flex items-center justify-between gap-2 border-b border-border px-2 py-1.5">
             <span className="text-xs font-medium">{t("ai.history")}</span>
             <Button
               size="xs"
@@ -1617,13 +1615,13 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
             </Button>
           </div>
           {historyLoadError ? (
-            <div className="border-b border-border/70 px-3 py-2 text-[0.6875rem] text-destructive">
+            <div className="border-b border-border px-3 py-2 text-[0.6875rem] text-destructive">
               {t("ai.historyLoadFailed")}: {historyLoadError}
             </div>
           ) : null}
           <div className="min-h-0 overflow-auto p-2 terminal-scroll">
             {filteredSessions.length === 0 ? (
-              <div className="py-4 text-center text-xs text-muted-foreground">
+              <div className="workbench-menu-empty text-center text-muted-foreground">
                 {sessions.length === 0 ? t("ai.noHistory") : t("ai.noHistoryMatches")}
               </div>
             ) : (
@@ -1691,7 +1689,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
       ) : null}
 
       {detectedError ? (
-        <div className="border-b border-border/70 bg-amber-500/10 p-3 text-xs">
+        <div className="border-b border-border bg-amber-500/10 p-3 text-xs">
           <div className="font-medium text-amber-600">{t("ai.errorDetected")}</div>
           <div className="mt-2 flex gap-1.5">
             <Button
@@ -1732,13 +1730,13 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                       </div>
                     </div>
                     <div className="w-full space-y-2 text-left text-xs">
-                      <div className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+                      <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
                         <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[0.625rem] font-bold text-primary">
                           1
                         </span>
                         <span>{t("ai.setupStep1")}</span>
                       </div>
-                      <div className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+                      <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
                         <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[0.625rem] font-bold text-primary">
                           2
                         </span>
@@ -1879,12 +1877,11 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
             {showMentionPopover ? (
               <div
                 ref={mentionPopoverRef}
-                className="absolute bottom-full left-0 right-0 z-30 mb-1 flex max-h-48 flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg"
-                style={{ borderColor: "var(--df-border)" }}
+                className="workbench-popover absolute bottom-full left-0 right-0 z-30 mb-1 flex max-h-48 flex-col overflow-hidden bg-popover text-popover-foreground"
               >
                 <div className="min-h-0 overflow-auto p-1 terminal-scroll">
                   {filteredMentionPanes.length === 0 ? (
-                    <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    <div className="workbench-menu-empty text-center text-muted-foreground">
                       {t("ai.noSessions")}
                     </div>
                   ) : (
@@ -1898,7 +1895,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                             if (isFocused && el) el.scrollIntoView({ block: "nearest" });
                           }}
                           type="button"
-                          className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted/60 ${isFocused ? "bg-accent" : ""} ${isSelected ? "bg-primary/10" : ""}`}
+                          className={`workbench-menu-item flex w-full items-center gap-2 px-2 text-left hover:bg-muted/60 ${isFocused ? "bg-accent" : ""} ${isSelected ? "bg-primary/10" : ""}`}
                           onClick={() => selectMentionPane(pane)}
                           onPointerEnter={() => setMentionIndex(idx)}
                         >

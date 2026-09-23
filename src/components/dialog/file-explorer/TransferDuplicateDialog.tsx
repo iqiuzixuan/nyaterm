@@ -125,7 +125,7 @@ export function TransferDuplicateDialog() {
         {request?.remotePath && (
           <div
             className="rounded-md border px-2 py-1.5 font-mono text-[0.6875rem] break-all"
-            style={{ borderColor: "var(--df-border)", color: "var(--df-text-dimmed)" }}
+            style={{ borderColor: "var(--border)", color: "var(--df-text-dimmed)" }}
           >
             {request.remotePath}
           </div>
