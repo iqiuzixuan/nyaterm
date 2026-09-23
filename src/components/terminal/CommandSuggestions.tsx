@@ -152,7 +152,7 @@ function CommandSuggestions({
       style={{
         ...popupStyle,
         backgroundColor: "color-mix(in srgb, var(--df-bg-panel) 95%, transparent)",
-        borderColor: "var(--df-border)",
+        borderColor: "var(--workspace-border)",
       }}
       onMouseDown={(e) => {
         // Prevent the terminal from losing focus

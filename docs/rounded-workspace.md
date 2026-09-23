@@ -55,6 +55,10 @@ the release NyaTerm window, including their terminal content insets.
   Resource-monitor sections, metric tiles, charts and disk separators share that
   border token. Separately hosted terminal content is clipped to the card's inner
   bottom radius, keeping its opaque surface from covering the curved border.
+- Floating connection details, hover cards, popovers and menus (including nested
+  menus and tooltip arrows) share the same border token. Custom terminal hints,
+  search overlays, floating sidebars and AI history cards follow it too; the link
+  tooltip no longer adds a second white outline. Focus indicators are retained.
 - Activity and small toolbar controls: 24px with 16px activity icons. Shared
   buttons, inputs and selects default to 28px, with 24px small variants and
   4px corners. Explicit component size overrides remain supported.

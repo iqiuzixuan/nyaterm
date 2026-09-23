@@ -1526,7 +1526,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
         <div
           ref={executionMenuRef}
           className="absolute right-2 top-10 z-30 w-64 overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg"
-          style={{ borderColor: "var(--df-border)" }}
+          style={{ borderColor: "var(--workspace-border)" }}
         >
           <div className="px-2 py-1.5 text-xs font-medium">{t("ai.agentCommandExecutionMode")}</div>
           {renderExecutionModeItem(
@@ -1579,7 +1579,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
           ref={historyCardRef}
           className="absolute left-2 right-2 top-10 z-30 flex flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg"
           style={{
-            borderColor: "var(--df-border)",
+            borderColor: "var(--workspace-border)",
             maxHeight: "min(22rem, calc(100% - 3rem))",
           }}
         >

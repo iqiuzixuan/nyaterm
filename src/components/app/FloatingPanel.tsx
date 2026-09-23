@@ -47,7 +47,7 @@ export default function FloatingPanel({
         )}
         style={{
           backgroundColor: "var(--df-bg-panel)",
-          borderColor: "var(--df-border)",
+          borderColor: "var(--workspace-border)",
         }}
       >
         <Button

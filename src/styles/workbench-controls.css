@@ -10,6 +10,23 @@
   --workbench-control-radius: 4px;
 }
 
+/* Radix portals live outside workspace cards; share their theme-derived border. */
+[data-slot="tooltip-content"],
+[data-slot="hover-card-content"],
+[data-slot="popover-content"],
+[data-slot="select-content"],
+[data-slot="context-menu-content"],
+[data-slot="context-menu-sub-content"],
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-sub-content"],
+[data-slot="menubar-content"],
+[data-slot="menubar-sub-content"] {
+  border-color: var(--workspace-border);
+}
+[data-slot="tooltip-arrow"] {
+  stroke: var(--workspace-border);
+}
+
 .workspace-panel-tools {
   margin: 0;
   border: 0;

@@ -83,7 +83,7 @@ export default function ActionLinkTooltip({ state }: ActionLinkTooltipProps) {
         top: pos?.top ?? state.y + 16,
       }}
     >
-      <div className="rounded-xl border border-border/40 bg-popover backdrop-blur-md text-popover-foreground shadow-2xl shadow-black/20 text-xs max-w-[340px] overflow-hidden select-none ring-1 ring-white/5 dark:ring-white/10">
+      <div className="rounded-xl border border-[var(--workspace-border)] bg-popover backdrop-blur-md text-popover-foreground shadow-2xl shadow-black/20 text-xs max-w-[340px] overflow-hidden select-none">
         {/* Header Section */}
         <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border/40 bg-muted/20">
           <div

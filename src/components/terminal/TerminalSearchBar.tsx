@@ -80,7 +80,7 @@ export default function TerminalSearchBar({
       className="absolute top-1 right-1 flex w-[420px] max-w-[calc(100%-0.5rem)] flex-col gap-1 rounded border px-2 py-1 shadow-lg z-50"
       style={{
         backgroundColor: "var(--df-bg-panel)",
-        borderColor: "var(--df-border)",
+        borderColor: "var(--workspace-border)",
         color: "var(--df-text)",
       }}
       onClick={(e) => e.stopPropagation()}
