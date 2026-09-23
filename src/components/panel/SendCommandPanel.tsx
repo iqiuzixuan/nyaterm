@@ -1,4 +1,11 @@
 import {
+  VscAdd,
+  VscCheck,
+  VscChevronDown,
+  VscDebugStop,
+  VscSend
+} from "react-icons/vsc";
+import {
   type ChangeEvent,
   Fragment,
   type KeyboardEvent,
@@ -12,7 +19,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { MdAdd, MdCheck, MdKeyboardArrowDown, MdRemove, MdSend, MdStop } from "react-icons/md";
+import { MdRemove } from "react-icons/md";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -258,7 +265,7 @@ function TargetMenuItem({ checked, children, disabled, onSelect }: TargetMenuIte
   return (
     <DropdownMenuItem disabled={disabled} onSelect={onSelect} className="min-w-0">
       <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-        {checked ? <MdCheck className="text-sm" /> : null}
+        {checked ? <VscCheck className="text-sm" /> : null}
       </span>
       <span className="truncate">{children}</span>
     </DropdownMenuItem>
@@ -945,7 +952,7 @@ export default function SendCommandPanel({
                 aria-label={t("serialSend.target", "Target")}
               >
                 <span className="truncate">{targetLabel}</span>
-                <MdKeyboardArrowDown className="ml-1 shrink-0 text-sm text-muted-foreground" />
+                <VscChevronDown className="ml-1 shrink-0 text-sm text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-[13rem] max-w-[22rem]">
@@ -1045,7 +1052,7 @@ export default function SendCommandPanel({
               onClick={incrementCount}
               disabled={isSending}
             >
-              <MdAdd className="text-sm" />
+              <VscAdd className="text-sm" />
             </Button>
           </div>
         </div>
@@ -1273,7 +1280,7 @@ export default function SendCommandPanel({
           }}
           disabled={!isSending && (!hasPayload || targetSessionIds.length === 0)}
         >
-          {isSending ? <MdStop className="text-sm" /> : <MdSend className="text-sm" />}
+          {isSending ? <VscDebugStop className="text-sm" /> : <VscSend className="text-sm" />}
         </Button>
       </div>
     </div>

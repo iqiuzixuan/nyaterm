@@ -64,6 +64,38 @@ error -3811; the comparison uses local styles and the supplied screenshots.
 This changes presentation only. Theme palettes, terminal font sizes, saved
 connections, tab actions and application behavior are retained.
 
+## VS Code source detail pass
+
+The reference checkout uses VS Code tag `1.138.0`, commit
+`7debcd0e2acdea1c52de81bf9ee1620444407dda`. Adapted control rules are in
+`src/styles/workbench-controls.css`; the source and icon attribution is recorded
+in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+
+![Source-based workbench details](images/vscode-workbench-assets.png)
+![Existing GitHub Light theme](images/vscode-workbench-light.png)
+
+- Workbench action icons now use Microsoft's Codicons through the existing
+  `react-icons/vsc` dependency. Connection/OS and hardware brand icons remain
+  available. Geometry follows the source's 16px glyph and 22px action target.
+- The bottom card's existing panel actions render in the tab row. There is no
+  duplicate title/header inside Commands, Transfers or History. Controls wrap
+  when the center becomes narrow; the close button stays in the upper corner.
+  Search values remain in their panel state when switching tabs.
+- Native buttons provide keyboard activation for session-tab close actions.
+  Inactive close buttons and asset row actions appear on hover or keyboard
+  focus, while touch inputs keep those actions visible.
+- Menu rows, heading text, keycaps, input heights and toolbar baselines follow
+  one scale. Asset search/filter/view controls share a row when space permits.
+- Checked, hover, focus and disabled states keep their separate meanings; the
+  layout toggles no longer have a permanently filled button background.
+
+Validation: all 812 tests in 131 files passed, including shared-toolbar action
+routing, search retention and ordinary panel-header fallback. TypeScript passed;
+Biome has only the existing `CommandSuggestions.tsx` dependency warning. Browser
+checks covered the real frontend with isolated IPC, 1440px and 780px windows,
+32px shared bottom header, 40px asset rows, panel switching, keyboard tab closing,
+and both built-in GitHub themes. This is not a live SSH/SFTP connection test.
+
 ## Themes and saved preferences
 
 `src/styles/workspace.css` defines geometry and uses the existing `--df-*` theme

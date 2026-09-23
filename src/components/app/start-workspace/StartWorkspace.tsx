@@ -56,12 +56,11 @@ export default function StartWorkspace({
         backgroundColor: mode === "assets" ? assetSurfaceBackground : undefined,
       }}
     >
-      <div className="pointer-events-none absolute left-0 right-0 top-1 z-30 flex justify-center">
+      <div className="pointer-events-none absolute left-0 right-0 top-1 z-30 flex justify-start px-2">
         <div
           className="pointer-events-auto inline-flex rounded p-0.5"
           style={{
-            borderColor: "var(--df-border)",
-            backgroundColor: "color-mix(in srgb, var(--df-bg-panel) 78%, transparent)",
+            backgroundColor: "transparent",
           }}
         >
           <ModeButton active={mode === "workbench"} onClick={() => setMode("workbench")}>

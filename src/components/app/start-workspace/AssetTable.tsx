@@ -1,7 +1,14 @@
+import {
+  VscArrowDown,
+  VscArrowSwap,
+  VscArrowUp,
+  VscEdit,
+  VscLink
+} from "react-icons/vsc";
 import type { TFunction } from "i18next";
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+
 import { type PointerEvent as ReactPointerEvent, useMemo, useState } from "react";
-import { MdEdit, MdLink } from "react-icons/md";
+
 import { useVirtualList } from "@/hooks/useVirtualList";
 import type { SavedConnection } from "@/types/global";
 import AssetConnectionIcon from "./AssetConnectionIcon";
@@ -243,18 +250,18 @@ export default function AssetTable({
                   {formatAccelerators(asset?.accelerators, labels, { maxItems: 2 })}
                 </BodyCell>
                 <BodyCell className="asset-col-actions sticky right-0 text-right">
-                  <div className="flex justify-end gap-1">
+                  <div className="workspace-asset-actions flex justify-end gap-1">
                     <ActionButton
                       label={t("savedConnections.connect")}
                       onClick={() => void onConnectConnection(connection)}
                     >
-                      <MdLink className="text-[0.95rem]" />
+                      <VscLink className="text-[0.95rem]" />
                     </ActionButton>
                     <ActionButton
                       label={t("savedConnections.edit")}
                       onClick={() => onEditConnection(connection)}
                     >
-                      <MdEdit className="text-[0.95rem]" />
+                      <VscEdit className="text-[0.95rem]" />
                     </ActionButton>
                   </div>
                 </BodyCell>
@@ -327,7 +334,7 @@ function SortableHeaderCell({
   onResizeStart: (event: ReactPointerEvent<HTMLSpanElement>) => void;
 }) {
   const active = sortState?.key === sortKey;
-  const SortIcon = !active ? ChevronsUpDown : sortState.direction === "asc" ? ArrowUp : ArrowDown;
+  const SortIcon = !active ? VscArrowSwap : sortState.direction === "asc" ? VscArrowUp : VscArrowDown;
 
   return (
     <HeaderCell className={className} width={width} onResizeStart={onResizeStart}>

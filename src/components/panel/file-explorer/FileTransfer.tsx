@@ -1,3 +1,16 @@
+import {
+  VscArrowSwap,
+  VscCircleSlash,
+  VscClearAll,
+  VscCloudDownload,
+  VscCloudUpload,
+  VscCopy,
+  VscDebugPause,
+  VscFolder,
+  VscPlay,
+  VscRefresh,
+  VscTrash
+} from "react-icons/vsc";
 import { downloadDir } from "@tauri-apps/api/path";
 import {
   type ElementType,
@@ -9,21 +22,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  MdBlock,
-  MdContentCopy,
-  MdDelete,
-  MdDeleteSweep,
-  MdDownload,
-  MdFolder,
-  MdFolderOff,
-  MdPause,
-  MdPlayArrow,
-  MdPlaylistRemove,
-  MdRefresh,
-  MdSwapHoriz,
-  MdUpload,
-} from "react-icons/md";
+
 import { toast } from "sonner";
 import DeleteTransferDialog from "@/components/dialog/file-explorer/DeleteTransferDialog";
 import PanelHeader from "@/components/layout/PanelHeader";
@@ -134,12 +133,12 @@ function TransferRow({
   const { t } = useTranslation();
   const DirIcon =
     item.kind === "directory"
-      ? MdFolder
+      ? VscFolder
       : item.direction === "copy"
-        ? MdContentCopy
+        ? VscCopy
         : item.direction === "upload"
-          ? MdUpload
-          : MdDownload;
+          ? VscCloudUpload
+          : VscCloudDownload;
   const dirColor =
     item.direction === "copy" ? "#a78bfa" : item.direction === "upload" ? "#4ade80" : "#60a5fa";
   const hasByteProgress = item.totalSize > 0;
@@ -315,26 +314,26 @@ function TransferRow({
               onClick={() => onPause(item.id)}
               disabled={!canPause && !canPauseQueued}
             >
-              <MdPause className="mr-2 text-[0.875rem]" />
+              <VscDebugPause className="mr-2 text-[0.875rem]" />
               {t("fileTransfer.pause")}
             </ContextMenuItem>
             <ContextMenuItem onClick={() => onResume(item.id)} disabled={!canResume}>
-              <MdPlayArrow className="mr-2 text-[0.875rem]" />
+              <VscPlay className="mr-2 text-[0.875rem]" />
               {t("fileTransfer.resume")}
             </ContextMenuItem>
             <ContextMenuItem onClick={() => onRetry(item)} disabled={!canRetry}>
-              <MdRefresh className="mr-2 text-[0.875rem]" />
+              <VscRefresh className="mr-2 text-[0.875rem]" />
               {t("fileTransfer.retry")}
             </ContextMenuItem>
             <ContextMenuItem onClick={() => onCancel(item.id)} disabled={!canCancel}>
-              <MdBlock className="mr-2 text-[0.875rem]" />
+              <VscCircleSlash className="mr-2 text-[0.875rem]" />
               {t("fileTransfer.cancel")}
             </ContextMenuItem>
             {item.direction === "download" && (
               <>
                 <ContextMenuSeparator />
                 <ContextMenuItem onClick={() => onOpenTargetDirectory(item.id)}>
-                  <MdFolder className="mr-2 text-[0.875rem]" />
+                  <VscFolder className="mr-2 text-[0.875rem]" />
                   {t("fileTransfer.openTargetDirectory")}
                 </ContextMenuItem>
               </>
@@ -343,7 +342,7 @@ function TransferRow({
           </>
         )}
         <ContextMenuItem variant="destructive" onClick={() => onDelete(item)} disabled={!canDelete}>
-          <MdDelete className="mr-2 text-[0.875rem]" />
+          <VscTrash className="mr-2 text-[0.875rem]" />
           {t("fileTransfer.delete")}
         </ContextMenuItem>
       </ContextMenuContent>
@@ -583,31 +582,31 @@ export default function FileTransfer({ activeSessionId }: FileTransferProps) {
           <>
             <HeaderActionButton
               label={t("fileTransfer.pauseAll")}
-              icon={MdPause}
+              icon={VscDebugPause}
               onClick={handlePauseAll}
               disabled={!hasRunning}
             />
             <HeaderActionButton
               label={t("fileTransfer.resumeAll")}
-              icon={MdPlayArrow}
+              icon={VscPlay}
               onClick={handleResumeAll}
               disabled={!hasPaused}
             />
             <HeaderActionButton
               label={t("fileTransfer.cancelAll")}
-              icon={MdBlock}
+              icon={VscCircleSlash}
               onClick={handleCancelAll}
               disabled={!hasActive}
             />
             <HeaderActionButton
               label={t("fileTransfer.clearCompleted")}
-              icon={MdPlaylistRemove}
+              icon={VscClearAll}
               onClick={clearCompleted}
               disabled={!hasCompleted}
             />
             <HeaderActionButton
               label={t("fileTransfer.clearAll")}
-              icon={MdDeleteSweep}
+              icon={VscClearAll}
               onClick={handleClearAll}
               disabled={!hasClearable}
             />
@@ -628,12 +627,12 @@ export default function FileTransfer({ activeSessionId }: FileTransferProps) {
       >
         {!activeSessionId ? (
           <div className="text-center py-8 text-xs" style={{ color: "var(--df-text-dimmed)" }}>
-            <MdFolderOff className="text-xl block mx-auto mb-2" />
+            <VscFolder className="text-xl block mx-auto mb-2" />
             <div className="text-sm block mb-2">{t("fileExplorer.connectToSession")}</div>
           </div>
         ) : visibleTransfers.length === 0 ? (
           <div className="text-center py-8 text-xs" style={{ color: "var(--df-text-dimmed)" }}>
-            <MdSwapHoriz className="text-xl block mx-auto mb-2" />
+            <VscArrowSwap className="text-xl block mx-auto mb-2" />
             <div className="text-sm block mb-2">{t("fileTransfer.noTransfers")}</div>
           </div>
         ) : (

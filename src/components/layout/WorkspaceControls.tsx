@@ -1,4 +1,8 @@
-import { PanelBottom, PanelLeft, PanelRight } from "lucide-react";
+import {
+  VscLayoutPanel,
+  VscLayoutSidebarLeft,
+  VscLayoutSidebarRight
+} from "react-icons/vsc";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,21 +27,21 @@ export default function WorkspaceControls(props: WorkspaceControlsProps) {
   const controls = [
     {
       id: "left",
-      Icon: PanelLeft,
+      Icon: VscLayoutSidebarLeft,
       visible: props.leftVisible,
       available: props.leftAvailable,
       toggle: props.onToggleLeft,
     },
     {
       id: "bottom",
-      Icon: PanelBottom,
+      Icon: VscLayoutPanel,
       visible: props.bottomVisible,
       available: true,
       toggle: props.onToggleBottom,
     },
     {
       id: "right",
-      Icon: PanelRight,
+      Icon: VscLayoutSidebarRight,
       visible: props.rightVisible,
       available: props.rightAvailable,
       toggle: props.onToggleRight,

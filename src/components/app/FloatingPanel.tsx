@@ -1,5 +1,8 @@
+import {
+  VscClose
+} from "react-icons/vsc";
 import type { ReactNode } from "react";
-import { MdClose } from "react-icons/md";
+
 import ResizeHandle from "@/components/layout/ResizeHandle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -59,7 +62,7 @@ export default function FloatingPanel({
           aria-label={title}
           onClick={onClose}
         >
-          <MdClose />
+          <VscClose />
         </Button>
         <div className="h-full min-h-0 overflow-hidden">{children}</div>
       </aside>

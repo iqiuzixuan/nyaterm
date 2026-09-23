@@ -1,5 +1,9 @@
+import {
+  VscCheck,
+  VscChevronDown
+} from "react-icons/vsc";
 import { useTranslation } from "react-i18next";
-import { MdCheck, MdExpandMore } from "react-icons/md";
+
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -55,7 +59,7 @@ export function ModelCombobox({
               <span className="shrink-0 text-muted-foreground">· {reasoningLabel}</span>
             ) : null}
           </span>
-          <MdExpandMore className="shrink-0 text-sm" />
+          <VscChevronDown className="shrink-0 text-sm" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="start">
@@ -70,7 +74,7 @@ export function ModelCombobox({
                   value={`${t(`ai.reasoningEffort.${effort}`)} ${effort}`}
                   onSelect={() => onSelectReasoningEffort(effort)}
                 >
-                  <MdCheck
+                  <VscCheck
                     className={`text-sm ${selectedReasoningEffort === effort ? "opacity-100" : "opacity-0"}`}
                   />
                   <span className="min-w-0 flex-1 truncate">
@@ -91,7 +95,7 @@ export function ModelCombobox({
                       onOpenChange(false);
                     }}
                   >
-                    <MdCheck
+                    <VscCheck
                       className={`text-sm ${selectedModel?.id === model.id ? "opacity-100" : "opacity-0"}`}
                     />
                     <span className="min-w-0 flex-1 truncate">{model.name}</span>

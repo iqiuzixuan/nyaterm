@@ -1,21 +1,25 @@
+import {
+  VscAdd,
+  VscCaseSensitive,
+  VscClearAll,
+  VscClose,
+  VscCloudDownload,
+  VscCollapseAll,
+  VscEllipsis,
+  VscExpandAll,
+  VscExport,
+  VscLink,
+  VscListOrdered,
+  VscNewFolder,
+  VscSearch,
+  VscTerminalCmd,
+  VscTrash
+} from "react-icons/vsc";
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BiExport, BiImport } from "react-icons/bi";
-import {
-  MdAdd,
-  MdClose,
-  MdCreateNewFolder,
-  MdDelete,
-  MdDeleteSweep,
-  MdLink,
-  MdMoreVert,
-  MdSearch,
-  MdSort,
-  MdSortByAlpha,
-  MdUnfoldLess,
-  MdUnfoldMore,
-} from "react-icons/md";
-import { TiFlashOutline } from "react-icons/ti";
+
+
+
 import { toast } from "sonner";
 import ClearAllDialog from "@/components/dialog/connections/ClearAllDialog";
 import DeleteConnectionDialog from "@/components/dialog/connections/DeleteConnectionDialog";
@@ -1352,7 +1356,7 @@ export default function SavedConnections({
       : sortMode === "name-asc"
         ? t("savedConnections.sortNameAsc")
         : t("savedConnections.sortNameDesc");
-  const SortIcon = sortMode === "default" ? MdSort : MdSortByAlpha;
+  const SortIcon = sortMode === "default" ? VscListOrdered : VscCaseSensitive;
   const sortActive = sortMode !== "default";
 
   // ── Context value ─────────────────────────────────────────────────────────
@@ -1421,7 +1425,7 @@ export default function SavedConnections({
           }}
         >
           <div className="relative flex-1 min-w-0 transition-colors focus-within:text-[var(--df-primary)] text-[var(--df-text-dimmed)]">
-            <MdSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[0.875rem] pointer-events-none" />
+            <VscSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[0.875rem] pointer-events-none" />
             <input
               type="text"
               value={filterText}
@@ -1457,7 +1461,7 @@ export default function SavedConnections({
               tooltip={t("temporarySsh.title")}
               onClick={onTemporarySshLink}
             >
-              <TiFlashOutline className="text-[1rem]" />
+              <VscTerminalCmd className="text-[1rem]" />
             </HeaderActionButton>
 
             <HeaderActionButton
@@ -1468,7 +1472,7 @@ export default function SavedConnections({
               tooltip={t("savedConnections.newFolder")}
               onClick={() => openNewFolderDialog(null)}
             >
-              <MdCreateNewFolder className="text-[1rem]" />
+              <VscNewFolder className="text-[1rem]" />
             </HeaderActionButton>
 
             <HeaderActionButton
@@ -1479,7 +1483,7 @@ export default function SavedConnections({
               tooltip={t("savedConnections.newConnection")}
               onClick={() => onNewConnection()}
             >
-              <MdAdd className="text-[1.125rem]" />
+              <VscAdd className="text-[1.125rem]" />
             </HeaderActionButton>
 
             <DropdownMenu>
@@ -1491,7 +1495,7 @@ export default function SavedConnections({
                   style={{ color: "var(--df-text-muted)" }}
                   aria-label="More"
                 >
-                  <MdMoreVert className="text-[1.125rem]" />
+                  <VscEllipsis className="text-[1.125rem]" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="text-xs w-48">
@@ -1501,14 +1505,14 @@ export default function SavedConnections({
                       onClick={expandAllGroups}
                       className="cursor-pointer gap-2 py-1.5 focus:bg-[var(--df-bg-hover)]"
                     >
-                      <MdUnfoldMore className="text-sm text-[var(--df-text-muted)]" />
+                      <VscExpandAll className="text-sm text-[var(--df-text-muted)]" />
                       {t("savedConnections.expandAllFolders")}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={collapseAllGroups}
                       className="cursor-pointer gap-2 py-1.5 focus:bg-[var(--df-bg-hover)]"
                     >
-                      <MdUnfoldLess className="text-sm text-[var(--df-text-muted)]" />
+                      <VscCollapseAll className="text-sm text-[var(--df-text-muted)]" />
                       {t("savedConnections.collapseAllFolders")}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -1518,14 +1522,14 @@ export default function SavedConnections({
                   onClick={handleExport}
                   className="cursor-pointer gap-2 py-1.5 focus:bg-[var(--df-bg-hover)]"
                 >
-                  <BiExport className="text-sm text-[var(--df-text-muted)]" />
+                  <VscExport className="text-sm text-[var(--df-text-muted)]" />
                   {t("settings.exportConfig")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setShowImportDialog(true)}
                   className="cursor-pointer gap-2 py-1.5 focus:bg-[var(--df-bg-hover)]"
                 >
-                  <BiImport className="text-sm text-[var(--df-text-muted)]" />
+                  <VscCloudDownload className="text-sm text-[var(--df-text-muted)]" />
                   {t("settings.importConfig")}
                 </DropdownMenuItem>
                 {selectedConnections.length > 0 && (
@@ -1540,7 +1544,7 @@ export default function SavedConnections({
                       onClick={requestDeleteSelectedConnections}
                       className="cursor-pointer gap-2 py-1.5 focus:bg-[var(--df-bg-hover)] text-red-500 focus:text-red-500"
                     >
-                      <MdDelete className="text-sm" />
+                      <VscTrash className="text-sm" />
                       {selectedConnections.length > 1
                         ? t("savedConnections.deleteSelected")
                         : t("savedConnections.delete")}
@@ -1554,7 +1558,7 @@ export default function SavedConnections({
                       onClick={() => setShowClearAllDialog(true)}
                       className="cursor-pointer gap-2 py-1.5 focus:bg-[var(--df-bg-hover)] text-red-500 focus:text-red-500"
                     >
-                      <MdDeleteSweep className="text-sm" />
+                      <VscClearAll className="text-sm" />
                       {t("savedConnections.clearAll")}
                     </DropdownMenuItem>
                   </>
@@ -1571,7 +1575,7 @@ export default function SavedConnections({
                 borderColor: "var(--df-primary)",
               }}
             >
-              <MdSearch className="h-4 w-4 shrink-0 translate-y-px text-primary" />
+              <VscSearch className="h-4 w-4 shrink-0 translate-y-px text-primary" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -1598,7 +1602,7 @@ export default function SavedConnections({
                   }
                 }}
               >
-                <MdClose className="h-3.5 w-3.5" />
+                <VscClose className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
@@ -1656,7 +1660,7 @@ export default function SavedConnections({
           <ContextMenuContent className="min-w-[160px]">
             {selectedConnections.length > 0 && (
               <ContextMenuItem onClick={handleConnectSelected}>
-                <MdLink className="text-[0.875rem] text-muted-foreground mr-2" />
+                <VscLink className="text-[0.875rem] text-muted-foreground mr-2" />
                 {selectedConnections.length > 1
                   ? t("savedConnections.connectSelected")
                   : t("savedConnections.connect")}
@@ -1671,7 +1675,7 @@ export default function SavedConnections({
             )}
             {selectedConnections.length > 0 && (
               <ContextMenuItem className="text-red-400" onClick={requestDeleteSelectedConnections}>
-                <MdDelete className="text-[0.875rem] mr-2" />
+                <VscTrash className="text-[0.875rem] mr-2" />
                 {selectedConnections.length > 1
                   ? t("savedConnections.deleteSelected")
                   : t("savedConnections.delete")}
@@ -1679,16 +1683,16 @@ export default function SavedConnections({
             )}
             {selectedConnections.length > 0 && <ContextMenuSeparator />}
             <ContextMenuItem onClick={() => onNewConnection()}>
-              <MdAdd className="text-[0.875rem] text-muted-foreground mr-2" />
+              <VscAdd className="text-[0.875rem] text-muted-foreground mr-2" />
               {t("savedConnections.newConnection")}
             </ContextMenuItem>
             <ContextMenuItem onClick={() => openNewFolderDialog(null)}>
-              <MdCreateNewFolder className="text-[0.875rem] text-muted-foreground mr-2" />
+              <VscNewFolder className="text-[0.875rem] text-muted-foreground mr-2" />
               {t("savedConnections.newFolder")}
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem onClick={() => setShowImportDialog(true)}>
-              <BiImport className="text-[0.875rem] text-muted-foreground mr-2" />
+              <VscCloudDownload className="text-[0.875rem] text-muted-foreground mr-2" />
               {t("settings.importConfig")}
             </ContextMenuItem>
           </ContextMenuContent>

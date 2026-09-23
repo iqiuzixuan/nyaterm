@@ -1,11 +1,14 @@
 import {
+  VscChevronRight
+} from "react-icons/vsc";
+import {
   type KeyboardEvent,
   type MouseEvent,
   type Ref,
   useEffect,
   useRef,
 } from "react";
-import { MdChevronRight, MdFolderOpen } from "react-icons/md";
+import { MdFolderOpen } from "react-icons/md";
 import { getFileIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { FileExplorerTreeRow } from "./fileExplorerTreeModel";
@@ -114,7 +117,7 @@ export default function FileExplorerTreeItem({
             onToggle();
           }}
         >
-          <MdChevronRight
+          <VscChevronRight
             className={cn("text-base transition-transform", row.isExpanded && "rotate-90")}
           />
         </button>

@@ -1,6 +1,10 @@
+import {
+  VscEdit,
+  VscLink
+} from "react-icons/vsc";
 import type { TFunction } from "i18next";
 import { useEffect, useMemo, useState } from "react";
-import { MdEdit, MdLink } from "react-icons/md";
+
 import { useVirtualList } from "@/hooks/useVirtualList";
 import type { SavedConnection } from "@/types/global";
 import AssetConnectionIcon from "./AssetConnectionIcon";
@@ -187,14 +191,14 @@ function AssetCard({
           label={t("savedConnections.connect")}
           onClick={() => void onConnectConnection(connection)}
         >
-          <MdLink className="text-[0.95rem]" />
+          <VscLink className="text-[0.95rem]" />
           <span>{t("savedConnections.connect")}</span>
         </CardActionButton>
         <CardActionButton
           label={t("savedConnections.edit")}
           onClick={() => onEditConnection(connection)}
         >
-          <MdEdit className="text-[0.95rem]" />
+          <VscEdit className="text-[0.95rem]" />
           <span>{t("savedConnections.edit")}</span>
         </CardActionButton>
       </div>

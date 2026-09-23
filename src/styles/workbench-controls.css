@@ -1,0 +1,124 @@
+/*
+ * Adapted from VS Code 1.138.0 actionbar.css, button.css and inputBox.css.
+ * Copyright (c) Microsoft Corporation. Licensed under the MIT License.
+ * See THIRD_PARTY_NOTICES.md and licenses/vscode-MIT.txt.
+ * Selectors and theme variables are adapted for NyaTerm's React/Radix controls.
+ */
+:root {
+  --workbench-icon-size: 16px;
+  --workbench-action-size: 22px;
+  --workbench-control-radius: 4px;
+}
+
+.workspace-panel-tools {
+  margin: 0;
+  border: 0;
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+  gap: 2px;
+  padding: 3px 0;
+}
+.workspace-panel-meta {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--df-text-dimmed);
+  margin-right: 4px;
+}
+.workspace-panel-tools [data-slot="button"][data-size^="icon"],
+.workspace-controls [data-slot="button"],
+.workspace-tabbar-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--workbench-action-size);
+  height: var(--workbench-action-size);
+  padding: 3px;
+  border: 0;
+  border-radius: var(--workbench-control-radius);
+  box-shadow: none;
+}
+.workspace-panel-tools [data-slot="button"] svg,
+.workspace-controls svg,
+.workspace-tabbar-actions svg,
+.workspace-activity-button > span > svg {
+  width: var(--workbench-icon-size);
+  height: var(--workbench-icon-size);
+  flex-shrink: 0;
+}
+.workspace-panel-tools [data-slot="button"]:disabled {
+  opacity: 0.4;
+}
+.workspace-panel-tools input,
+.workspace-panel-tools [data-slot="select-trigger"] {
+  height: 24px;
+  line-height: 16px;
+  font-size: 12px;
+  border-radius: var(--workbench-control-radius);
+  box-shadow: none;
+}
+.workspace-panel-tools input {
+  background: var(--df-bg-input);
+}
+.workspace-controls button:is(:hover, :focus-visible),
+.workspace-tabbar-actions:is(:hover, :focus-visible) {
+  background: var(--df-bg-hover);
+  color: var(--df-text);
+}
+.workspace-session-tab > svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.workspace-tab-close {
+  color: var(--df-text-muted);
+  border-radius: 3px;
+  transition: background-color 80ms linear, opacity 80ms linear;
+}
+.workspace-tab-close:hover {
+  background: var(--df-bg-hover);
+  color: var(--df-text);
+}
+.workspace-tab-close:focus-visible {
+  outline: 1px solid var(--df-focus-ring);
+  outline-offset: -1px;
+}
+.workspace-session-tab[data-active="false"] .workspace-tab-close {
+  opacity: 0;
+}
+.workspace-session-tab:is(:hover, :focus-within) .workspace-tab-close {
+  opacity: 1;
+}
+.workspace-asset-actions {
+  opacity: 0;
+}
+tr:is(:hover, :focus-within) .workspace-asset-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .workspace-asset-actions,
+  .workspace-session-tab[data-active="false"] .workspace-tab-close {
+    opacity: 1;
+  }
+}
+
+.workspace-asset-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 0 8px 6px;
+}
+.workspace-asset-search {
+  flex: 1 1 220px;
+}
+.workspace-asset-filters {
+  flex: 1 1 180px;
+}
+.workspace-asset-search input {
+  height: 26px;
+  font-size: 12px;
+}

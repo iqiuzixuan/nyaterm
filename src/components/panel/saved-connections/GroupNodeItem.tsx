@@ -1,13 +1,12 @@
 import {
-  MdAdd,
-  MdCreateNewFolder,
-  MdDelete,
-  MdDriveFileRenameOutline,
-  MdExpandMore,
-  MdFolder,
-  MdFolderOpen,
-  MdOpenInNew,
-} from "react-icons/md";
+  VscAdd,
+  VscChevronDown,
+  VscFolder,
+  VscLinkExternal,
+  VscNewFolder,
+  VscTrash
+} from "react-icons/vsc";
+import { MdDriveFileRenameOutline, MdFolderOpen } from "react-icons/md";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -123,7 +122,7 @@ export default function GroupNodeItem({ node, depth }: GroupNodeItemProps) {
             }
             onDrop={isDragEnabled ? (e) => handleDropItem(e, node.group.id, "group") : undefined}
           >
-            <MdExpandMore
+            <VscChevronDown
               className="text-xs transition-transform shrink-0"
               style={{
                 color: "var(--df-text-dimmed)",
@@ -131,7 +130,7 @@ export default function GroupNodeItem({ node, depth }: GroupNodeItemProps) {
               }}
             />
             {collapsed ? (
-              <MdFolder className="text-sm text-amber-500/70 shrink-0" />
+              <VscFolder className="text-sm text-amber-500/70 shrink-0" />
             ) : (
               <MdFolderOpen className="text-sm text-amber-500/70 shrink-0" />
             )}
@@ -168,17 +167,17 @@ export default function GroupNodeItem({ node, depth }: GroupNodeItemProps) {
       </ContextMenuTrigger>
       <ContextMenuContent className="min-w-[160px]">
         <ContextMenuItem onClick={() => onNewConnection(node.group.id)}>
-          <MdAdd className="text-[0.875rem] text-muted-foreground mr-2" />
+          <VscAdd className="text-[0.875rem] text-muted-foreground mr-2" />
           {t("savedConnections.newConnection")}
         </ContextMenuItem>
         <ContextMenuItem onClick={() => openNewFolderDialog(node.group.id)}>
-          <MdCreateNewFolder className="text-[0.875rem] text-muted-foreground mr-2" />
+          <VscNewFolder className="text-[0.875rem] text-muted-foreground mr-2" />
           {t("savedConnections.newSubfolder")}
         </ContextMenuItem>
         <ContextMenuSeparator />
         {node.totalCount > 0 && (
           <ContextMenuItem onClick={() => requestOpenGroupConnections(node)}>
-            <MdOpenInNew className="text-[0.875rem] text-muted-foreground mr-2" />
+            <VscLinkExternal className="text-[0.875rem] text-muted-foreground mr-2" />
             {t("savedConnections.openAllConnections")}
           </ContextMenuItem>
         )}
@@ -188,7 +187,7 @@ export default function GroupNodeItem({ node, depth }: GroupNodeItemProps) {
           {t("savedConnections.renameFolder")}
         </ContextMenuItem>
         <ContextMenuItem className="text-red-400" onClick={() => setDeleteFolderTarget(node.group)}>
-          <MdDelete className="text-[0.875rem] mr-2" />
+          <VscTrash className="text-[0.875rem] mr-2" />
           {t("savedConnections.deleteFolder")}
         </ContextMenuItem>
       </ContextMenuContent>

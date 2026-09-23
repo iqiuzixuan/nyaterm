@@ -61,50 +61,61 @@
   max-height: 60%;
   min-height: 108px;
 }
+.workspace-bottom-header {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0 6px;
+  padding: 0 32px 0 6px;
+  min-height: 32px;
+}
 .workspace-bottom-tabs {
   display: flex;
-  flex-shrink: 0;
   align-items: center;
-  gap: 12px;
+  gap: 2px;
+  min-width: 0;
   min-height: 32px;
-  padding: 0 10px;
   overflow-x: auto;
 }
 .workspace-bottom-tabs > button[role="tab"] {
-  position: relative;
   flex-shrink: 0;
-  min-height: 24px;
-  font-size: 0.75rem;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 400;
   color: var(--df-text-muted);
   border-radius: 4px;
-  outline-offset: -2px;
+  outline-offset: -1px;
 }
 .workspace-bottom-tabs > button[aria-selected="true"] {
+  background: var(--df-bg-hover);
   color: var(--df-text);
-}
-.workspace-bottom-tabs > button[aria-selected="true"]::after {
-  content: "";
-  position: absolute;
-  height: 1px;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--df-primary);
-  border-radius: 2px;
 }
 .workspace-bottom-tabs > button[role="tab"]:hover {
+  background: var(--df-bg-hover);
   color: var(--df-text);
+}
+.workspace-bottom-toolbar {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+.workspace-bottom-toolbar:empty {
+  min-height: 0;
+}
+.workspace-bottom-close {
+  position: absolute;
+  top: 5px;
+  right: 4px;
 }
 .workspace-bottom-content {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-}
-.workspace-bottom-content .workspace-panel-header {
-  min-height: 30px;
-}
-.workspace-bottom-content .workspace-panel-title {
-  display: none;
 }
 .workspace-titlebar {
   background: var(--df-bg);
@@ -119,7 +130,6 @@
   border-radius: 4px;
 }
 .workspace-control[aria-pressed="true"] {
-  background: var(--df-bg-hover);
   color: var(--df-text);
 }
 .workspace-activity-bar {
@@ -127,7 +137,7 @@
   flex-direction: column;
   flex-shrink: 0;
   user-select: none;
-  padding: 4px;
+  padding: 4px 6px;
 }
 .workspace-activity-bar[data-orientation="vertical"] {
   flex: 1;
@@ -199,7 +209,8 @@
   min-height: 30px;
 }
 .workspace-panel-title {
-  font-size: 0.75rem;
+  font-size: 11px;
+  line-height: 16px;
   font-weight: 400;
   letter-spacing: normal;
   text-transform: none;
@@ -285,6 +296,7 @@
   border-radius: 4px;
   border: 0;
   margin-right: 2px;
+  line-height: 16px;
   font-size: 12px;
   font-weight: 400;
 }
@@ -354,7 +366,7 @@
     box-shadow: 8px 0 30px var(--df-shadow);
   }
   .workspace-bottom-tabs {
-    gap: 10px;
+    gap: 0;
   }
 }
 @media (prefers-reduced-motion: no-preference) {

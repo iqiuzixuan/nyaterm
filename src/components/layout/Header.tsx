@@ -1,60 +1,59 @@
+import {
+  VscAdd,
+  VscArrowBoth,
+  VscArrowSwap,
+  VscBook,
+  VscChecklist,
+  VscChevronDown,
+  VscChevronUp,
+  VscChip,
+  VscChromeClose,
+  VscChromeMaximize,
+  VscChromeMinimize,
+  VscChromeRestore,
+  VscClearAll,
+  VscClippy,
+  VscCloudDownload,
+  VscCloudUpload,
+  VscColorMode,
+  VscCopy,
+  VscDashboard,
+  VscDebugRestart,
+  VscExport,
+  VscEye,
+  VscEyeClosed,
+  VscFileText,
+  VscGlobe,
+  VscInfo,
+  VscLayoutSidebarLeft,
+  VscListSelection,
+  VscMenu,
+  VscMerge,
+  VscNote,
+  VscPulse,
+  VscRadioTower,
+  VscScreenFull,
+  VscSearch,
+  VscServer,
+  VscSettingsGear,
+  VscSplitHorizontal,
+  VscSync,
+  VscTerminal,
+  VscVmOutline,
+  VscWatch,
+  VscZoomIn,
+  VscZoomOut
+} from "react-icons/vsc";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BiExport, BiImport } from "react-icons/bi";
+
 import { GrUpgrade } from "react-icons/gr";
-import {
-  MdAccessTime,
-  MdAdd,
-  MdArticle,
-  MdCellTower,
-  MdComputer,
-  MdContentCopy,
-  MdContentPaste,
-  MdDashboard,
-  MdDeleteSweep,
-  MdDns,
-  MdDownload,
-  MdFitScreen,
-  MdInfo,
-  MdKeyboardArrowDown,
-  MdKeyboardArrowUp,
-  MdListAlt,
-  MdMemory,
-  MdMenu,
-  MdMenuBook,
-  MdMerge,
-  MdOutlineMonitorHeart,
-  MdOutlineStickyNote2,
-  MdPalette,
-  MdRestartAlt,
-  MdSearch,
-  MdSelectAll,
-  MdSettings,
-  MdSpeed,
-  MdSplitscreen,
-  MdSwapHoriz,
-  MdSwapVert,
-  MdSync,
-  MdTerminal,
-  MdTranslate,
-  MdUpdate,
-  MdUpload,
-  MdViewSidebar,
-  MdVisibility,
-  MdVisibilityOff,
-  MdZoomIn,
-  MdZoomOut,
-} from "react-icons/md";
+
 import { SiDocker, SiNvidia } from "react-icons/si";
-import {
-  VscChromeClose,
-  VscChromeMaximize,
-  VscChromeMinimize,
-  VscChromeRestore,
-} from "react-icons/vsc";
+
 import packageJson from "@/../package.json";
 import HeaderStatusHideConfirmDialog from "@/components/dialog/app/HeaderStatusHideConfirmDialog";
 import QuitConfirmDialog from "@/components/dialog/app/QuitConfirmDialog";
@@ -136,47 +135,47 @@ function AscendIcon({ className }: { className?: string }) {
 }
 
 const iconMap: Record<string, React.ElementType> = {
-  add: MdAdd,
-  content_copy: MdContentCopy,
-  content_paste: MdContentPaste,
-  select_all: MdSelectAll,
-  palette: MdPalette,
-  translate: MdTranslate,
-  zoom_in: MdZoomIn,
-  zoom_out: MdZoomOut,
-  restart_alt: MdRestartAlt,
-  menu_book: MdMenuBook,
-  update: MdUpdate,
+  add: VscAdd,
+  content_copy: VscCopy,
+  content_paste: VscClippy,
+  select_all: VscListSelection,
+  palette: VscColorMode,
+  translate: VscGlobe,
+  zoom_in: VscZoomIn,
+  zoom_out: VscZoomOut,
+  restart_alt: VscDebugRestart,
+  menu_book: VscBook,
+  update: VscSync,
   upgrade: GrUpgrade,
-  article: MdArticle,
-  info: MdInfo,
-  menu: MdMenu,
-  view_sidebar: MdViewSidebar,
-  settings: MdSettings,
-  visibility: MdVisibility,
-  file_export: BiExport,
-  file_import: BiImport,
-  splitscreen: MdSplitscreen,
-  merge: MdMerge,
-  dashboard: MdDashboard,
-  swap_horiz: MdSwapHoriz,
-  swap_vert: MdSwapVert,
-  sync: MdSync,
-  upload: MdUpload,
-  download: MdDownload,
-  cell_tower: MdCellTower,
-  delete_sweep: MdDeleteSweep,
-  fit_screen: MdFitScreen,
-  terminal: MdTerminal,
-  computer: MdComputer,
-  search: MdSearch,
-  memory: MdMemory,
-  speed: MdSpeed,
-  monitor_heart: MdOutlineMonitorHeart,
-  sticky_note: MdOutlineStickyNote2,
+  article: VscFileText,
+  info: VscInfo,
+  menu: VscMenu,
+  view_sidebar: VscLayoutSidebarLeft,
+  settings: VscSettingsGear,
+  visibility: VscEye,
+  file_export: VscExport,
+  file_import: VscCloudDownload,
+  splitscreen: VscSplitHorizontal,
+  merge: VscMerge,
+  dashboard: VscDashboard,
+  swap_horiz: VscArrowSwap,
+  swap_vert: VscArrowBoth,
+  sync: VscSync,
+  upload: VscCloudUpload,
+  download: VscCloudDownload,
+  cell_tower: VscRadioTower,
+  delete_sweep: VscClearAll,
+  fit_screen: VscScreenFull,
+  terminal: VscTerminal,
+  computer: VscVmOutline,
+  search: VscSearch,
+  memory: VscChip,
+  speed: VscDashboard,
+  monitor_heart: VscPulse,
+  sticky_note: VscNote,
   nvidia: SiNvidia,
   ascend: AscendIcon,
-  list_alt: MdListAlt,
+  list_alt: VscChecklist,
   docker: SiDocker,
 };
 
@@ -467,7 +466,7 @@ function HeaderHardwarePager({
         }}
         onMouseDown={stopDrag}
       >
-        <MdKeyboardArrowUp className="text-[0.75rem]" />
+        <VscChevronUp className="text-[0.75rem]" />
       </button>
       <button
         type="button"
@@ -479,7 +478,7 @@ function HeaderHardwarePager({
         }}
         onMouseDown={stopDrag}
       >
-        <MdKeyboardArrowDown className="text-[0.6875rem]" />
+        <VscChevronDown className="text-[0.6875rem]" />
       </button>
     </span>
   );
@@ -1575,14 +1574,14 @@ export default function Header({
       }
 
       if (activePane.type === "Telnet") {
-        return <MdDns className="text-sm shrink-0" />;
+        return <VscServer className="text-sm shrink-0" />;
       }
 
       if (activePane.type === "Serial") {
-        return <MdCellTower className="text-sm shrink-0" />;
+        return <VscRadioTower className="text-sm shrink-0" />;
       }
 
-      return <MdTerminal className="text-sm shrink-0" />;
+      return <VscTerminal className="text-sm shrink-0" />;
     };
 
     if (activePane.type === "SSH" && activeConnection && !activeTab.customName) {
@@ -1638,7 +1637,7 @@ export default function Header({
       }).format(currentMinute);
 
       return {
-        icon: <MdAccessTime />,
+        icon: <VscWatch />,
         text,
         title: text,
       };
@@ -1776,15 +1775,15 @@ export default function Header({
         icon: null,
         text: (
           <span className="flex min-w-0 items-center gap-1.5">
-            <HeaderStatusPart icon={<MdDns />} iconColor="#38bdf8">
+            <HeaderStatusPart icon={<VscServer />} iconColor="#38bdf8">
               {stats.system.hostname}
             </HeaderStatusPart>
             <HeaderStatusDivider />
-            <HeaderStatusPart icon={<MdComputer />} iconColor="#a78bfa">
+            <HeaderStatusPart icon={<VscVmOutline />} iconColor="#a78bfa">
               {stats.system.os}/{stats.system.arch}
             </HeaderStatusPart>
             <HeaderStatusDivider />
-            <HeaderStatusPart icon={<MdAccessTime />} iconColor="#34d399">
+            <HeaderStatusPart icon={<VscWatch />} iconColor="#34d399">
               {uptime}
             </HeaderStatusPart>
           </span>
@@ -1807,23 +1806,23 @@ export default function Header({
       icon: null,
       text: (
         <span className="flex min-w-0 items-center gap-1.5 font-mono tabular-nums">
-          <HeaderStatusPart icon={<MdSpeed />} iconColor="#38bdf8">
+          <HeaderStatusPart icon={<VscDashboard />} iconColor="#38bdf8">
             CPU{" "}
             <span style={cpuColor ? { color: cpuColor } : undefined}>
               {formatPct(stats.cpu.usage)}
             </span>
           </HeaderStatusPart>
           <HeaderStatusDivider />
-          <HeaderStatusPart icon={<MdMemory />} iconColor="#a78bfa">
+          <HeaderStatusPart icon={<VscChip />} iconColor="#a78bfa">
             RAM{" "}
             <span style={memoryColor ? { color: memoryColor } : undefined}>{memoryUsedText}</span>/
             {memoryTotalText}
           </HeaderStatusPart>
           <HeaderStatusDivider />
-          <HeaderStatusPart icon={<MdUpload />} iconColor="#f59e0b">
+          <HeaderStatusPart icon={<VscCloudUpload />} iconColor="#f59e0b">
             {txText}
           </HeaderStatusPart>
-          <HeaderStatusPart icon={<MdDownload />} iconColor="#34d399">
+          <HeaderStatusPart icon={<VscCloudDownload />} iconColor="#34d399">
             {rxText}
           </HeaderStatusPart>
         </span>
@@ -1866,7 +1865,7 @@ export default function Header({
             className="lg:hidden text-[var(--df-text-muted)] hover:bg-[color-mix(in_srgb,var(--df-text-muted)_10%,transparent)] hover:text-[var(--df-text-muted)]"
             onClick={onToggleLeft}
           >
-            <MdMenu className="text-base" />
+            <VscMenu className="text-base" />
           </Button>
         )}
 
@@ -1927,7 +1926,7 @@ export default function Header({
                   className="group flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-[color-mix(in_srgb,var(--df-text-muted)_10%,transparent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--df-primary)]"
                   aria-label={t("headerStatus.select")}
                 >
-                  <MdKeyboardArrowDown className="text-sm opacity-60 transition-opacity group-hover:opacity-100" />
+                  <VscChevronDown className="text-sm opacity-60 transition-opacity group-hover:opacity-100" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="min-w-[190px]">
@@ -1948,7 +1947,7 @@ export default function Header({
                 </DropdownMenuRadioGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowHeaderStatusHideConfirm(true)}>
-                  <MdVisibilityOff className="text-sm text-muted-foreground" />
+                  <VscEyeClosed className="text-sm text-muted-foreground" />
                   <span>{t("headerStatus.hide")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -1968,7 +1967,7 @@ export default function Header({
             className="md:hidden text-[var(--df-text-muted)] hover:bg-[color-mix(in_srgb,var(--df-text-muted)_10%,transparent)] hover:text-[var(--df-text-muted)]"
             onClick={onToggleRight}
           >
-            <MdViewSidebar className="text-base" />
+            <VscLayoutSidebarLeft className="text-base" />
           </Button>
         )}
 

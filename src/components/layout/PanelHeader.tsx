@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+import { usePanelToolbarSlot } from "./PanelToolbarContext";
 
 interface PanelHeaderProps {
   title: string;
@@ -16,6 +18,17 @@ export default function PanelHeader({
   className,
   titleClassName,
 }: PanelHeaderProps) {
+  const slot = usePanelToolbarSlot();
+  if (slot) {
+    if (!slot.active || !slot.target || (!actions && !meta)) return null;
+    return createPortal(
+      <fieldset className="workspace-panel-tools" aria-label={title}>
+        {meta && <span className="workspace-panel-meta">{meta}</span>}
+        {actions}
+      </fieldset>,
+      slot.target,
+    );
+  }
   return (
     <div
       className={cn(
@@ -29,10 +42,7 @@ export default function PanelHeader({
     >
       <div className="flex min-w-0 flex-1 items-baseline gap-2">
         <span
-          className={cn(
-            "workspace-panel-title shrink-0 truncate",
-            titleClassName,
-          )}
+          className={cn("workspace-panel-title shrink-0 truncate", titleClassName)}
           style={{ color: "var(--df-text-muted)" }}
         >
           {title}
@@ -46,7 +56,7 @@ export default function PanelHeader({
           </span>
         ) : null}
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
+      {actions ? <div className="workspace-panel-tools">{actions}</div> : null}
     </div>
   );
 }

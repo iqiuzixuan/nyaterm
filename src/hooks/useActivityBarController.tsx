@@ -1,23 +1,28 @@
+import {
+  VscChecklist,
+  VscCloudUpload,
+  VscFolder,
+  VscHistory,
+  VscKey,
+  VscLink,
+  VscLock,
+  VscNote,
+  VscPulse,
+  VscRecord,
+  VscSend,
+  VscServer,
+  VscSettingsGear,
+  VscSparkle,
+  VscTerminalCmd,
+  VscTypeHierarchySub
+} from "react-icons/vsc";
 import type { TFunction } from "i18next";
 import { type ReactNode, useCallback, useEffect, useMemo } from "react";
-import { BiServer } from "react-icons/bi";
-import { FaRegFolder } from "react-icons/fa";
-import { LuKeyRound } from "react-icons/lu";
-import {
-  MdAutoAwesome,
-  MdBackup,
-  MdBolt,
-  MdHistory,
-  MdLan,
-  MdLink,
-  MdListAlt,
-  MdLock,
-  MdOutlineMonitorHeart,
-  MdOutlineStickyNote2,
-  MdSend,
-  MdSettings,
-} from "react-icons/md";
-import { PiRecordFill } from "react-icons/pi";
+
+
+
+
+
 import { SiDocker, SiNvidia } from "react-icons/si";
 import type { ActivityBarItem } from "@/components/layout/ActivityBar";
 import {
@@ -247,28 +252,28 @@ export function useActivityBarController({
 }: UseActivityBarControllerOptions) {
   const itemRegistry = useMemo<Record<string, { icon: ReactNode; tooltip: string }>>(
     () => ({
-      fileExplorer: { icon: <FaRegFolder />, tooltip: t("panel.fileExplorer") },
-      notes: { icon: <MdOutlineStickyNote2 />, tooltip: t("panel.notes") },
-      network: { icon: <MdLan />, tooltip: t("panel.network") },
-      securityAuth: { icon: <LuKeyRound />, tooltip: t("securityAuth.title") },
-      syncBackupHistory: { icon: <MdBackup />, tooltip: t("panel.syncBackupHistory") },
-      settings: { icon: <MdSettings />, tooltip: t("settings.title") },
-      savedConnections: { icon: <BiServer />, tooltip: t("panel.savedConnections") },
-      aiAssistant: { icon: <MdAutoAwesome />, tooltip: t("ai.title") },
-      activeSessions: { icon: <MdLink />, tooltip: t("panel.activeSessions") },
-      commandHistory: { icon: <MdHistory />, tooltip: t("panel.commandHistory") },
-      resourceMonitor: { icon: <MdOutlineMonitorHeart />, tooltip: t("panel.resourceMonitor") },
+      fileExplorer: { icon: <VscFolder />, tooltip: t("panel.fileExplorer") },
+      notes: { icon: <VscNote />, tooltip: t("panel.notes") },
+      network: { icon: <VscTypeHierarchySub />, tooltip: t("panel.network") },
+      securityAuth: { icon: <VscKey />, tooltip: t("securityAuth.title") },
+      syncBackupHistory: { icon: <VscCloudUpload />, tooltip: t("panel.syncBackupHistory") },
+      settings: { icon: <VscSettingsGear />, tooltip: t("settings.title") },
+      savedConnections: { icon: <VscServer />, tooltip: t("panel.savedConnections") },
+      aiAssistant: { icon: <VscSparkle />, tooltip: t("ai.title") },
+      activeSessions: { icon: <VscLink />, tooltip: t("panel.activeSessions") },
+      commandHistory: { icon: <VscHistory />, tooltip: t("panel.commandHistory") },
+      resourceMonitor: { icon: <VscPulse />, tooltip: t("panel.resourceMonitor") },
       gpuMonitor: { icon: <SiNvidia />, tooltip: t("panel.gpuMonitor") },
       ascendNpuMonitor: { icon: <AscendIcon />, tooltip: t("panel.ascendNpuMonitor") },
-      processManager: { icon: <MdListAlt />, tooltip: t("panel.processManager") },
+      processManager: { icon: <VscChecklist />, tooltip: t("panel.processManager") },
       dockerManager: { icon: <SiDocker />, tooltip: t("panel.dockerManager") },
-      quickCmdBar: { icon: <MdBolt />, tooltip: t("panel.quickCommands") },
-      serialSend: { icon: <MdSend />, tooltip: t("panel.serialSend", "Command Send") },
+      quickCmdBar: { icon: <VscTerminalCmd />, tooltip: t("panel.quickCommands") },
+      serialSend: { icon: <VscSend />, tooltip: t("panel.serialSend", "Command Send") },
       recording: {
-        icon: <PiRecordFill className={recordingSessions.size > 0 ? "animate-pulse" : undefined} />,
+        icon: <VscRecord className={recordingSessions.size > 0 ? "animate-pulse" : undefined} />,
         tooltip: t("recording.panelTitle"),
       },
-      lock: { icon: <MdLock />, tooltip: t("statusBar.lock") },
+      lock: { icon: <VscLock />, tooltip: t("statusBar.lock") },
     }),
     [recordingSessions, t],
   );

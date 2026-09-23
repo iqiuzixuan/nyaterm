@@ -1,6 +1,31 @@
+import {
+  VscAdd,
+  VscArrowSmallRight,
+  VscChevronDown,
+  VscChevronRight,
+  VscChevronUp,
+  VscClose,
+  VscCloudDownload,
+  VscCopy,
+  VscEdit,
+  VscEllipsis,
+  VscExport,
+  VscEye,
+  VscFolder,
+  VscLayout,
+  VscListOrdered,
+  VscListUnordered,
+  VscPin,
+  VscSearch,
+  VscSend,
+  VscSparkle,
+  VscTerminal,
+  VscTerminalCmd,
+  VscTrash
+} from "react-icons/vsc";
 import { listen } from "@tauri-apps/api/event";
 import { save as saveFileDialog } from "@tauri-apps/plugin-dialog";
-import { MoreHorizontalIcon } from "lucide-react";
+
 import {
   type DragEvent,
   memo,
@@ -11,31 +36,9 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { BiExport, BiImport } from "react-icons/bi";
-import { BsFillSendPlusFill } from "react-icons/bs";
-import {
-  MdAdd,
-  MdAutoAwesome,
-  MdBolt,
-  MdChevronRight,
-  MdClose,
-  MdContentCopy,
-  MdDelete,
-  MdEdit,
-  MdFolder,
-  MdFormatListBulleted,
-  MdGridView,
-  MdKeyboardArrowDown,
-  MdKeyboardArrowUp,
-  MdKeyboardReturn,
-  MdPushPin,
-  MdSearch,
-  MdSend,
-  MdSort,
-  MdTerminal,
-  MdViewList,
-  MdVisibility,
-} from "react-icons/md";
+
+
+
 import { toast } from "sonner";
 import DeleteQuickCommandCategoryDialog from "@/components/dialog/quick-commands/DeleteQuickCommandCategoryDialog";
 import DeleteQuickCommandDialog from "@/components/dialog/quick-commands/DeleteQuickCommandDialog";
@@ -994,14 +997,14 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
           className="text-xs gap-2"
           onClick={() => openNewCategoryDialog(categoryId)}
         >
-          <MdFolder className="text-[0.875rem]" />
+          <VscFolder className="text-[0.875rem]" />
           {t("quickCommands.addCategory")}
         </ContextMenuItem>
         <ContextMenuItem
           className="text-xs gap-2"
           onClick={() => openNewCommandForCategory(categoryId)}
         >
-          <MdTerminal className="text-[0.875rem]" />
+          <VscTerminal className="text-[0.875rem]" />
           {t("quickCommands.addCommand")}
         </ContextMenuItem>
         {options?.includeEdit && (
@@ -1011,14 +1014,14 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
               className="text-xs gap-2"
               onClick={() => setCategoryToRename(options.includeEdit ?? null)}
             >
-              <MdEdit className="text-[0.875rem]" />
+              <VscEdit className="text-[0.875rem]" />
               {t("quickCommands.edit")}
             </ContextMenuItem>
             <ContextMenuItem
               className="text-xs gap-2 text-destructive focus:text-destructive"
               onClick={() => setCategoryToDelete(options.includeEdit ?? null)}
             >
-              <MdDelete className="text-[0.875rem]" />
+              <VscTrash className="text-[0.875rem]" />
               {t("quickCommands.delete")}
             </ContextMenuItem>
           </>
@@ -1056,9 +1059,9 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
         )}
       >
         {cmd.execution_mode === "append" ? (
-          <MdKeyboardReturn className="text-[0.7rem]" />
+          <VscArrowSmallRight className="text-[0.7rem]" />
         ) : (
-          <MdBolt className="text-[0.7rem]" />
+          <VscTerminalCmd className="text-[0.7rem]" />
         )}
         <span className="truncate">
           {cmd.execution_mode === "append"
@@ -1089,7 +1092,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
             void handleCopyCommand(cmd.command);
           }}
         >
-          <MdContentCopy className="text-[0.8rem]" />
+          <VscCopy className="text-[0.8rem]" />
         </button>
       </div>
     ),
@@ -1110,7 +1113,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                   className="h-7 w-7 rounded p-0 text-muted-foreground hover:bg-[var(--df-bg-hover)] hover:text-foreground"
                   aria-label={t("quickCommands.view")}
                 >
-                  <MdVisibility className="text-[0.875rem]" />
+                  <VscEye className="text-[0.875rem]" />
                 </Button>
               </PopoverTrigger>
             </TooltipTrigger>
@@ -1168,14 +1171,14 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
             className="h-7 w-7 rounded p-0 text-muted-foreground hover:bg-[var(--df-bg-hover)] hover:text-foreground"
             aria-label="More"
           >
-            <MoreHorizontalIcon className="size-4" />
+            <VscEllipsis className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[140px]">
           <DropdownMenuItem
             onClick={() => openQuickCommand(JSON.stringify(cmd))}
           >
-            <MdEdit className="text-[0.875rem]" />
+            <VscEdit className="text-[0.875rem]" />
             {t("quickCommands.edit")}
           </DropdownMenuItem>
           {onSendToAll && (
@@ -1183,7 +1186,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
               disabled={sendDisabled}
               onClick={() => handleSendToAll(cmd)}
             >
-              <BsFillSendPlusFill className="text-[0.875rem]" />
+              <VscSend className="text-[0.875rem]" />
               {t("quickCommands.sendToAll")}
             </DropdownMenuItem>
           )}
@@ -1192,7 +1195,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
             variant="destructive"
             onClick={() => setCommandToDelete(cmd)}
           >
-            <MdDelete className="text-[0.875rem]" />
+            <VscTrash className="text-[0.875rem]" />
             {t("quickCommands.delete")}
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -1214,7 +1217,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
               disabled={sendDisabled}
               onClick={() => handleCommandClick(cmd)}
             >
-              <MdSend className="text-[0.875rem]" />
+              <VscSend className="text-[0.875rem]" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top">{t("quickCommands.send")}</TooltipContent>
@@ -1239,7 +1242,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
           className="text-xs gap-2"
           onClick={() => openQuickCommand(JSON.stringify(cmd))}
         >
-          <MdEdit className="text-[0.875rem]" />
+          <VscEdit className="text-[0.875rem]" />
           {t("quickCommands.edit")}
         </ContextMenuItem>
         {onSendToAll && (
@@ -1248,7 +1251,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
             disabled={sendDisabled}
             onClick={() => handleSendToAll(cmd)}
           >
-            <BsFillSendPlusFill className="text-[0.875rem]" />
+            <VscSend className="text-[0.875rem]" />
             {t("quickCommands.sendToAll")}
           </ContextMenuItem>
         )}
@@ -1256,7 +1259,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
           className="text-xs gap-2 text-destructive focus:text-destructive"
           onClick={() => setCommandToDelete(cmd)}
         >
-          <MdDelete className="text-[0.875rem]" />
+          <VscTrash className="text-[0.875rem]" />
           {t("quickCommands.delete")}
         </ContextMenuItem>
       </ContextMenuContent>
@@ -1297,7 +1300,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="flex min-w-0 items-center gap-1.5">
                   {cmd.pinned && (
-                    <MdPushPin className="shrink-0 text-[0.7rem] opacity-60" />
+                    <VscPin className="shrink-0 text-[0.7rem] opacity-60" />
                   )}
                   <span className="min-w-0 truncate font-medium">
                     {cmd.label}
@@ -1362,7 +1365,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                 {renderCommandIcon(cmd, "text-[0.8rem]")}
               </span>
               {cmd.pinned && (
-                <MdPushPin className="shrink-0 text-[0.65rem] opacity-60" />
+                <VscPin className="shrink-0 text-[0.65rem] opacity-60" />
               )}
               <span className="min-w-[4rem] max-w-[38%] truncate font-medium">
                 {cmd.label}
@@ -1426,7 +1429,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                     {renderCommandIcon(cmd, "text-[0.75rem]")}
                   </span>
                   {cmd.pinned && (
-                    <MdPushPin className="shrink-0 text-[0.625rem] opacity-60" />
+                    <VscPin className="shrink-0 text-[0.625rem] opacity-60" />
                   )}
                   <span className="min-w-0 truncate whitespace-nowrap">
                     {cmd.label}
@@ -1458,9 +1461,9 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                   </div>
                   <div className="mt-0.5 flex items-center gap-1.5 text-[0.6875rem] text-muted-foreground">
                     {cmd.execution_mode === "append" ? (
-                      <MdKeyboardReturn className="text-[0.75rem]" />
+                      <VscArrowSmallRight className="text-[0.75rem]" />
                     ) : (
-                      <MdBolt className="text-[0.75rem]" />
+                      <VscTerminalCmd className="text-[0.75rem]" />
                     )}
                     {cmd.execution_mode === "append"
                       ? t("quickCommands.appendOnly")
@@ -1523,7 +1526,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
             <>
               <div className="flex min-w-0 items-center gap-1">
                 <div className="relative w-[9rem] shrink-0 transition-colors focus-within:text-[var(--df-primary)] text-[var(--df-text-dimmed)]">
-                  <MdSearch className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[0.875rem]" />
+                  <VscSearch className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[0.875rem]" />
                   <Input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
@@ -1535,7 +1538,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                       className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 transition-colors hover:text-[var(--df-text)] text-[var(--df-text-dimmed)]"
                       onClick={() => setSearch("")}
                     >
-                      <MdClose className="text-[0.75rem]" />
+                      <VscClose className="text-[0.75rem]" />
                     </button>
                   )}
                 </div>
@@ -1562,7 +1565,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                         }}
                         aria-label={t("quickCommands.sort")}
                       >
-                        <MdSort className="text-[1.05rem]" />
+                        <VscListOrdered className="text-[1.05rem]" />
                       </Button>
                     </DropdownMenuTrigger>
                   </TooltipTrigger>
@@ -1605,11 +1608,11 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                         aria-label={t("quickCommands.viewMode")}
                       >
                         {viewMode === "tile" ? (
-                          <MdGridView className="text-[1rem]" />
+                          <VscLayout className="text-[1rem]" />
                         ) : viewMode === "compact" ? (
-                          <MdViewList className="text-[1.05rem]" />
+                          <VscListUnordered className="text-[1.05rem]" />
                         ) : (
-                          <MdFormatListBulleted className="text-[1rem]" />
+                          <VscListUnordered className="text-[1rem]" />
                         )}
                       </Button>
                     </DropdownMenuTrigger>
@@ -1626,15 +1629,15 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                     }
                   >
                     <DropdownMenuRadioItem value="list" className="text-xs">
-                      <MdFormatListBulleted className="text-[0.95rem]" />
+                      <VscListUnordered className="text-[0.95rem]" />
                       {t("quickCommands.listMode")}
                     </DropdownMenuRadioItem>
                     <DropdownMenuRadioItem value="compact" className="text-xs">
-                      <MdViewList className="text-[1rem]" />
+                      <VscListUnordered className="text-[1rem]" />
                       {t("quickCommands.compactListMode")}
                     </DropdownMenuRadioItem>
                     <DropdownMenuRadioItem value="tile" className="text-xs">
-                      <MdGridView className="text-[0.95rem]" />
+                      <VscLayout className="text-[0.95rem]" />
                       {t("quickCommands.tileMode")}
                     </DropdownMenuRadioItem>
                   </DropdownMenuRadioGroup>
@@ -1657,7 +1660,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                       aria-label={t("quickCommands.addCommand")}
                       onClick={() => openQuickCommand()}
                     >
-                      <MdAdd className="text-[1.05rem]" />
+                      <VscAdd className="text-[1.05rem]" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -1675,7 +1678,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                       aria-label={t("quickCommands.export")}
                       onClick={() => void handleExportQuickCommands()}
                     >
-                      <BiExport className="text-[1.05rem]" />
+                      <VscExport className="text-[1.05rem]" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -1693,7 +1696,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                       aria-label={t("quickCommands.import")}
                       onClick={() => setImportDialogOpen(true)}
                     >
-                      <BiImport className="text-[1.05rem]" />
+                      <VscCloudDownload className="text-[1.05rem]" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -1718,7 +1721,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                         style={{ color: "var(--df-text-muted)" }}
                         aria-label={t("ai.generateCommand")}
                       >
-                        <MdAutoAwesome className="text-[1.05rem]" />
+                        <VscSparkle className="text-[1.05rem]" />
                       </Button>
                     </PopoverTrigger>
                   </TooltipTrigger>
@@ -1750,7 +1753,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                         disabled={sendDisabled || !aiPrompt.trim()}
                         onClick={handleAiPromptSubmit}
                       >
-                        <MdAutoAwesome />
+                        <VscSparkle />
                         {t("ai.generate")}
                       </Button>
                     </div>
@@ -1889,7 +1892,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                                 toggleCategoryExpanded(category.id);
                               }}
                             >
-                              <MdChevronRight
+                              <VscChevronRight
                                 className={cn(
                                   "text-[0.875rem] transition-transform",
                                   expanded && "rotate-90",
@@ -1944,14 +1947,14 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                           className="text-xs gap-2"
                           onClick={() => openNewCategoryDialog(savedCategory.id)}
                         >
-                          <MdFolder className="text-[0.875rem]" />
+                          <VscFolder className="text-[0.875rem]" />
                           {t("quickCommands.addCategory")}
                         </ContextMenuItem>
                         <ContextMenuItem
                           className="text-xs gap-2"
                           onClick={() => openNewCommandForCategory(savedCategory.id)}
                         >
-                          <MdTerminal className="text-[0.875rem]" />
+                          <VscTerminal className="text-[0.875rem]" />
                           {t("quickCommands.addCommand")}
                         </ContextMenuItem>
                         <ContextMenuSeparator />
@@ -1960,7 +1963,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                           disabled={!moveState.canMoveUp}
                           onClick={() => handleMoveCategory(savedCategory.id, "up")}
                         >
-                          <MdKeyboardArrowUp className="text-[0.875rem]" />
+                          <VscChevronUp className="text-[0.875rem]" />
                           {t("dialog.moveUp")}
                         </ContextMenuItem>
                         <ContextMenuItem
@@ -1970,7 +1973,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                             handleMoveCategory(savedCategory.id, "down")
                           }
                         >
-                          <MdKeyboardArrowDown className="text-[0.875rem]" />
+                          <VscChevronDown className="text-[0.875rem]" />
                           {t("dialog.moveDown")}
                         </ContextMenuItem>
                         <ContextMenuSeparator />
@@ -1978,14 +1981,14 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                           className="text-xs gap-2"
                           onClick={() => setCategoryToRename(savedCategory)}
                         >
-                          <MdEdit className="text-[0.875rem]" />
+                          <VscEdit className="text-[0.875rem]" />
                           {t("quickCommands.edit")}
                         </ContextMenuItem>
                         <ContextMenuItem
                           className="text-xs gap-2 text-destructive focus:text-destructive"
                           onClick={() => setCategoryToDelete(savedCategory)}
                         >
-                          <MdDelete className="text-[0.875rem]" />
+                          <VscTrash className="text-[0.875rem]" />
                           {t("quickCommands.delete")}
                         </ContextMenuItem>
                       </ContextMenuContent>
@@ -2060,7 +2063,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
             >
               {filteredCommands.length === 0 ? (
                 <div className="mx-auto mt-8 flex w-full max-w-md flex-col items-center justify-center rounded-lg border border-dashed p-4 text-muted-foreground opacity-70">
-                  <MdTerminal className="text-2xl mb-2" />
+                  <VscTerminal className="text-2xl mb-2" />
                   <span className="text-xs mb-3">
                     {t("quickCommands.noCommandsFound")}
                   </span>
@@ -2070,7 +2073,7 @@ function QuickCommands({ onSend, onSendToAll, sendDisabled = false }: QuickComma
                     className="h-7 text-xs bg-muted/20 hover:bg-muted"
                     onClick={() => openQuickCommand()}
                   >
-                    <MdAdd className="mr-1 text-sm" />
+                    <VscAdd className="mr-1 text-sm" />
                     {t("quickCommands.addCommand")}
                   </Button>
                 </div>

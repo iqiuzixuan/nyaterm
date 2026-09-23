@@ -1,3 +1,17 @@
+import {
+  VscAdd,
+  VscCheck,
+  VscChevronDown,
+  VscClose,
+  VscCopy,
+  VscError,
+  VscFolder,
+  VscHistory,
+  VscLock,
+  VscRadioTower,
+  VscServer,
+  VscTerminal
+} from "react-icons/vsc";
 import { emit } from "@tauri-apps/api/event";
 import {
   type DragEvent,
@@ -12,20 +26,7 @@ import {
   type WheelEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  MdAdd,
-  MdCellTower,
-  MdCheck,
-  MdClose,
-  MdContentCopy,
-  MdDns,
-  MdErrorOutline,
-  MdExpandMore,
-  MdFolder,
-  MdHistory,
-  MdLock,
-  MdTerminal,
-} from "react-icons/md";
+
 import { toast } from "sonner";
 import CloseAllSessionsDialog from "@/components/dialog/terminal/CloseAllSessionsDialog";
 import TabRenameDialog from "@/components/dialog/terminal/TabRenameDialog";
@@ -303,7 +304,7 @@ function SyncIndicator({
   if (!isMember) return null;
 
   return (
-    <MdCellTower
+    <VscRadioTower
       className="text-[11px] shrink-0"
       style={{
         color: activeGroup?.color ?? "var(--df-primary)",
@@ -1104,7 +1105,7 @@ function TabBar({
 
     if (pane?.connectError) {
       return (
-        <MdErrorOutline
+        <VscError
           className="text-sm shrink-0"
           style={{ color: "var(--destructive, #ef4444)" }}
         />
@@ -1128,10 +1129,10 @@ function TabBar({
     }
 
     if (pane?.type === "Local") {
-      return <MdTerminal className="text-sm shrink-0" />;
+      return <VscTerminal className="text-sm shrink-0" />;
     }
 
-    return <MdDns className="text-sm shrink-0" />;
+    return <VscServer className="text-sm shrink-0" />;
   };
 
   const buildGroupPath = (groupId: string | undefined) => {
@@ -1180,10 +1181,10 @@ function TabBar({
     }
 
     if (connection.type === "local_terminal") {
-      return <MdTerminal className="text-sm shrink-0 text-emerald-500/70" />;
+      return <VscTerminal className="text-sm shrink-0 text-emerald-500/70" />;
     }
 
-    return <MdDns className="text-sm shrink-0 text-emerald-500/70" />;
+    return <VscServer className="text-sm shrink-0 text-emerald-500/70" />;
   };
 
   const renderTabItem = (tab: Tab, index: number) => {
@@ -1251,7 +1252,7 @@ function TabBar({
               .catch(() => toast.error(t("tabCtx.copyFailed")));
           }}
         >
-          <MdContentCopy className="text-[12px]" />
+          <VscCopy className="text-[12px]" />
         </button>
       </div>
     );
@@ -1276,7 +1277,7 @@ function TabBar({
           )}
           {isDisconnected && (
             <div className="flex min-w-0 items-center gap-2 text-[var(--df-danger)]">
-              <MdErrorOutline className="text-[12px] shrink-0" />
+              <VscError className="text-[12px] shrink-0" />
               <span className="min-w-0 truncate">
                 {t("tabCtx.disconnected")}
               </span>
@@ -1292,13 +1293,13 @@ function TabBar({
           )}
           {tab.locked && (
             <div className="flex min-w-0 items-center gap-2 text-[var(--df-text-muted)]">
-              <MdLock className="text-[12px] shrink-0" />
+              <VscLock className="text-[12px] shrink-0" />
               <span className="min-w-0 truncate">{t("tabCtx.locked")}</span>
             </div>
           )}
           {groupPath && (
             <div className="flex min-w-0 items-center gap-2 text-[var(--df-text-muted)]">
-              <MdFolder className="text-[12px] shrink-0 text-amber-500/80" />
+              <VscFolder className="text-[12px] shrink-0 text-amber-500/80" />
               <span className="min-w-0 truncate">
                 {t("tabCtx.group")}: {groupPath}
               </span>
@@ -1464,17 +1465,15 @@ function TabBar({
                 toast.info(t("tabCtx.lockedCloseBlocked"));
               }}
             >
-              <MdLock className="text-[12px]" />
+              <VscLock className="text-[12px]" />
             </div>
           ) : showUnreadIndicator ? (
             <span className="h-2 w-2 rounded-full bg-green-500 animate-breathing" />
           ) : (
-            <div
-              className={`absolute inset-0 flex items-center justify-center rounded transition-all duration-200 ${
-                isActive
-                  ? "text-[var(--df-text-muted)]"
-                  : "text-[var(--df-text-dimmed)] opacity-0 group-hover:opacity-100"
-              } hover:!bg-red-500/10 hover:!text-red-500 active:scale-90 active:!bg-red-500/20`}
+            <button
+              type="button"
+              className="workspace-tab-close absolute inset-0 flex items-center justify-center"
+              aria-label={t("common.close")}
               onPointerDown={(event) => {
                 event.stopPropagation();
               }}
@@ -1483,8 +1482,8 @@ function TabBar({
                 void onTabClose(tab);
               }}
             >
-              <MdClose className="text-[12px]" />
-            </div>
+              <VscClose className="text-[12px]" />
+            </button>
           )}
         </div>
       </div>
@@ -1585,7 +1584,7 @@ function TabBar({
         <span className="grid w-full grid-cols-[1rem_1rem_minmax(0,1fr)_1rem] items-center gap-x-2 gap-y-1.5">
           <span className="flex h-4 w-4 items-center justify-center">
             {isActive ? (
-              <MdCheck
+              <VscCheck
                 className="text-sm"
                 style={{ color: "var(--df-primary)" }}
               />
@@ -1605,7 +1604,7 @@ function TabBar({
           </span>
           <span className="flex h-4 w-4 items-center justify-center text-[var(--df-text-dimmed)]">
             {tab.locked ? (
-              <MdLock className="text-[12px]" aria-label={t("tabCtx.locked")} />
+              <VscLock className="text-[12px]" aria-label={t("tabCtx.locked")} />
             ) : null}
           </span>
         </span>
@@ -1637,7 +1636,7 @@ function TabBar({
   const renderGroupNode = (node: ConnectionGroupNode) => (
     <DropdownMenuSub key={node.group.id}>
       <DropdownMenuSubTrigger className="max-w-[320px]">
-        <MdFolder className="text-sm shrink-0 text-amber-500/70" />
+        <VscFolder className="text-sm shrink-0 text-amber-500/70" />
         <span className="min-w-0 truncate">{node.group.name}</span>
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent className="min-w-[240px] max-w-[340px] max-h-[70vh] overflow-y-auto">
@@ -1714,7 +1713,7 @@ function TabBar({
                     }}
                     aria-label={t("terminal.openTabs")}
                   >
-                    <MdExpandMore className="text-base" />
+                    <VscChevronDown className="text-base" />
                   </button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
@@ -1757,7 +1756,7 @@ function TabBar({
                   }}
                   aria-label={t("terminal.newSession")}
                 >
-                  <MdAdd className="text-base" />
+                  <VscAdd className="text-base" />
                 </button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
@@ -1771,12 +1770,12 @@ function TabBar({
           >
             <DropdownMenuGroup>
               <DropdownMenuItem onSelect={() => onAddTab()}>
-                <MdAdd className="text-sm text-muted-foreground" />
+                <VscAdd className="text-sm text-muted-foreground" />
                 {t("terminal.newSession")}
               </DropdownMenuItem>
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
-                  <MdDns className="text-sm text-muted-foreground" />
+                  <VscServer className="text-sm text-muted-foreground" />
                   {t("terminal.allSessions")}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="min-w-[260px] max-w-[360px] max-h-[70vh] overflow-y-auto">
@@ -1812,7 +1811,7 @@ function TabBar({
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-muted-foreground">
               <span className="inline-flex items-center gap-2">
-                <MdHistory className="text-sm" />
+                <VscHistory className="text-sm" />
                 {t("terminal.recentSessions")}
               </span>
             </DropdownMenuLabel>

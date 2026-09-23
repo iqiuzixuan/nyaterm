@@ -1,4 +1,12 @@
 import {
+  VscBookmark,
+  VscCheck,
+  VscChevronRight,
+  VscEllipsis,
+  VscRefresh,
+  VscSearch
+} from "react-icons/vsc";
+import {
   type RefObject,
   useCallback,
   useEffect,
@@ -8,17 +16,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  MdBookmarkAdd,
-  MdBookmarkAdded,
-  MdBookmarkBorder,
-  MdBookmarkRemove,
-  MdCheck,
-  MdKeyboardArrowRight,
-  MdMoreHoriz,
-  MdRefresh,
-  MdSearch,
-} from "react-icons/md";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -275,7 +273,7 @@ export function FileExplorerPathBar({
   const normalizedCurrentPath = normalizeExplorerPath(currentPath || homeDir, backend);
   const hasFavoriteDirectories = favoriteDirectories.length > 0;
   const isCurrentFavorite = favoriteDirectories.includes(normalizedCurrentPath);
-  const FavoriteIcon = isCurrentFavorite ? MdBookmarkAdded : MdBookmarkBorder;
+  const FavoriteIcon = isCurrentFavorite ? VscBookmark : VscBookmark;
 
   const beginPathEditing = useCallback(() => {
     onPathInputTextChange(currentPath || homeDir);
@@ -424,7 +422,7 @@ export function FileExplorerPathBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
           <DropdownMenuItem onClick={onAddCurrentDirectoryToFavorites}>
-            <MdBookmarkAdd className="h-4 w-4" />
+            <VscBookmark className="h-4 w-4" />
             <span className="min-w-0 truncate">{t("fileExplorer.addCurrentDirToFavorites")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -455,7 +453,7 @@ export function FileExplorerPathBar({
                       onRemoveFavoritePath(path);
                     }}
                   >
-                    <MdBookmarkRemove className="h-3.5 w-3.5" />
+                    <VscBookmark className="h-3.5 w-3.5" />
                   </button>
                 </DropdownMenuItem>
               );
@@ -530,7 +528,7 @@ function BreadcrumbOverflowMenu({
           title={t("fileExplorer.breadcrumbOverflow")}
           aria-label={t("fileExplorer.breadcrumbOverflow")}
         >
-          <MdMoreHoriz className="h-4 w-4" />
+          <VscEllipsis className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
@@ -762,7 +760,7 @@ function DirectoryChildrenMenu({
           aria-haspopup="menu"
           aria-expanded={open}
         >
-          <MdKeyboardArrowRight className="h-3.5 w-3.5" />
+          <VscChevronRight className="h-3.5 w-3.5" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80 max-w-[calc(100vw-2rem)] min-w-44 p-1">
@@ -784,7 +782,7 @@ function DirectoryChildrenMenu({
               className="inline-flex h-6 items-center gap-1 rounded px-2 text-xs text-primary hover:bg-accent"
               onClick={() => void loadChildren()}
             >
-              <MdRefresh className="h-3.5 w-3.5" />
+              <VscRefresh className="h-3.5 w-3.5" />
               {t("common.retry")}
             </button>
           </div>
@@ -796,7 +794,7 @@ function DirectoryChildrenMenu({
                 className="mb-1 flex h-7 items-center gap-1 rounded border px-2"
                 style={{ borderColor: "var(--df-border)" }}
               >
-                <MdSearch className="h-3.5 w-3.5 text-muted-foreground" />
+                <VscSearch className="h-3.5 w-3.5 text-muted-foreground" />
                 <input
                   className="min-w-0 flex-1 bg-transparent text-xs outline-none"
                   value={query}
@@ -838,7 +836,7 @@ function DirectoryChildrenMenu({
                         }}
                       >
                         <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                        {checked && <MdCheck className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                        {checked && <VscCheck className="h-3.5 w-3.5 shrink-0 text-primary" />}
                       </button>
                     );
                   })}

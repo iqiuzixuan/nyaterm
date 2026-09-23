@@ -1,23 +1,26 @@
+import {
+  VscCheck,
+  VscChecklist,
+  VscClose,
+  VscCommentDiscussion,
+  VscCopy,
+  VscDebugStop,
+  VscError,
+  VscHistory,
+  VscQuote,
+  VscSearch,
+  VscSend,
+  VscSettingsGear,
+  VscSparkle,
+  VscTrash,
+  VscWand,
+  VscWarning
+} from "react-icons/vsc";
 import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LuMessageSquarePlus, LuQuote } from "react-icons/lu";
-import {
-  MdAutoAwesome,
-  MdAutoMode,
-  MdCheck,
-  MdClose,
-  MdContentCopy,
-  MdDeleteOutline,
-  MdErrorOutline,
-  MdHistory,
-  MdOutlineSettings,
-  MdRule,
-  MdSearch,
-  MdSend,
-  MdStop,
-  MdWarningAmber,
-} from "react-icons/md";
+
+
 import { toast } from "sonner";
 import { AIAssistantDialogs } from "@/components/dialog/ai/AIAssistantDialogs";
 import PanelHeader from "@/components/layout/PanelHeader";
@@ -1414,7 +1417,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
               {desc}
             </span>
           </span>
-          {selected ? <MdCheck className="mt-0.5 shrink-0 text-primary" /> : null}
+          {selected ? <VscCheck className="mt-0.5 shrink-0 text-primary" /> : null}
         </button>
       );
     },
@@ -1471,11 +1474,11 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                   }}
                 >
                   {agentExecutionMode === "auto" ? (
-                    <MdWarningAmber />
+                    <VscWarning />
                   ) : agentExecutionMode === "smart" ? (
-                    <MdAutoMode />
+                    <VscWand />
                   ) : (
-                    <MdRule />
+                    <VscChecklist />
                   )}
                 </Button>
               </TooltipTrigger>
@@ -1493,7 +1496,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                   }}
                   aria-expanded={showHistory}
                 >
-                  <MdHistory />
+                  <VscHistory />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="top">{t("ai.history")}</TooltipContent>
@@ -1501,7 +1504,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button size="icon-sm" variant="ghost" onClick={() => openSettings("ai")}>
-                  <MdOutlineSettings />
+                  <VscSettingsGear />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="top">{t("ai.settings")}</TooltipContent>
@@ -1509,7 +1512,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button size="icon-sm" variant="ghost" onClick={newChat} disabled={loading}>
-                  <LuMessageSquarePlus />
+                  <VscCommentDiscussion />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="top">{t("ai.newChat")}</TooltipContent>
@@ -1527,20 +1530,20 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
           <div className="px-2 py-1.5 text-xs font-medium">{t("ai.agentCommandExecutionMode")}</div>
           {renderExecutionModeItem(
             "confirm_each",
-            <MdRule />,
+            <VscChecklist />,
             t("ai.executionModeConfirmEach"),
             t("ai.executionModeConfirmEachDesc"),
           )}
           {renderExecutionModeItem(
             "smart",
-            <MdAutoMode />,
+            <VscWand />,
             t("ai.executionModeSmart"),
             t("ai.executionModeSmartDesc"),
           )}
           <div className="-mx-1 my-1 h-px bg-border" />
           {renderExecutionModeItem(
             "auto",
-            <MdWarningAmber />,
+            <VscWarning />,
             t("ai.executionModeAuto"),
             t("ai.executionModeAutoDesc"),
             true,
@@ -1581,7 +1584,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
         >
           <div className="border-b border-border/70 p-2">
             <div className="relative">
-              <MdSearch className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground" />
+              <VscSearch className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground" />
               <Input
                 value={historyQuery}
                 placeholder={t("ai.historySearchPlaceholder")}
@@ -1673,7 +1676,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                               void deleteSession(session.id);
                             }}
                           >
-                            <MdDeleteOutline className="text-sm" />
+                            <VscTrash className="text-sm" />
                           </button>
                         </div>
                       );
@@ -1714,13 +1717,13 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
               <div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
                 {!aiSettings.enabled ? (
                   <>
-                    <MdAutoAwesome className="text-3xl" />
+                    <VscSparkle className="text-3xl" />
                     <div>{t("ai.goToSettingsToEnable")}</div>
                   </>
                 ) : !isExternalAgentMode && !selectedModel ? (
                   <div className="flex flex-col items-center gap-4 px-4">
                     <div className="flex size-12 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10">
-                      <MdErrorOutline className="text-2xl text-amber-500" />
+                      <VscError className="text-2xl text-amber-500" />
                     </div>
                     <div className="space-y-1">
                       <div className="text-sm font-medium text-foreground">
@@ -1742,13 +1745,13 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                       </div>
                     </div>
                     <Button size="sm" className="mt-1 gap-1.5" onClick={() => openSettings("ai")}>
-                      <MdOutlineSettings className="text-sm" />
+                      <VscSettingsGear className="text-sm" />
                       {t("ai.setupAction")}
                     </Button>
                   </div>
                 ) : (
                   <>
-                    <MdAutoAwesome className="text-3xl" />
+                    <VscSparkle className="text-3xl" />
                     <div>{t("ai.empty")}</div>
                   </>
                 )}
@@ -1837,11 +1840,11 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
         </ContextMenuTrigger>
         <ContextMenuContent>
           <ContextMenuItem onClick={handleQuoteSelection}>
-            <LuQuote className="mr-2" />
+            <VscQuote className="mr-2" />
             {t("ai.quote")}
           </ContextMenuItem>
           <ContextMenuItem onClick={handleCopySelection}>
-            <MdContentCopy className="mr-2" />
+            <VscCopy className="mr-2" />
             {t("ai.copy")}
           </ContextMenuItem>
         </ContextMenuContent>
@@ -1864,7 +1867,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                   className="ml-0.5 rounded-full p-0 hover:text-destructive"
                   onClick={() => removeTargetPane(p.sessionId)}
                 >
-                  <MdClose className="text-[0.625rem]" />
+                  <VscClose className="text-[0.625rem]" />
                 </button>
               </span>
             ))}
@@ -1915,7 +1918,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
             {quotedText ? (
               <div className="flex items-center gap-1.5 rounded-md border border-primary/25 bg-primary/6">
                 <div className="w-[3px] self-stretch shrink-0 rounded-l-md bg-primary/60" />
-                <LuQuote className="shrink-0 text-[0.625rem] text-primary/70" />
+                <VscQuote className="shrink-0 text-[0.625rem] text-primary/70" />
                 <span className="min-w-0 flex-1 truncate py-1.5 text-[0.6875rem] text-muted-foreground">
                   {quotedText.text}
                 </span>
@@ -1929,7 +1932,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                     }))
                   }
                 >
-                  <MdClose className="text-xs" />
+                  <VscClose className="text-xs" />
                 </button>
               </div>
             ) : null}
@@ -2046,7 +2049,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
               <div className="flex-shrink-0">
                 {loading ? (
                   <Button size="icon-sm" variant="outline" onClick={cancelStream}>
-                    <MdStop />
+                    <VscDebugStop />
                   </Button>
                 ) : (
                   <Button
@@ -2058,7 +2061,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                       !aiSettings.enabled
                     }
                   >
-                    <MdSend />
+                    <VscSend />
                   </Button>
                 )}
               </div>

@@ -1,7 +1,13 @@
+import {
+  VscCopy,
+  VscEdit,
+  VscLink,
+  VscTrash
+} from "react-icons/vsc";
 import type { TFunction } from "i18next";
 import { FolderOpen } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MdContentCopy, MdDelete, MdDriveFileRenameOutline, MdEdit, MdLink } from "react-icons/md";
+import { MdDriveFileRenameOutline } from "react-icons/md";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -296,7 +302,7 @@ function ConnectionDetailsTooltip({
                       void handleCopyDetailValue(copyValue);
                     }}
                   >
-                    <MdContentCopy className="text-[12px]" />
+                    <VscCopy className="text-[12px]" />
                   </button>
                 )}
               </span>
@@ -636,7 +642,7 @@ export default function ConnectionItem({ conn, indented, depth = 0 }: Connection
                   handleConnectOnly(conn);
                 }}
               >
-                <MdLink className="text-[0.95rem] cursor-pointer" />
+                <VscLink className="text-[0.95rem] cursor-pointer" />
               </button>
               <button
                 className="flex h-5 w-5 items-center justify-center cursor-pointer rounded transition-colors hover:opacity-80"
@@ -655,7 +661,7 @@ export default function ConnectionItem({ conn, indented, depth = 0 }: Connection
                   handleEditConnection();
                 }}
               >
-                <MdEdit className="text-[0.95rem] cursor-pointer" />
+                <VscEdit className="text-[0.95rem] cursor-pointer" />
               </button>
             </div>
           </div>
@@ -678,7 +684,7 @@ export default function ConnectionItem({ conn, indented, depth = 0 }: Connection
             handleConnect(conn);
           }}
         >
-          <MdLink className="text-[0.875rem] text-muted-foreground mr-2" />
+          <VscLink className="text-[0.875rem] text-muted-foreground mr-2" />
           {connectLabel}
         </ContextMenuItem>
         {canOpenSavedConnectionWithSftp(conn) ? (
@@ -697,7 +703,7 @@ export default function ConnectionItem({ conn, indented, depth = 0 }: Connection
             handleEditConnection();
           }}
         >
-          <MdEdit className="text-[0.875rem] text-muted-foreground mr-2" />
+          <VscEdit className="text-[0.875rem] text-muted-foreground mr-2" />
           {t("savedConnections.edit")}
         </ContextMenuItem>
         <ContextMenuSeparator />
@@ -717,7 +723,7 @@ export default function ConnectionItem({ conn, indented, depth = 0 }: Connection
             handleCopyConnection(conn);
           }}
         >
-          <MdContentCopy className="text-[0.875rem] text-muted-foreground mr-2" />
+          <VscCopy className="text-[0.875rem] text-muted-foreground mr-2" />
           {t("savedConnections.copy")}
         </ContextMenuItem>
         <MoveToGroupContextMenu
@@ -736,7 +742,7 @@ export default function ConnectionItem({ conn, indented, depth = 0 }: Connection
             requestDeleteConnection(conn);
           }}
         >
-          <MdDelete className="text-[0.875rem] mr-2" />
+          <VscTrash className="text-[0.875rem] mr-2" />
           {isSelected && selectedConnectionIds.size > 1
             ? t("savedConnections.deleteSelected")
             : t("savedConnections.delete")}

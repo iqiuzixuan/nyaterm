@@ -1,15 +1,10 @@
+import { VscClose, VscTerminal } from "react-icons/vsc";
 import type { TFunction } from "i18next";
-import {
-  type ComponentProps,
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type ComponentProps, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import FloatingPanel from "@/components/app/FloatingPanel";
-import { MdClose, MdTerminal } from "react-icons/md";
+
 import WorkspaceSidebar from "./WorkspaceSidebar";
+import { PanelToolbarProvider } from "@/components/layout/PanelToolbarContext";
 import WorkspaceControls from "@/components/layout/WorkspaceControls";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -234,20 +229,16 @@ export default function AppLayout({
     [appearance, backgroundEnabled],
   );
   const backgroundLayerStyle = useMemo(
-    () =>
-      buildBackgroundImageLayerStyle(effectiveAppearance, backgroundDataUrl),
+    () => buildBackgroundImageLayerStyle(effectiveAppearance, backgroundDataUrl),
     [effectiveAppearance, backgroundDataUrl],
   );
-  const windowTransparencyEnabled =
-    isWindowTransparencyEnabled(effectiveAppearance);
+  const windowTransparencyEnabled = isWindowTransparencyEnabled(effectiveAppearance);
   const shellStyle = useMemo(
     () => ({
       ...buildSurfaceCssVariables(theme.colors, effectiveAppearance),
       // When native window transparency is on, the shell background must be
       // transparent so the native backdrop is visible through the webview.
-      backgroundColor: windowTransparencyEnabled
-        ? "transparent"
-        : theme.colors.bg,
+      backgroundColor: windowTransparencyEnabled ? "transparent" : theme.colors.bg,
       color: "var(--df-text)",
     }),
     [effectiveAppearance, theme.colors, windowTransparencyEnabled],
@@ -255,33 +246,26 @@ export default function AppLayout({
   const hasLeftActivityItems = hasVisibleActivityBarItems(leftActivityBar);
   const hasRightActivityItems = hasVisibleActivityBarItems(rightActivityBar);
   const leftPanelOpen = leftPanelIds.length > 0 || Boolean(leftOverlayPanelId);
-  const rightPanelOpen =
-    rightPanelIds.length > 0 || Boolean(rightOverlayPanelId);
+  const rightPanelOpen = rightPanelIds.length > 0 || Boolean(rightOverlayPanelId);
   const compactLeft = useMediaQuery("(max-width: 640px)");
   const compactRight = useMediaQuery("(max-width: 900px)");
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [bottomCollapsed, setBottomCollapsed] = useState(false);
-  const [auxiliaryPanel, setAuxiliaryPanel] = useState<
-    "fileTransfer" | "commandHistory" | null
-  >(null);
-  const leftVisible =
-    hasLeftActivityItems && (compactLeft ? mobile.leftOpen : !leftCollapsed);
-  const rightVisible =
-    hasRightActivityItems &&
-    (compactRight ? mobile.rightOpen : !rightCollapsed);
+  const [auxiliaryPanel, setAuxiliaryPanel] = useState<"fileTransfer" | "commandHistory" | null>(
+    null,
+  );
+  const leftVisible = hasLeftActivityItems && (compactLeft ? mobile.leftOpen : !leftCollapsed);
+  const rightVisible = hasRightActivityItems && (compactRight ? mobile.rightOpen : !rightCollapsed);
+  const [bottomToolbarTarget, setBottomToolbarTarget] = useState<HTMLDivElement | null>(null);
   const bottomView = auxiliaryPanel ?? bottomPanel.activePanel ?? "quickCmdBar";
-  const bottomVisible =
-    !bottomCollapsed && Boolean(auxiliaryPanel || bottomPanel.activePanel);
+  const bottomVisible = !bottomCollapsed && Boolean(auxiliaryPanel || bottomPanel.activePanel);
   const serialSendVisible = bottomVisible && bottomView === "serialSend";
-  if (bottomPanel.activePanel === "serialSend")
-    serialSendEverShownRef.current = true;
+  if (bottomPanel.activePanel === "serialSend") serialSendEverShownRef.current = true;
   const serialSendMounted = serialSendEverShownRef.current || serialSendRunning;
   const quickCommandsMounted = useRef(false);
-  if (bottomPanel.activePanel === "quickCmdBar")
-    quickCommandsMounted.current = true;
-  const overlayVisible =
-    (compactLeft && leftVisible) || (compactRight && rightVisible);
+  if (bottomPanel.activePanel === "quickCmdBar") quickCommandsMounted.current = true;
+  const overlayVisible = (compactLeft && leftVisible) || (compactRight && rightVisible);
 
   // Menu/shortcut selections reveal the corresponding card without overwriting its layout.
   const selection = `${leftPanelIds.join(",")}:${leftOverlayPanelId}:${rightPanelIds.join(",")}:${rightOverlayPanelId}`;
@@ -298,14 +282,7 @@ export default function AppLayout({
       if (compactRight && rightPanelOpen) mobile.setRightOpen(true);
     }
     previousSelection.current = selection;
-  }, [
-    selection,
-    compactLeft,
-    compactRight,
-    leftPanelOpen,
-    rightPanelOpen,
-    mobile,
-  ]);
+  }, [selection, compactLeft, compactRight, leftPanelOpen, rightPanelOpen, mobile]);
 
   const previousBottom = useRef(bottomPanel.activePanel);
   useEffect(() => {
@@ -335,22 +312,16 @@ export default function AppLayout({
   }, [windowTransparencyEnabled]);
 
   const toggleLeft = () =>
-    compactLeft
-      ? mobile.setLeftOpen(!mobile.leftOpen)
-      : setLeftCollapsed((value) => !value);
+    compactLeft ? mobile.setLeftOpen(!mobile.leftOpen) : setLeftCollapsed((value) => !value);
   const toggleRight = () =>
-    compactRight
-      ? mobile.setRightOpen(!mobile.rightOpen)
-      : setRightCollapsed((value) => !value);
+    compactRight ? mobile.setRightOpen(!mobile.rightOpen) : setRightCollapsed((value) => !value);
   const toggleBottom = () => {
-    if (!auxiliaryPanel && !bottomPanel.activePanel)
-      bottomPanel.onSelect("quickCmdBar");
+    if (!auxiliaryPanel && !bottomPanel.activePanel) bottomPanel.onSelect("quickCmdBar");
     setBottomCollapsed(bottomVisible);
   };
   const selectBottom = (panel: typeof bottomView) => {
     setBottomCollapsed(false);
-    if (panel === "fileTransfer" || panel === "commandHistory")
-      setAuxiliaryPanel(panel);
+    if (panel === "fileTransfer" || panel === "commandHistory") setAuxiliaryPanel(panel);
     else {
       setAuxiliaryPanel(null);
       if (bottomPanel.activePanel !== panel) bottomPanel.onSelect(panel);
@@ -362,10 +333,7 @@ export default function AppLayout({
     const activeBottomIds = new Set(activity.activeBottomIds);
     activeBottomIds.delete("quickCmdBar");
     activeBottomIds.delete("serialSend");
-    if (
-      bottomVisible &&
-      (bottomView === "quickCmdBar" || bottomView === "serialSend")
-    ) {
+    if (bottomVisible && (bottomView === "quickCmdBar" || bottomView === "serialSend")) {
       activeBottomIds.add(bottomView);
     }
     return (
@@ -406,9 +374,7 @@ export default function AppLayout({
       data-wallpaper-enabled={backgroundEnabled ? "true" : "false"}
       data-window-transparency={windowTransparencyEnabled ? "true" : "false"}
       data-window-transparency-blur={
-        windowTransparencyEnabled &&
-        isWindows &&
-        effectiveAppearance.window_transparency_blur
+        windowTransparencyEnabled && isWindows && effectiveAppearance.window_transparency_blur
           ? "true"
           : "false"
       }
@@ -482,7 +448,7 @@ export default function AppLayout({
               ) : (
                 <div className="flex items-center justify-center h-full text-slate-500">
                   <div className="text-center space-y-3">
-                    <MdTerminal className="text-4xl mx-auto" />
+                    <VscTerminal className="text-4xl mx-auto" />
                     <p className="text-sm">{t("common.loading")}</p>
                   </div>
                 </div>
@@ -540,65 +506,66 @@ export default function AppLayout({
                     : bottomPanel.quickCmdHeight,
               }}
             >
-              <div
-                className="workspace-bottom-tabs"
-                role="tablist"
-                aria-label={t("workspaceLayout.bottom")}
-              >
-                {(
-                  [
-                    ["quickCmdBar", "panel.quickCommands"],
-                    ["fileTransfer", "panel.fileTransfer"],
-                    ["commandHistory", "panel.commandHistory"],
-                    ["serialSend", "workspaceLayout.sendCommand"],
-                  ] as const
-                ).map(([id, key]) => (
-                  <button
-                    type="button"
-                    key={id}
-                    role="tab"
-                    id={`workspace-tab-${id}`}
-                    aria-selected={bottomView === id}
-                    tabIndex={bottomView === id ? 0 : -1}
-                    onKeyDown={(event) => {
-                      const ids = [
-                        "quickCmdBar",
-                        "fileTransfer",
-                        "commandHistory",
-                        "serialSend",
-                      ] as const;
-                      const index = ids.indexOf(id);
-                      const next =
-                        event.key === "ArrowRight"
-                          ? (index + 1) % ids.length
-                          : event.key === "ArrowLeft"
-                            ? (index + ids.length - 1) % ids.length
-                            : event.key === "Home"
-                              ? 0
-                              : event.key === "End"
-                                ? ids.length - 1
-                                : -1;
-                      if (next < 0) return;
-                      event.preventDefault();
-                      selectBottom(ids[next]);
-                      document
-                        .getElementById(`workspace-tab-${ids[next]}`)
-                        ?.focus();
-                    }}
-                    aria-controls={`workspace-content-${id}`}
-                    onClick={() => selectBottom(id)}
-                  >
-                    {t(key)}
-                  </button>
-                ))}
+              <div className="workspace-bottom-header">
+                <div
+                  className="workspace-bottom-tabs"
+                  role="tablist"
+                  aria-label={t("workspaceLayout.bottom")}
+                >
+                  {(
+                    [
+                      ["quickCmdBar", "panel.quickCommands"],
+                      ["fileTransfer", "panel.fileTransfer"],
+                      ["commandHistory", "panel.commandHistory"],
+                      ["serialSend", "workspaceLayout.sendCommand"],
+                    ] as const
+                  ).map(([id, key]) => (
+                    <button
+                      type="button"
+                      key={id}
+                      role="tab"
+                      id={`workspace-tab-${id}`}
+                      aria-selected={bottomView === id}
+                      tabIndex={bottomView === id ? 0 : -1}
+                      onKeyDown={(event) => {
+                        const ids = [
+                          "quickCmdBar",
+                          "fileTransfer",
+                          "commandHistory",
+                          "serialSend",
+                        ] as const;
+                        const index = ids.indexOf(id);
+                        const next =
+                          event.key === "ArrowRight"
+                            ? (index + 1) % ids.length
+                            : event.key === "ArrowLeft"
+                              ? (index + ids.length - 1) % ids.length
+                              : event.key === "Home"
+                                ? 0
+                                : event.key === "End"
+                                  ? ids.length - 1
+                                  : -1;
+                        if (next < 0) return;
+                        event.preventDefault();
+                        selectBottom(ids[next]);
+                        document.getElementById(`workspace-tab-${ids[next]}`)?.focus();
+                      }}
+                      aria-controls={`workspace-content-${id}`}
+                      onClick={() => selectBottom(id)}
+                    >
+                      {t(key)}
+                    </button>
+                  ))}
+                </div>
+                <div ref={setBottomToolbarTarget} className="workspace-bottom-toolbar" />
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className="ml-auto"
+                  className="workspace-bottom-close"
                   aria-label={t("workspaceLayout.bottom")}
                   onClick={() => setBottomCollapsed(true)}
                 >
-                  <MdClose />
+                  <VscClose />
                 </Button>
               </div>
               <div
@@ -608,13 +575,18 @@ export default function AppLayout({
                 className="workspace-bottom-content"
                 hidden={bottomView !== "quickCmdBar"}
               >
-                {quickCommandsMounted.current && (
-                  <QuickCommands
-                    onSend={bottomPanel.onCommandSend}
-                    onSendToAll={bottomPanel.onSendToAllSessions}
-                    sendDisabled={bottomPanel.quickCommandsDisabled}
-                  />
-                )}
+                <PanelToolbarProvider
+                  target={bottomToolbarTarget}
+                  active={bottomView === "quickCmdBar"}
+                >
+                  {quickCommandsMounted.current && (
+                    <QuickCommands
+                      onSend={bottomPanel.onCommandSend}
+                      onSendToAll={bottomPanel.onSendToAllSessions}
+                      sendDisabled={bottomPanel.quickCommandsDisabled}
+                    />
+                  )}
+                </PanelToolbarProvider>
               </div>
               <div
                 role="tabpanel"
@@ -623,8 +595,12 @@ export default function AppLayout({
                 className="workspace-bottom-content"
                 hidden={bottomView !== "fileTransfer"}
               >
-                {auxiliaryPanel === "fileTransfer" &&
-                  panelContent("fileTransfer")}
+                <PanelToolbarProvider
+                  target={bottomToolbarTarget}
+                  active={bottomView === "fileTransfer"}
+                >
+                  {auxiliaryPanel === "fileTransfer" && panelContent("fileTransfer")}
+                </PanelToolbarProvider>
               </div>
               <div
                 role="tabpanel"
@@ -633,8 +609,12 @@ export default function AppLayout({
                 className="workspace-bottom-content"
                 hidden={bottomView !== "commandHistory"}
               >
-                {auxiliaryPanel === "commandHistory" &&
-                  panelContent("commandHistory")}
+                <PanelToolbarProvider
+                  target={bottomToolbarTarget}
+                  active={bottomView === "commandHistory"}
+                >
+                  {auxiliaryPanel === "commandHistory" && panelContent("commandHistory")}
+                </PanelToolbarProvider>
               </div>
               <div
                 role="tabpanel"
@@ -643,21 +623,26 @@ export default function AppLayout({
                 className="workspace-bottom-content"
                 hidden={!serialSendVisible}
               >
-                {serialSendMounted && (
-                  <SerialSendPanel
-                    serialSessionId={bottomPanel.activeSerialSessionId}
-                    currentShellSessionId={bottomPanel.activeNonSerialSessionId}
-                    shellSessionIds={bottomPanel.activeNonSerialSessionIds}
-                    syncGroups={bottomPanel.syncGroups}
-                    currentWindowLabel={bottomPanel.currentWindowLabel}
-                    sessionTargets={bottomPanel.sessionTargets}
-                    clearAfterSend={bottomPanel.clearAfterSend}
-                    draft={bottomPanel.sendCommandDraft}
-                    onDraftConsumed={bottomPanel.onSendCommandDraftConsumed}
-                    onSendingChange={setSerialSendRunning}
-                    onClearAfterSendChange={bottomPanel.onClearAfterSendChange}
-                  />
-                )}
+                <PanelToolbarProvider
+                  target={bottomToolbarTarget}
+                  active={bottomView === "serialSend"}
+                >
+                  {serialSendMounted && (
+                    <SerialSendPanel
+                      serialSessionId={bottomPanel.activeSerialSessionId}
+                      currentShellSessionId={bottomPanel.activeNonSerialSessionId}
+                      shellSessionIds={bottomPanel.activeNonSerialSessionIds}
+                      syncGroups={bottomPanel.syncGroups}
+                      currentWindowLabel={bottomPanel.currentWindowLabel}
+                      sessionTargets={bottomPanel.sessionTargets}
+                      clearAfterSend={bottomPanel.clearAfterSend}
+                      draft={bottomPanel.sendCommandDraft}
+                      onDraftConsumed={bottomPanel.onSendCommandDraftConsumed}
+                      onSendingChange={setSerialSendRunning}
+                      onClearAfterSendChange={bottomPanel.onClearAfterSendChange}
+                    />
+                  )}
+                </PanelToolbarProvider>
               </div>
             </section>
           </section>
@@ -672,10 +657,7 @@ export default function AppLayout({
           {hasRightActivityItems && renderSidebar("right")}
         </main>
 
-        <AboutDialog
-          open={dialogs.aboutOpen}
-          onClose={() => dialogs.onAboutOpenChange(false)}
-        />
+        <AboutDialog open={dialogs.aboutOpen} onClose={() => dialogs.onAboutOpenChange(false)} />
 
         <SyncGroupDialog
           open={dialogs.syncGroupOpen}
@@ -695,10 +677,7 @@ export default function AppLayout({
         />
 
         <OtpDialog request={dialogs.otpRequest} onDone={dialogs.onOtpDone} />
-        <SshAuthDialog
-          request={dialogs.sshAuthRequest}
-          onDone={dialogs.onSshAuthDone}
-        />
+        <SshAuthDialog request={dialogs.sshAuthRequest} onDone={dialogs.onSshAuthDone} />
         <SshAgentAuthDialog
           request={dialogs.sshAgentAuthRequest}
           onDone={dialogs.onSshAgentAuthDone}

@@ -1,5 +1,11 @@
+import {
+  VscCheck,
+  VscChevronDown,
+  VscChevronRight,
+  VscEllipsis
+} from "react-icons/vsc";
 import type { TFunction } from "i18next";
-import { Check, ChevronDown, ChevronRight, MoreHorizontal } from "lucide-react";
+
 import { useMemo, useState } from "react";
 import {
   Command,
@@ -56,15 +62,15 @@ export default function AssetBreadcrumb({
                 className="flex min-w-0 items-center gap-1"
                 style={{ color: "var(--df-text-dimmed)" }}
               >
-                <ChevronRight className="size-3" />
-                <MoreHorizontal className="size-4" aria-label={t("common.more")} />
+                <VscChevronRight className="size-3" />
+                <VscEllipsis className="size-4" aria-label={t("common.more")} />
               </span>
             );
           }
           return (
             <span key={segment.id ?? "root"} className="flex min-w-0 items-center gap-1">
               {index > 0 ? (
-                <ChevronRight
+                <VscChevronRight
                   className="size-3 shrink-0"
                   style={{ color: "var(--df-text-dimmed)" }}
                 />
@@ -94,7 +100,7 @@ export default function AssetBreadcrumb({
               className="ml-1 flex size-6 items-center justify-center rounded hover:bg-[var(--df-bg-hover)]"
               style={{ color: "var(--df-text-muted)" }}
             >
-              <ChevronDown className="size-3.5" />
+              <VscChevronDown className="size-3.5" />
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" className="w-72 p-0">
@@ -112,7 +118,7 @@ export default function AssetBreadcrumb({
                   >
                     <span className="min-w-0 flex-1 truncate">{t("assets.title")}</span>
                     {selectedGroupId === null ? (
-                      <Check className="size-4 text-[var(--df-primary)]" />
+                      <VscCheck className="size-4 text-[var(--df-primary)]" />
                     ) : null}
                   </CommandItem>
                   {groupOptions.map((option) => (
@@ -126,7 +132,7 @@ export default function AssetBreadcrumb({
                     >
                       <span className="min-w-0 flex-1 truncate">{option.path}</span>
                       {selectedGroupId === option.group.id ? (
-                        <Check className="size-4 text-[var(--df-primary)]" />
+                        <VscCheck className="size-4 text-[var(--df-primary)]" />
                       ) : null}
                     </CommandItem>
                   ))}

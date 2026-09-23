@@ -1,6 +1,9 @@
+import {
+  VscChevronRight
+} from "react-icons/vsc";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MdChevronRight } from "react-icons/md";
+
 import PanelHeader from "@/components/layout/PanelHeader";
 import { getSessionCommandHistory, listenSessionCommandHistory } from "@/lib/sessionInput";
 
@@ -62,7 +65,7 @@ function CommandHistory({ activeSessionId, onCommandSend }: CommandHistoryProps)
               title={command}
               onDoubleClick={() => handleDoubleClick(command)}
             >
-              <MdChevronRight
+              <VscChevronRight
                 className="text-[0.625rem] transition-colors"
                 style={{ color: "var(--df-text-dimmed)" }}
               />

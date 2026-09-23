@@ -1,5 +1,11 @@
+import {
+  VscClose,
+  VscLayout,
+  VscListUnordered,
+  VscSearch
+} from "react-icons/vsc";
 import type { TFunction } from "i18next";
-import { Grid2X2, List, Search, X } from "lucide-react";
+
 import type { AssetViewMode } from "./types";
 
 interface AssetToolbarProps {
@@ -28,9 +34,9 @@ export default function AssetToolbar({
   onViewModeChange,
 }: AssetToolbarProps) {
   return (
-    <div className="shrink-0 space-y-1.5 px-3 pb-1.5" data-total-count={totalCount}>
-      <div className="relative">
-        <Search
+    <div className="workspace-asset-toolbar shrink-0" data-total-count={totalCount}>
+      <div className="workspace-asset-search relative">
+        <VscSearch
           className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2"
           style={{ color: "var(--df-text-dimmed)" }}
         />
@@ -57,12 +63,12 @@ export default function AssetToolbar({
             style={{ color: "var(--df-text-muted)" }}
             onClick={() => onSearchChange("")}
           >
-            <X className="size-3.5" />
+            <VscClose className="size-3.5" />
           </button>
         ) : null}
       </div>
 
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="workspace-asset-filters flex min-w-0 items-center gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
           <FilterButton active={selectedTags.size === 0} onClick={onClearTags}>
             {t("assets.all")}
@@ -93,14 +99,14 @@ export default function AssetToolbar({
             active={viewMode === "list"}
             onClick={() => onViewModeChange("list")}
           >
-            <List className="size-4" />
+            <VscListUnordered className="size-4" />
           </IconToggleButton>
           <IconToggleButton
             label={t("assets.cards")}
             active={viewMode === "cards"}
             onClick={() => onViewModeChange("cards")}
           >
-            <Grid2X2 className="size-4" />
+            <VscLayout className="size-4" />
           </IconToggleButton>
         </div>
       </div>

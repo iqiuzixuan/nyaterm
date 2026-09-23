@@ -100,11 +100,11 @@ function ShortcutKeys({ value }: { value: string }) {
   if (!keys.length) return null;
 
   return (
-    <KbdGroup className="justify-self-end text-[0.8125rem]" aria-hidden="true">
+    <KbdGroup className="justify-self-end text-[11px]" aria-hidden="true">
       {keys.map((key, index) => (
         <span key={key} className="inline-flex items-center gap-1">
           {index > 0 ? <span style={{ color: "var(--df-text-dimmed)" }}>+</span> : null}
-          <Kbd className="h-6 min-w-7 border border-[var(--df-border)] bg-[var(--df-bg-hover)] px-1.5 text-[0.8125rem] text-[var(--df-text)] shadow-sm">
+          <Kbd className="h-[18px] min-w-[18px] border border-[var(--workspace-border)] bg-transparent px-1 text-[11px] font-normal text-[var(--df-text-muted)] shadow-none">
             {key}
           </Kbd>
         </span>
