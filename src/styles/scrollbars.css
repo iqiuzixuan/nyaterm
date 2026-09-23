@@ -20,7 +20,6 @@
   border-radius: 0;
 }
 *:hover::-webkit-scrollbar-thumb,
-*:focus-visible::-webkit-scrollbar-thumb,
 *[data-nyaterm-scrolling]::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--df-scroll-thumb) 65%, transparent);
 }
@@ -40,7 +39,6 @@
     scrollbar-color: transparent transparent;
   }
   *:hover,
-  *:focus-visible,
   *[data-nyaterm-scrolling] {
     scrollbar-color: var(--df-scroll-thumb) transparent;
   }
@@ -75,7 +73,7 @@
   opacity: 0;
   transition: opacity 800ms linear;
 }
-[data-scrollbars-auto-hide="true"]:is(:hover, :focus-within, :has([data-nyaterm-scrolling]), :has([data-slot="scroll-area-scrollbar"]:active)) [data-slot="scroll-area-scrollbar"] {
+[data-scrollbars-auto-hide="true"]:is(:hover, :has([data-nyaterm-scrolling]), :has([data-slot="scroll-area-scrollbar"]:active)) [data-slot="scroll-area-scrollbar"] {
   opacity: 1;
   transition: opacity 100ms linear;
 }

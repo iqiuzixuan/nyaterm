@@ -42,8 +42,9 @@ The spacing pass follows the installed VS Code 1.138.0 workbench styles
 (`workbench.desktop.main.css`), including its modern editor tabs. The local
 VS Code preference places the activity bar at the top. The release version was
 also checked against the [official release notes](https://code.visualstudio.com/updates/v1_138).
-Live VS Code window capture was unavailable because ScreenCaptureKit returned
-error -3811; the comparison uses local styles and the supplied screenshots.
+The initial comparison used local styles and supplied screenshots because native
+capture failed. A later pass successfully inspected native VS Code 1.138.0 and
+the release NyaTerm window, including their terminal content insets.
 
 - Main and child title bars: 32px, with matching native macOS button placement.
 - Session tab strip: 32px; individual tabs: 24px with 4px corners and regular
@@ -60,6 +61,11 @@ error -3811; the comparison uses local styles and the supplied screenshots.
   keyboard focus. The official custom-tag filters remain unchanged.
 - Settings use 12px section padding, 8px field gaps and 16px section gaps;
   dialogs use 16px padding. Controls retain visible keyboard focus indicators.
+- Terminal panes have a 20px inset on both sides, matching the scale of VS Code's
+  terminal gutter. The existing workspace-padding preference adds its original
+  8px content inset. Padding belongs to the outer flex layout, so the measured
+  xterm host shrinks and the existing resize observer/refit recalculates columns;
+  line numbers, timestamps and suggestion overlays keep their shared alignment.
 
 This changes presentation only. Theme palettes, terminal font sizes, saved
 connections, tab actions and application behavior are retained.
@@ -102,8 +108,9 @@ and both built-in GitHub themes. This is not a live SSH/SFTP connection test.
 ![Visible over the scroll area](images/scrollbars-hover.png)
 
 Native list, file, settings and text-area scrollbars have transparent tracks and
-rectangular sliders. They stay hidden at rest and reveal on hover, keyboard
-focus or scrolling. Scroll activity clears after 500ms, following VS Code's
+rectangular sliders. They stay hidden at rest and reveal on hover or scrolling.
+Keyboard scrolling reveals the slider, but retaining focus alone does not keep
+it visible. Scroll activity clears after 500ms, following VS Code's
 `HIDE_TIMEOUT`; native dragging remains browser-owned. Hover/visibility changes
 do not change the scrollbar width, avoiding content reflow during interaction.
 
