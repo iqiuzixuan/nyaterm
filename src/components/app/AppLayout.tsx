@@ -1,4 +1,5 @@
 import { VscClose, VscTerminal } from "react-icons/vsc";
+import { Minimize2 } from "lucide-react";
 import type { TFunction } from "i18next";
 import { type ComponentProps, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import FloatingPanel from "@/components/app/FloatingPanel";
@@ -64,6 +65,9 @@ interface AppLayoutProps {
   t: TFunction;
   uiConfig: UiConfig;
   appearance: AppearanceSettings;
+  paneFocusMode: boolean;
+  nativeFullscreen: boolean;
+  onExitPaneFocus: () => void;
   header: Omit<HeaderProps, "onToggleLeft" | "onToggleRight">;
   mobile: {
     leftOpen: boolean;
@@ -172,6 +176,9 @@ export default function AppLayout({
   t,
   uiConfig,
   appearance,
+  paneFocusMode,
+  nativeFullscreen,
+  onExitPaneFocus,
   header,
   mobile,
   leftActivityBar,
@@ -255,11 +262,14 @@ export default function AppLayout({
   const [auxiliaryPanel, setAuxiliaryPanel] = useState<"fileTransfer" | "commandHistory" | null>(
     null,
   );
-  const leftVisible = hasLeftActivityItems && (compactLeft ? mobile.leftOpen : !leftCollapsed);
-  const rightVisible = hasRightActivityItems && (compactRight ? mobile.rightOpen : !rightCollapsed);
+  const leftVisible =
+    !paneFocusMode && hasLeftActivityItems && (compactLeft ? mobile.leftOpen : !leftCollapsed);
+  const rightVisible =
+    !paneFocusMode && hasRightActivityItems && (compactRight ? mobile.rightOpen : !rightCollapsed);
   const [bottomToolbarTarget, setBottomToolbarTarget] = useState<HTMLDivElement | null>(null);
   const bottomView = auxiliaryPanel ?? bottomPanel.activePanel ?? "quickCmdBar";
-  const bottomVisible = !bottomCollapsed && Boolean(auxiliaryPanel || bottomPanel.activePanel);
+  const bottomVisible =
+    !paneFocusMode && !bottomCollapsed && Boolean(auxiliaryPanel || bottomPanel.activePanel);
   const serialSendVisible = bottomVisible && bottomView === "serialSend";
   if (bottomPanel.activePanel === "serialSend") serialSendEverShownRef.current = true;
   const serialSendMounted = serialSendEverShownRef.current || serialSendRunning;
@@ -373,6 +383,8 @@ export default function AppLayout({
       className="nyaterm-wallpaper-shell font-display relative h-full min-h-0 overflow-hidden"
       data-wallpaper-enabled={backgroundEnabled ? "true" : "false"}
       data-window-transparency={windowTransparencyEnabled ? "true" : "false"}
+      data-pane-focus={paneFocusMode ? "true" : "false"}
+      data-native-fullscreen={nativeFullscreen ? "true" : "false"}
       data-window-transparency-blur={
         windowTransparencyEnabled && isWindows && effectiveAppearance.window_transparency_blur
           ? "true"
@@ -388,23 +400,25 @@ export default function AppLayout({
         />
       )}
       <div className="relative z-10 flex h-full min-h-0 flex-col">
-        <Header
-          {...header}
-          onToggleLeft={toggleLeft}
-          onToggleRight={toggleRight}
-          workspaceControls={
-            <WorkspaceControls
-              leftVisible={leftVisible}
-              rightVisible={rightVisible}
-              bottomVisible={bottomVisible}
-              leftAvailable={hasLeftActivityItems}
-              rightAvailable={hasRightActivityItems}
-              onToggleLeft={toggleLeft}
-              onToggleRight={toggleRight}
-              onToggleBottom={toggleBottom}
-            />
-          }
-        />
+        {!paneFocusMode && (
+          <Header
+            {...header}
+            onToggleLeft={toggleLeft}
+            onToggleRight={toggleRight}
+            workspaceControls={
+              <WorkspaceControls
+                leftVisible={leftVisible}
+                rightVisible={rightVisible}
+                bottomVisible={bottomVisible}
+                leftAvailable={hasLeftActivityItems}
+                rightAvailable={hasRightActivityItems}
+                onToggleLeft={toggleLeft}
+                onToggleRight={toggleRight}
+                onToggleBottom={toggleBottom}
+              />
+            }
+          />
+        )}
         <main className="workspace-layout">
           {overlayVisible && (
             <button
@@ -444,7 +458,7 @@ export default function AppLayout({
                   onEditConnection={emptyWorkspace.onEditConnection}
                 />
               ) : workspace.layout ? (
-                <TabWindowsWorkspace {...workspace} />
+                <TabWindowsWorkspace {...workspace} paneFocusMode={paneFocusMode} />
               ) : (
                 <div className="flex items-center justify-center h-full text-slate-500">
                   <div className="text-center space-y-3">
@@ -453,7 +467,20 @@ export default function AppLayout({
                   </div>
                 </div>
               )}
-              {floatingPanelIds.left && (
+              {paneFocusMode && (
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="secondary"
+                  className="absolute right-2 top-2 z-30 shadow-sm"
+                  aria-label={t("settings.shortcutLabels.togglePaneFocus")}
+                  title={t("settings.shortcutLabels.togglePaneFocus")}
+                  onClick={onExitPaneFocus}
+                >
+                  <Minimize2 className="size-4" />
+                </Button>
+              )}
+              {!paneFocusMode && floatingPanelIds.left && (
                 <FloatingPanel
                   side="left"
                   panelId={floatingPanelIds.left}
@@ -465,7 +492,7 @@ export default function AppLayout({
                   {panelContent(floatingPanelIds.left)}
                 </FloatingPanel>
               )}
-              {floatingPanelIds.right && (
+              {!paneFocusMode && floatingPanelIds.right && (
                 <FloatingPanel
                   side="right"
                   panelId={floatingPanelIds.right}
