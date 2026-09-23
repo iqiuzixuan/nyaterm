@@ -266,9 +266,71 @@ describe("AIAssistantPanel history scope ownership", () => {
   });
 });
 
+describe("AIAssistantPanel composer interactions", () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    appState = {
+      appSettings: {
+        ai: {
+          ...DEFAULT_AI_SETTINGS,
+          enabled: true,
+          default_model_id: "test-model",
+          models: [{ id: "test-model", name: "Test model", provider_kind: "openai", enabled: true, source: "manual" }],
+        },
+        ui: { language: "zh-CN" },
+      },
+      updateAppSettings: vi.fn(),
+      tabs: [tabWithPane(terminalPane("composer-session"))],
+      savedConnections: [],
+    };
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "get_ai_sessions") return Promise.resolve([]);
+      if (command === "start_ai_chat_stream") return Promise.resolve({ sessionId: "composer-chat" });
+      if (command === "append_ai_audit" || command === "cancel_ai_chat_stream") return Promise.resolve(null);
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+  });
+
+  it("keeps IME and Shift+Enter from sending, then sends once and stops the same stream", async () => {
+    render(<AIAssistantPanel activePane={terminalPane("composer-session")} intent={null} />);
+    const input = screen.getByRole("textbox", { name: "ai.placeholder" });
+    expect((screen.getByRole("button", { name: "ai.send" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(input, { target: { value: "explain this output" } });
+    fireEvent.compositionStart(input);
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true });
+    fireEvent.compositionEnd(input);
+    fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+    expect(invokeMock.mock.calls.some(([command]) => command === "start_ai_chat_stream")).toBe(false);
+
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith(
+      "start_ai_chat_stream",
+      expect.objectContaining({ request: expect.objectContaining({ userInput: "explain this output" }) }),
+    ));
+    const calls = invokeMock.mock.calls.filter(([command]) => command === "start_ai_chat_stream");
+    expect(calls).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "ai.stopResponse" }));
+    expect(invokeMock).toHaveBeenCalledWith("cancel_ai_chat_stream", {
+      streamId: calls[0][1].request.streamId,
+    });
+  });
+
+  it("uses Enter to choose an @ target without submitting and lets the chip remove it", async () => {
+    render(<AIAssistantPanel activePane={terminalPane("composer-session")} intent={null} />);
+    const input = screen.getByRole("textbox", { name: "ai.placeholder" });
+    fireEvent.change(input, { target: { value: "@SSH", selectionStart: 4 } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    const remove = await screen.findByRole("button", { name: "common.remove SSH terminal" });
+    expect(invokeMock.mock.calls.some(([command]) => command === "start_ai_chat_stream")).toBe(false);
+    expect((input as HTMLTextAreaElement).value).toBe("");
+    fireEvent.click(remove);
+    expect(screen.queryByRole("button", { name: "common.remove SSH terminal" })).toBeNull();
+  });
+});
+
 function openHistory(container: HTMLElement) {
   const button = container.querySelector<HTMLButtonElement>(
-    'button[aria-expanded]:not([aria-label]):not([role="combobox"])',
+    'button[aria-label="ai.history"]',
   );
   if (!button) throw new Error("History button not found");
   fireEvent.click(button);

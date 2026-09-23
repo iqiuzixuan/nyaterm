@@ -3,6 +3,7 @@
 @import "./styles/workspace.css";
 @import "./styles/workbench-controls.css";
 @import "./styles/scrollbars.css";
+@import "./styles/chat.css";
 
 @font-face {
   font-family: "JetBrainsMono Nerd Font Mono";

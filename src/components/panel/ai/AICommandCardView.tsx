@@ -38,13 +38,13 @@ export function AICommandCardView({
   };
 
   return (
-    <div className="rounded-md border border-border/70 bg-background/65 p-3 text-xs">
+    <div className="ai-chat-command rounded-md border bg-background/65 p-2 text-xs">
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium">{card.title}</div>
+          <div className="truncate text-xs font-medium">{card.title}</div>
         </div>
       </div>
-      <pre className="mt-3 max-h-32 overflow-auto rounded-md border border-border/60 bg-muted/30 p-2 font-mono text-[0.6875rem] leading-5 terminal-scroll whitespace-pre-wrap break-all">
+      <pre className="mt-2 max-h-32 overflow-auto rounded bg-muted/30 p-2 font-mono text-[0.6875rem] leading-5 terminal-scroll whitespace-pre-wrap break-all">
         {card.command}
       </pre>
       <div className="mt-2 text-[0.6875rem] font-medium text-muted-foreground">

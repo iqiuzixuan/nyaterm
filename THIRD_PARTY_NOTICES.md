@@ -9,6 +9,11 @@ License; the full text is in [licenses/vscode-MIT.txt](licenses/vscode-MIT.txt).
 The adaptations use NyaTerm selectors, theme variables and React/Radix controls.
 Source: <https://github.com/microsoft/vscode/tree/1.138.0/src/vs/base/browser/ui>.
 
+The AI composer also adapts the input card, picker toolbar and send-button
+geometry from the same release's
+[`chat.css`](https://github.com/microsoft/vscode/blob/1.138.0/src/vs/workbench/contrib/chat/browser/widget/media/chat.css).
+It uses NyaTerm's existing chat controls and retains its theme colors.
+
 Workbench action icons use **Codicons by Microsoft**, distributed as SVG React
 components through the existing `react-icons/vsc` dependency. Codicons are
 licensed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/).

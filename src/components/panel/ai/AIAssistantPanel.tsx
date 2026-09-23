@@ -1,5 +1,6 @@
 import {
   VscCheck,
+  VscArrowUp,
   VscChecklist,
   VscClose,
   VscCommentDiscussion,
@@ -9,7 +10,6 @@ import {
   VscHistory,
   VscQuote,
   VscSearch,
-  VscSend,
   VscSettingsGear,
   VscSparkle,
   VscTrash,
@@ -1426,7 +1426,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
 
   return (
     <div
-      className="nyaterm-wallpaper-transparent-surface relative flex h-full flex-col"
+      className="ai-chat-panel nyaterm-wallpaper-transparent-surface relative flex h-full min-h-0 flex-col"
       style={{ backgroundColor: "var(--df-bg-panel)" }}
       onPointerDownCapture={(event) => {
         const target = event.target as Node;
@@ -1495,6 +1495,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                     setShowHistory((value) => !value);
                   }}
                   aria-expanded={showHistory}
+                  aria-label={t("ai.history")}
                 >
                   <VscHistory />
                 </Button>
@@ -1503,7 +1504,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="icon-sm" variant="ghost" onClick={() => openSettings("ai")}>
+                <Button size="icon-sm" variant="ghost" aria-label={t("ai.settings")} onClick={() => openSettings("ai")}>
                   <VscSettingsGear />
                 </Button>
               </TooltipTrigger>
@@ -1511,7 +1512,7 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="icon-sm" variant="ghost" onClick={newChat} disabled={loading}>
+                <Button size="icon-sm" variant="ghost" aria-label={t("ai.newChat")} onClick={newChat} disabled={loading}>
                   <VscCommentDiscussion />
                 </Button>
               </TooltipTrigger>
@@ -1711,13 +1712,13 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
           <div
             ref={scrollContainerRef}
             onScroll={handleMessagesScroll}
-            className="flex-1 select-text overflow-auto p-3 terminal-scroll"
+            className="ai-chat-messages min-h-0 flex-1 select-text overflow-auto terminal-scroll"
           >
             {messages.length === 0 ? (
-              <div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
+              <div className="ai-chat-empty flex h-full min-h-32 flex-col items-center justify-center gap-2 text-center text-xs text-muted-foreground">
                 {!aiSettings.enabled ? (
                   <>
-                    <VscSparkle className="text-3xl" />
+                    <VscSparkle className="size-5" />
                     <div>{t("ai.goToSettingsToEnable")}</div>
                   </>
                 ) : !isExternalAgentMode && !selectedModel ? (
@@ -1751,22 +1752,22 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                   </div>
                 ) : (
                   <>
-                    <VscSparkle className="text-3xl" />
+                    <VscSparkle className="size-5" />
                     <div>{t("ai.empty")}</div>
                   </>
                 )}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="ai-chat-thread">
                 {messages.map((message) => {
                   const messageSteps =
                     message.role === "assistant" ? (agentStepsMap[message.id] ?? []) : [];
 
                   return (
-                    <div key={message.id} className="space-y-3">
+                    <div key={message.id} className="min-w-0 space-y-2">
                       {messageSteps.length > 0 ? (
-                        <div className="rounded-md border border-border/70 bg-muted/20 p-3 text-xs leading-5">
-                          <div className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        <div className="ai-chat-agent-steps text-xs leading-5">
+                          <div className="ai-chat-message-label">
                             Agent
                           </div>
                           {messageSteps.map((step) => (
@@ -1779,13 +1780,11 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
                         </div>
                       ) : null}
                       <div
-                        className={`rounded-md border p-3 text-xs leading-5 ${
-                          message.role === "user"
-                            ? "border-primary/25 bg-primary/10"
-                            : "border-border/70 bg-muted/20"
-                        }`}
+                        className="ai-chat-message text-xs leading-5"
+                        data-role={message.role}
                       >
-                        <div className="mb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        <div className={message.role === "user" ? "sr-only" : "ai-chat-message-label"}>
+                          {message.role === "assistant" ? <VscSparkle aria-hidden="true" /> : null}
                           {message.role === "user" ? "User" : "AI"}
                         </div>
                         {message.role === "assistant" ? (
@@ -1850,220 +1849,231 @@ function AIAssistantPanel({ activePane, activeConnection, intent }: AIAssistantP
         </ContextMenuContent>
       </ContextMenu>
 
-      <div className="shrink-0 border-t border-border/70 p-2">
-        {targetPanes.length > 0 ? (
-          <div className="mb-1.5 flex flex-wrap items-center gap-1">
-            <span className="text-[0.625rem] font-medium text-muted-foreground">
-              {t("ai.targetSession")}:
-            </span>
-            {targetPanes.map((p) => (
-              <span
-                key={p.sessionId}
-                className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-medium text-primary"
-              >
-                {p.name}
-                <button
-                  type="button"
-                  className="ml-0.5 rounded-full p-0 hover:text-destructive"
-                  onClick={() => removeTargetPane(p.sessionId)}
-                >
-                  <VscClose className="text-[0.625rem]" />
-                </button>
+      <div className="ai-chat-composer-shell shrink-0">
+        <div className="ai-chat-composer">
+          {targetPanes.length > 0 ? (
+            <div className="ai-chat-targets flex flex-wrap items-center gap-1">
+              <span className="text-[0.625rem] font-medium text-muted-foreground">
+                {t("ai.targetSession")}:
               </span>
-            ))}
-          </div>
-        ) : null}
-        <div className="relative">
-          {showMentionPopover ? (
-            <div
-              ref={mentionPopoverRef}
-              className="absolute bottom-full left-0 right-0 z-30 mb-1 flex max-h-48 flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg"
-              style={{ borderColor: "var(--df-border)" }}
-            >
-              <div className="min-h-0 overflow-auto p-1 terminal-scroll">
-                {filteredMentionPanes.length === 0 ? (
-                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                    {t("ai.noSessions")}
-                  </div>
-                ) : (
-                  filteredMentionPanes.map((pane, idx) => {
-                    const isSelected = targetPanes.some((p) => p.sessionId === pane.sessionId);
-                    const isFocused = idx === mentionIndex;
-                    return (
-                      <button
-                        key={pane.sessionId}
-                        ref={(el) => {
-                          if (isFocused && el) el.scrollIntoView({ block: "nearest" });
-                        }}
-                        type="button"
-                        className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted/60 ${isFocused ? "bg-accent" : ""} ${isSelected ? "bg-primary/10" : ""}`}
-                        onClick={() => selectMentionPane(pane)}
-                        onPointerEnter={() => setMentionIndex(idx)}
-                      >
-                        <span
-                          className={`size-2 shrink-0 rounded-full ${isSelected ? "bg-primary" : "bg-muted-foreground/40"}`}
-                        />
-                        <span className="min-w-0 truncate font-medium">{pane.name}</span>
-                        <span className="ml-auto shrink-0 text-[0.625rem] text-muted-foreground">
-                          {pane.type}
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
+              {targetPanes.map((p) => (
+                <span
+                  key={p.sessionId}
+                  className="ai-chat-context-chip"
+                  title={p.name}
+                >
+                  <span className="min-w-0 truncate">{p.name}</span>
+                  <button
+                    type="button"
+                    className="ai-chat-context-remove"
+                    aria-label={`${t("common.remove")} ${p.name}`}
+                    onClick={() => removeTargetPane(p.sessionId)}
+                  >
+                    <VscClose className="text-[0.625rem]" />
+                  </button>
+                </span>
+              ))}
             </div>
           ) : null}
-          <div className="space-y-2">
-            {quotedText ? (
-              <div className="flex items-center gap-1.5 rounded-md border border-primary/25 bg-primary/6">
-                <div className="w-[3px] self-stretch shrink-0 rounded-l-md bg-primary/60" />
-                <VscQuote className="shrink-0 text-[0.625rem] text-primary/70" />
-                <span className="min-w-0 flex-1 truncate py-1.5 text-[0.6875rem] text-muted-foreground">
-                  {quotedText.text}
-                </span>
-                <button
-                  type="button"
-                  className="mr-1.5 shrink-0 rounded p-0.5 text-muted-foreground/70 hover:text-foreground"
-                  onClick={() =>
-                    updateDraftForScope((draft) => ({
-                      ...draft,
-                      quotedText: null,
-                    }))
-                  }
-                >
-                  <VscClose className="text-xs" />
-                </button>
-              </div>
-            ) : null}
-            <Textarea
-              ref={textareaRef}
-              value={input}
-              disabled={loading || !aiSettings.enabled}
-              placeholder={aiSettings.enabled ? t("ai.placeholder") : t("ai.goToSettingsToEnable")}
-              className="max-h-32 min-h-16 resize-none overflow-y-auto text-xs terminal-scroll"
-              onChange={handleInputChange}
-              onCompositionStart={() => {
-                isComposingRef.current = true;
-              }}
-              onCompositionEnd={() => {
-                isComposingRef.current = false;
-              }}
-              onKeyDown={(event) => {
-                const isComposing =
-                  isComposingRef.current || event.nativeEvent.isComposing || event.keyCode === 229;
-                if (showMentionPopover) {
-                  if (event.key === "Escape") {
-                    event.preventDefault();
-                    setShowMentionPopover(false);
-                    return;
-                  }
-                  if (event.key === "ArrowDown") {
-                    event.preventDefault();
-                    setMentionIndex((i) =>
-                      filteredMentionPanes.length === 0 ? 0 : (i + 1) % filteredMentionPanes.length,
-                    );
-                    return;
-                  }
-                  if (event.key === "ArrowUp") {
-                    event.preventDefault();
-                    setMentionIndex((i) =>
-                      filteredMentionPanes.length === 0
-                        ? 0
-                        : (i - 1 + filteredMentionPanes.length) % filteredMentionPanes.length,
-                    );
-                    return;
-                  }
-                  if (event.key === "Enter" && !isComposing) {
-                    event.preventDefault();
-                    const target = filteredMentionPanes[mentionIndex];
-                    if (target) selectMentionPane(target);
-                    else setShowMentionPopover(false);
-                    return;
-                  }
-                }
-                if (event.key === "Enter" && !event.shiftKey && !isComposing) {
-                  event.preventDefault();
-                  submit();
-                }
-              }}
-            />
-            <div className="flex w-full items-center justify-between gap-2">
-              <div className="flex flex-1 min-w-0 items-center gap-2">
-                <div className="w-1/3 min-w-0">
-                  <Select
-                    value={runMode}
-                    onValueChange={(value) => selectRunMode(value as AIRunMode)}
-                  >
-                    <SelectTrigger size="sm" className="w-full text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent position="popper">
-                      <SelectItem value="ask">{t("ai.modeAsk")}</SelectItem>
-                      <SelectItem value="nyaterm_agent">{t("ai.modeNyatermAgent")}</SelectItem>
-                      <SelectItem value="codex_agent" disabled={!codexAgentEnabled}>
-                        {t("ai.modeCodexAgent")}
-                      </SelectItem>
-                      <SelectItem value="claude_code_agent" disabled={!claudeCodeAgentEnabled}>
-                        {t("ai.modeClaudeCodeAgent")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="w-2/3 min-w-0">
-                  {externalModelLabel ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-full min-w-0 justify-start px-2 text-xs"
-                      disabled
-                    >
-                      <span className="truncate">{externalModelLabel}</span>
-                    </Button>
+          <div className="relative">
+            {showMentionPopover ? (
+              <div
+                ref={mentionPopoverRef}
+                className="absolute bottom-full left-0 right-0 z-30 mb-1 flex max-h-48 flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg"
+                style={{ borderColor: "var(--df-border)" }}
+              >
+                <div className="min-h-0 overflow-auto p-1 terminal-scroll">
+                  {filteredMentionPanes.length === 0 ? (
+                    <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                      {t("ai.noSessions")}
+                    </div>
                   ) : (
-                    <ModelCombobox
-                      models={selectableModels}
-                      credentials={aiSettings.provider_credentials}
-                      selectedModel={selectedModel}
-                      selectedReasoningEffort={aiSettings.default_reasoning_effort ?? "auto"}
-                      open={modelPopoverOpen}
-                      onOpenChange={setModelPopoverOpen}
-                      onSelect={(model) =>
-                        updateAppSettings({
-                          ai: { ...aiSettings, default_model_id: model.id },
-                        })
-                      }
-                      onSelectReasoningEffort={(default_reasoning_effort) =>
-                        updateAppSettings({
-                          ai: { ...aiSettings, default_reasoning_effort },
-                        })
-                      }
-                      className="w-full truncate"
-                    />
+                    filteredMentionPanes.map((pane, idx) => {
+                      const isSelected = targetPanes.some((p) => p.sessionId === pane.sessionId);
+                      const isFocused = idx === mentionIndex;
+                      return (
+                        <button
+                          key={pane.sessionId}
+                          ref={(el) => {
+                            if (isFocused && el) el.scrollIntoView({ block: "nearest" });
+                          }}
+                          type="button"
+                          className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted/60 ${isFocused ? "bg-accent" : ""} ${isSelected ? "bg-primary/10" : ""}`}
+                          onClick={() => selectMentionPane(pane)}
+                          onPointerEnter={() => setMentionIndex(idx)}
+                        >
+                          <span
+                            className={`size-2 shrink-0 rounded-full ${isSelected ? "bg-primary" : "bg-muted-foreground/40"}`}
+                          />
+                          <span className="min-w-0 truncate font-medium">{pane.name}</span>
+                          <span className="ml-auto shrink-0 text-[0.625rem] text-muted-foreground">
+                            {pane.type}
+                          </span>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </div>
-
-              <div className="flex-shrink-0">
-                {loading ? (
-                  <Button size="icon-sm" variant="outline" onClick={cancelStream}>
-                    <VscDebugStop />
-                  </Button>
-                ) : (
-                  <Button
-                    size="icon-sm"
-                    onClick={submit}
-                    disabled={
-                      !input.trim() ||
-                      (!selectedModel && !isExternalAgentMode) ||
-                      !aiSettings.enabled
+            ) : null}
+            <div>
+              {quotedText ? (
+                <div className="ai-chat-quote flex items-center gap-1.5">
+                  <div className="w-[3px] self-stretch shrink-0 rounded-l-md bg-primary/60" />
+                  <VscQuote className="shrink-0 text-[0.625rem] text-primary/70" />
+                  <span className="min-w-0 flex-1 truncate py-1.5 text-[0.6875rem] text-muted-foreground">
+                    {quotedText.text}
+                  </span>
+                  <button
+                    type="button"
+                    className="mr-1.5 shrink-0 rounded p-0.5 text-muted-foreground/70 hover:text-foreground"
+                    aria-label={`${t("common.remove")} ${t("ai.quote")}`}
+                    onClick={() =>
+                      updateDraftForScope((draft) => ({
+                        ...draft,
+                        quotedText: null,
+                      }))
                     }
                   >
-                    <VscSend />
-                  </Button>
-                )}
+                    <VscClose className="text-xs" />
+                  </button>
+                </div>
+              ) : null}
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                disabled={loading || !aiSettings.enabled}
+                placeholder={aiSettings.enabled ? t("ai.placeholder") : t("ai.goToSettingsToEnable")}
+                aria-label={t("ai.placeholder")}
+                rows={2}
+                className="ai-chat-input resize-none overflow-y-auto text-xs terminal-scroll"
+                onChange={handleInputChange}
+                onCompositionStart={() => {
+                  isComposingRef.current = true;
+                }}
+                onCompositionEnd={() => {
+                  isComposingRef.current = false;
+                }}
+                onKeyDown={(event) => {
+                  const isComposing =
+                    isComposingRef.current || event.nativeEvent.isComposing || event.keyCode === 229;
+                  if (showMentionPopover) {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      setShowMentionPopover(false);
+                      return;
+                    }
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      setMentionIndex((i) =>
+                        filteredMentionPanes.length === 0 ? 0 : (i + 1) % filteredMentionPanes.length,
+                      );
+                      return;
+                    }
+                    if (event.key === "ArrowUp") {
+                      event.preventDefault();
+                      setMentionIndex((i) =>
+                        filteredMentionPanes.length === 0
+                          ? 0
+                          : (i - 1 + filteredMentionPanes.length) % filteredMentionPanes.length,
+                      );
+                      return;
+                    }
+                    if (event.key === "Enter" && !isComposing) {
+                      event.preventDefault();
+                      const target = filteredMentionPanes[mentionIndex];
+                      if (target) selectMentionPane(target);
+                      else setShowMentionPopover(false);
+                      return;
+                    }
+                  }
+                  if (event.key === "Enter" && !event.shiftKey && !isComposing) {
+                    event.preventDefault();
+                    submit();
+                  }
+                }}
+              />
+              <div className="ai-chat-input-toolbar">
+                <div className="ai-chat-input-pickers">
+                  <div className="ai-chat-mode-picker">
+                    <Select
+                      value={runMode}
+                      onValueChange={(value) => selectRunMode(value as AIRunMode)}
+                    >
+                      <SelectTrigger size="sm" className="ai-chat-picker" aria-label={t("ai.chatMode")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent position="popper">
+                        <SelectItem value="ask">{t("ai.modeAsk")}</SelectItem>
+                        <SelectItem value="nyaterm_agent">{t("ai.modeNyatermAgent")}</SelectItem>
+                        <SelectItem value="codex_agent" disabled={!codexAgentEnabled}>
+                          {t("ai.modeCodexAgent")}
+                        </SelectItem>
+                        <SelectItem value="claude_code_agent" disabled={!claudeCodeAgentEnabled}>
+                          {t("ai.modeClaudeCodeAgent")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="ai-chat-model-picker">
+                    {externalModelLabel ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="ai-chat-picker"
+                        disabled
+                      >
+                        <span className="truncate">{externalModelLabel}</span>
+                      </Button>
+                    ) : (
+                      <ModelCombobox
+                        models={selectableModels}
+                        credentials={aiSettings.provider_credentials}
+                        selectedModel={selectedModel}
+                        selectedReasoningEffort={aiSettings.default_reasoning_effort ?? "auto"}
+                        open={modelPopoverOpen}
+                        onOpenChange={setModelPopoverOpen}
+                        onSelect={(model) =>
+                          updateAppSettings({
+                            ai: { ...aiSettings, default_model_id: model.id },
+                          })
+                        }
+                        onSelectReasoningEffort={(default_reasoning_effort) =>
+                          updateAppSettings({
+                            ai: { ...aiSettings, default_reasoning_effort },
+                          })
+                        }
+                        className="ai-chat-picker"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="ai-chat-submit-slot">
+                  {loading ? (
+                    <Button size="icon-sm" variant="ghost" className="ai-chat-submit" aria-label={t("ai.stopResponse")} title={t("ai.stopResponse")} onClick={cancelStream}>
+                      <VscDebugStop />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      className="ai-chat-submit"
+                      aria-label={t("ai.send")}
+                      title={t("ai.send")}
+                      onClick={submit}
+                      disabled={
+                        !input.trim() ||
+                        (!selectedModel && !isExternalAgentMode) ||
+                        !aiSettings.enabled
+                      }
+                    >
+                      <VscArrowUp />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

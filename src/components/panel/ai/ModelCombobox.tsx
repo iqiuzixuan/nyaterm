@@ -49,8 +49,11 @@ export function ModelCombobox({
         <Button
           type="button"
           size="sm"
-          variant="outline"
-          className={`h-8 min-w-0 max-w-[12rem] justify-between gap-2 px-2 text-xs ${className}`}
+          variant="ghost"
+          className={`min-w-0 max-w-full justify-between gap-1 px-1 text-xs ${className ?? ""}`}
+          aria-label={t("ai.modelSelect")}
+          aria-expanded={open}
+          title={selectedModel ? `${selectedModel.name} · ${reasoningLabel}` : t("ai.modelSelect")}
           disabled={models.length === 0}
         >
           <span className="flex min-w-0 items-center gap-1">
@@ -62,7 +65,7 @@ export function ModelCombobox({
           <VscChevronDown className="shrink-0 text-sm" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
+      <PopoverContent className="w-80 max-w-[calc(100vw-24px)] p-0" side="top" align="start">
         <Command>
           <CommandInput placeholder={t("ai.searchModels")} className="text-xs" />
           <CommandList className="max-h-64 terminal-scroll">

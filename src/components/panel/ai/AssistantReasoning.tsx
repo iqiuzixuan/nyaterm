@@ -20,8 +20,8 @@ export function AssistantReasoning({ message, loading }: { message: AIMessage; l
 
   if (!reasoningContent) {
     return stillThinking ? (
-      <div className="mt-3 overflow-hidden rounded-md border border-primary/25 bg-primary/8 shadow-sm">
-        <div className="px-3 py-2.5 text-[0.6875rem]">
+      <div className="ai-chat-reasoning overflow-hidden">
+        <div className="px-2 py-1.5 text-[0.6875rem]">
           <AnimatedStatusText label={t("ai.thinking")} />
         </div>
         <div className="h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-pulse" />
@@ -33,14 +33,12 @@ export function AssistantReasoning({ message, loading }: { message: AIMessage; l
     <Collapsible
       open={open}
       onOpenChange={setOpen}
-      className={`mt-3 rounded-md border bg-background/40 ${
-        stillThinking ? "border-primary/25 bg-primary/6 shadow-sm" : "border-border/60"
-      }`}
+      className="ai-chat-reasoning"
     >
       <CollapsibleTrigger asChild>
         <button
           type="button"
-          className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[0.6875rem] font-medium transition hover:text-foreground ${
+          className={`flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-[0.6875rem] font-medium transition hover:text-foreground ${
             stillThinking ? "text-primary" : "text-muted-foreground"
           }`}
         >
@@ -58,7 +56,7 @@ export function AssistantReasoning({ message, loading }: { message: AIMessage; l
         </button>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="border-t border-border/60 px-3 py-3">
+        <div className="border-t border-border/40 px-2 py-2">
           <MarkdownContent content={reasoningContent} />
         </div>
       </CollapsibleContent>

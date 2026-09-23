@@ -132,6 +132,23 @@ cleanup. Earlier browser checks verified idle/hover visibility, scrolling withou
 pointer over the area, vertical dragging, horizontal scrolling, stable content
 width and Radix reveal/fade using isolated sample data.
 
+## AI chat layout
+
+The composer follows the local VS Code 1.138.0 chat input layout: an 8px rounded
+card contains the editor, session chips, quote and bottom toolbar. Mode/model
+pickers are borderless 22px controls; they wrap in narrow panels while the send
+or stop button remains reachable. The textarea grows within its height limit.
+Focus highlights the enclosing card instead of drawing a second input border.
+
+User messages use a subdued request card; assistant responses use an open layout
+with compact role labels. Reasoning and command cards keep their original
+expansion, copy, insertion, save and approval actions. Existing models, providers,
+reasoning effort, modes, history, quoting, target selection and streaming remain
+on the original handlers. Input, mode and action labels cover all four locales.
+
+Composer regressions cover IME composition, Shift+Enter, Enter submission,
+stopping the active stream and choosing/removing an @ session without sending.
+
 ## Themes and saved preferences
 
 `src/styles/workspace.css` defines geometry and uses the existing `--df-*` theme

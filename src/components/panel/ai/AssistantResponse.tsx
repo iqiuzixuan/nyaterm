@@ -41,12 +41,12 @@ export function AssistantResponse({
       <Collapsible
         open={rawOpen}
         onOpenChange={setRawOpen}
-        className="mt-3 rounded-md border border-primary/25 bg-primary/6 shadow-sm"
+        className="ai-chat-reasoning"
       >
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[0.6875rem] font-medium text-primary transition hover:text-foreground"
+            className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-[0.6875rem] font-medium text-primary transition hover:text-foreground"
           >
             <AnimatedStatusText label={t("ai.formattingResponse")} />
             <span className="flex items-center gap-1 text-primary">
@@ -60,7 +60,7 @@ export function AssistantResponse({
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="border-t border-border/60 px-3 py-3">
+          <div className="border-t border-border/40 px-2 py-2">
             <pre className="max-h-48 overflow-auto font-mono text-[0.6875rem] leading-5 terminal-scroll whitespace-pre-wrap break-all text-muted-foreground">
               {displayContent || message.content}
             </pre>
