@@ -61,8 +61,9 @@ the release NyaTerm window, including their terminal content insets.
   keyboard focus. The official custom-tag filters remain unchanged.
 - Settings use 12px section padding, 8px field gaps and 16px section gaps;
   dialogs use 16px padding. Controls retain visible keyboard focus indicators.
-- Terminal panes have a 20px inset on both sides, matching the scale of VS Code's
-  terminal gutter. The existing workspace-padding preference adds its original
+- Terminal panes have a 10px inset on both sides. The tab strip shares the
+  terminal's theme-derived background without a separator line. The existing
+  workspace-padding preference adds its original
   8px content inset. Padding belongs to the outer flex layout, so the measured
   xterm host shrinks and the existing resize observer/refit recalculates columns;
   line numbers, timestamps and suggestion overlays keep their shared alignment.
@@ -108,20 +109,23 @@ and both built-in GitHub themes. This is not a live SSH/SFTP connection test.
 ![Visible over the scroll area](images/scrollbars-hover.png)
 
 Native list, file, settings and text-area scrollbars have transparent tracks and
-rectangular sliders. They stay hidden at rest and reveal on hover or scrolling.
-Keyboard scrolling reveals the slider, but retaining focus alone does not keep
-it visible. Scroll activity clears after 500ms, following VS Code's
-`HIDE_TIMEOUT`; native dragging remains browser-owned. Hover/visibility changes
-do not change the scrollbar width, avoiding content reflow during interaction.
+rectangular sliders. Pointer movement within a scrollable pane or scrolling
+reveals its slider for 500ms; an idle pointer or retained keyboard focus does
+not keep it visible. Moving to another pane, leaving the window or switching
+apps clears visibility. Dragging holds visibility until release. Standard
+scrollbar colors cover WKWebView, with WebKit pseudo-elements as a fallback.
+Native dragging remains browser-owned. Visibility changes do not change the
+scrollbar width, avoiding content reflow during interaction.
 
 Radix scroll areas use the same rules, with VS Code's 100ms reveal and 800ms fade
 and reduced-motion support. Areas explicitly requesting `type="always"` retain
 that behavior. xterm retains its own VS Code-derived visibility controller, and
 session-tab strips continue hiding their scrollbars entirely.
 
-All 817 tests in 132 files passed. New coverage verifies idle timing, repeated
-scroll events, horizontal scrolling, nested containers, xterm/tab exclusions and
-cleanup. Browser checks verified idle/hover visibility, scrolling without a
+All 822 tests in 132 files passed. Coverage verifies idle timing, repeated scroll
+events, stationary pointers, independent panes, dragging, leaving the window,
+app switches, Radix tracks, horizontal scrolling, xterm/tab exclusions and
+cleanup. Earlier browser checks verified idle/hover visibility, scrolling without a
 pointer over the area, vertical dragging, horizontal scrolling, stable content
 width and Radix reveal/fade using isolated sample data.
 

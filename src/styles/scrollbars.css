@@ -19,11 +19,10 @@
   border: 0;
   border-radius: 0;
 }
-*:hover::-webkit-scrollbar-thumb,
 *[data-nyaterm-scrolling]::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--df-scroll-thumb) 65%, transparent);
 }
-*::-webkit-scrollbar-thumb:hover {
+*[data-nyaterm-scrolling]::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--df-scroll-thumb) 85%, transparent);
 }
 *::-webkit-scrollbar-thumb:active {
@@ -33,14 +32,15 @@
 .custom-scrollbar {
   scrollbar-gutter: auto;
 }
-@supports (-moz-appearance: none) {
+/* Standard scrollbar colors also cover current WKWebView. Explicitly setting
+ * the idle color prevents the OS's always-visible preference painting a thumb. */
+@supports (scrollbar-color: transparent transparent) {
   * {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
   }
-  *:hover,
   *[data-nyaterm-scrolling] {
-    scrollbar-color: var(--df-scroll-thumb) transparent;
+    scrollbar-color: color-mix(in srgb, var(--df-scroll-thumb) 65%, transparent) transparent;
   }
 }
 .tab-strip-scroll {
@@ -54,7 +54,7 @@
   height: 0;
 }
 
-/* Radix renders overlay tracks; visibility follows the same hover/scroll rules.
+/* Radix renders overlay tracks; visibility follows the same activity timer.
  * Leave explicitly requested `type="always"` areas alone. */
 [data-slot="scroll-area-scrollbar"] {
   background: transparent;
@@ -73,7 +73,7 @@
   opacity: 0;
   transition: opacity 800ms linear;
 }
-[data-scrollbars-auto-hide="true"]:is(:hover, :has([data-nyaterm-scrolling]), :has([data-slot="scroll-area-scrollbar"]:active)) [data-slot="scroll-area-scrollbar"] {
+[data-scrollbars-auto-hide="true"]:is(:has([data-nyaterm-scrolling]), :has([data-slot="scroll-area-scrollbar"]:active)) [data-slot="scroll-area-scrollbar"] {
   opacity: 1;
   transition: opacity 100ms linear;
 }

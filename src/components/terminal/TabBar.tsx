@@ -1654,10 +1654,9 @@ function TabBar({
   return (
     <>
       <div
-        className="workspace-tabbar flex shrink-0"
+        className="workspace-tabbar nyaterm-wallpaper-transparent-surface nyaterm-terminal-surface flex shrink-0"
         style={{
-          backgroundColor: "var(--df-bg-panel)",
-          boxShadow: "inset 0 -1px 0 color-mix(in srgb, var(--df-border) 25%, transparent)",
+          backgroundColor: "var(--df-terminal-surface-bg)",
         }}
       >
         <div

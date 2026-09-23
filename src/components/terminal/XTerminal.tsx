@@ -2737,7 +2737,7 @@ export default function XTerminal({
     <div
       // Inset the layout, not xterm's canvas, so FitAddon measures the reduced
       // content width. The optional workspace padding remains an extra inset.
-      className="nyaterm-wallpaper-transparent-surface nyaterm-terminal-surface h-full w-full relative flex px-5"
+      className="nyaterm-wallpaper-transparent-surface nyaterm-terminal-surface h-full w-full relative flex px-2.5"
       style={{
         display: visible ? "flex" : "none",
         backgroundColor: terminalBackground,

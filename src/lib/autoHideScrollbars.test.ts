@@ -16,6 +16,7 @@ describe("auto-hide scrollbars", () => {
 
   function scroller(horizontal = false) {
     const element = document.createElement("div");
+    element.style.overflow = "auto";
     Object.defineProperties(element, {
       clientHeight: { value: 100 },
       scrollHeight: { value: horizontal ? 100 : 1000 },
@@ -84,5 +85,64 @@ describe("auto-hide scrollbars", () => {
     document.body.append(element);
     element.dispatchEvent(new Event("scroll"));
     expect(element.hasAttribute("data-nyaterm-scrolling")).toBe(false);
+  });
+
+  it("hides after pointer activity stops even while the pointer stays in the pane", () => {
+    const element = scroller();
+    const row = document.createElement("span");
+    element.append(row);
+    row.dispatchEvent(new MouseEvent("pointermove", { bubbles: true }));
+    expect(element.dataset.nyatermScrolling).toBe("true");
+    vi.advanceTimersByTime(SCROLLBAR_IDLE_DELAY_MS);
+    expect(element.hasAttribute("data-nyaterm-scrolling")).toBe(false);
+    row.dispatchEvent(new MouseEvent("pointermove", { bubbles: true }));
+    expect(element.dataset.nyatermScrolling).toBe("true");
+  });
+
+  it("reveals only the pane under the pointer and clears the previous pane", () => {
+    const left = scroller();
+    const right = scroller();
+    left.dispatchEvent(new MouseEvent("pointermove", { bubbles: true }));
+    right.dispatchEvent(new MouseEvent("pointermove", { bubbles: true }));
+    expect(left.hasAttribute("data-nyaterm-scrolling")).toBe(false);
+    expect(right.dataset.nyatermScrolling).toBe("true");
+    document.body.dispatchEvent(new MouseEvent("pointermove", { bubbles: true }));
+    expect(right.hasAttribute("data-nyaterm-scrolling")).toBe(false);
+  });
+
+  it("keeps the pane visible during a drag and starts the idle delay on release", () => {
+    const element = scroller();
+    element.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+    vi.advanceTimersByTime(SCROLLBAR_IDLE_DELAY_MS * 2);
+    expect(element.dataset.nyatermScrolling).toBe("true");
+    document.dispatchEvent(new MouseEvent("pointerup"));
+    vi.advanceTimersByTime(SCROLLBAR_IDLE_DELAY_MS);
+    expect(element.hasAttribute("data-nyaterm-scrolling")).toBe(false);
+  });
+
+  it("clears visibility when leaving the window or switching apps", () => {
+    const element = scroller();
+    element.dispatchEvent(new Event("scroll"));
+    document.dispatchEvent(new MouseEvent("pointerout", { relatedTarget: null }));
+    expect(element.hasAttribute("data-nyaterm-scrolling")).toBe(false);
+    element.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+    window.dispatchEvent(new Event("blur"));
+    expect(element.hasAttribute("data-nyaterm-scrolling")).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("maps overlay track activity to its Radix viewport", () => {
+    const root = document.createElement("div");
+    root.dataset.slot = "scroll-area";
+    const viewport = scroller();
+    viewport.dataset.slot = "scroll-area-viewport";
+    const track = document.createElement("div");
+    track.dataset.slot = "scroll-area-scrollbar";
+    root.append(viewport, track);
+    document.body.append(root);
+    track.dispatchEvent(new MouseEvent("pointermove", { bubbles: true }));
+    expect(viewport.dataset.nyatermScrolling).toBe("true");
+    vi.advanceTimersByTime(SCROLLBAR_IDLE_DELAY_MS);
+    expect(viewport.hasAttribute("data-nyaterm-scrolling")).toBe(false);
   });
 });
