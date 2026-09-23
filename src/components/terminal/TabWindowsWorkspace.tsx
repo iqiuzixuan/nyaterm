@@ -524,7 +524,7 @@ function TerminalContentHost({
         return (
           <div
             key={tab.id}
-            className="absolute pointer-events-auto"
+            className="workspace-terminal-content absolute pointer-events-auto"
             style={{
               display: visible ? "block" : "none",
               left: rect?.left ?? 0,

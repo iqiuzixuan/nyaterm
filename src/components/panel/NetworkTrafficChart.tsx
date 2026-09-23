@@ -46,7 +46,7 @@ export default function NetworkTrafficChart({ points }: NetworkTrafficChartProps
       <div
         className="flex h-[84px] items-center justify-center rounded-md border text-[0.6875rem]"
         style={{
-          borderColor: "color-mix(in srgb, var(--df-border) 60%, transparent)",
+          borderColor: "var(--workspace-border)",
           color: "var(--df-text-dimmed)",
         }}
       >
@@ -79,7 +79,7 @@ export default function NetworkTrafficChart({ points }: NetworkTrafficChartProps
       </div>
       <svg
         className="h-[84px] w-full rounded-md border"
-        style={{ borderColor: "color-mix(in srgb, var(--df-border) 60%, transparent)" }}
+        style={{ borderColor: "var(--workspace-border)" }}
         viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
         preserveAspectRatio="none"
         role="img"

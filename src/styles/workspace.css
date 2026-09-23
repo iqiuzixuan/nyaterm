@@ -35,6 +35,12 @@
   min-height: 0;
   overflow: hidden;
 }
+/* Session hosts are siblings of the cards so tab moves do not remount them.
+ * Clip their bottom corners to the card's inner radius; otherwise their square
+ * surfaces cover the curved border beneath the separate content layer. */
+.workspace-terminal-content {
+  clip-path: inset(0 round 0 0 calc(var(--workspace-radius) - 1px) calc(var(--workspace-radius) - 1px));
+}
 .workspace-sidebar {
   display: flex;
   flex-direction: column;

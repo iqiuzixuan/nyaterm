@@ -52,6 +52,9 @@ the release NyaTerm window, including their terminal content insets.
   underline is removed; explicit custom tab colors retain their subtle marker.
 - Workspace cards: 8px corners, 4px gutters, and a border mixed to 45% of the
   existing theme border. Increased-contrast preferences restore the full border.
+  Resource-monitor sections, metric tiles, charts and disk separators share that
+  border token. Separately hosted terminal content is clipped to the card's inner
+  bottom radius, keeping its opaque surface from covering the curved border.
 - Activity and small toolbar controls: 24px with 16px activity icons. Shared
   buttons, inputs and selects default to 28px, with 24px small variants and
   4px corners. Explicit component size overrides remain supported.

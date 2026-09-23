@@ -151,8 +151,8 @@ function SectionCard({
       className="nyaterm-wallpaper-card rounded-lg border px-3 py-2.5 space-y-2 transition-colors duration-200"
       style={{
         borderColor: accent
-          ? "color-mix(in srgb, var(--df-primary) 30%, var(--df-border))"
-          : "var(--df-border)",
+          ? "color-mix(in srgb, var(--df-primary) 30%, var(--workspace-border))"
+          : "var(--workspace-border)",
         backgroundColor: accent
           ? "color-mix(in srgb, var(--df-primary) 4%, var(--df-bg))"
           : "var(--df-bg)",
@@ -603,7 +603,7 @@ function LoadBadge({ label, value }: { label: string; value: number }) {
       className="min-w-0 rounded-md border px-2 py-1.5 text-center"
       style={{
         backgroundColor: "color-mix(in srgb, var(--df-border) 18%, var(--df-bg))",
-        borderColor: "color-mix(in srgb, var(--df-border) 75%, transparent)",
+        borderColor: "var(--workspace-border)",
       }}
     >
       <div
@@ -683,7 +683,7 @@ function DiskRow({
   return (
     <div
       className="space-y-1.5 border-b py-2 first:pt-0 last:border-b-0 last:pb-0"
-      style={{ borderColor: "color-mix(in srgb, var(--df-border) 60%, transparent)" }}
+      style={{ borderColor: "var(--workspace-border)" }}
     >
       <div className="flex items-baseline justify-between gap-2">
         <span
@@ -727,7 +727,7 @@ function NetworkMetric({
       className="min-w-0 rounded-md border px-2 py-1.5"
       style={{
         backgroundColor: "color-mix(in srgb, var(--df-border) 18%, var(--df-bg))",
-        borderColor: "color-mix(in srgb, var(--df-border) 70%, transparent)",
+        borderColor: "var(--workspace-border)",
       }}
     >
       <div className="text-[0.625rem]" style={{ color: "var(--df-text-dimmed)" }}>
