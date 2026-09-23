@@ -96,6 +96,28 @@ checks covered the real frontend with isolated IPC, 1440px and 780px windows,
 32px shared bottom header, 40px asset rows, panel switching, keyboard tab closing,
 and both built-in GitHub themes. This is not a live SSH/SFTP connection test.
 
+## Auto-hide scrollbars
+
+![Hidden at rest](images/scrollbars-idle.png)
+![Visible over the scroll area](images/scrollbars-hover.png)
+
+Native list, file, settings and text-area scrollbars have transparent tracks and
+rectangular sliders. They stay hidden at rest and reveal on hover, keyboard
+focus or scrolling. Scroll activity clears after 500ms, following VS Code's
+`HIDE_TIMEOUT`; native dragging remains browser-owned. Hover/visibility changes
+do not change the scrollbar width, avoiding content reflow during interaction.
+
+Radix scroll areas use the same rules, with VS Code's 100ms reveal and 800ms fade
+and reduced-motion support. Areas explicitly requesting `type="always"` retain
+that behavior. xterm retains its own VS Code-derived visibility controller, and
+session-tab strips continue hiding their scrollbars entirely.
+
+All 817 tests in 132 files passed. New coverage verifies idle timing, repeated
+scroll events, horizontal scrolling, nested containers, xterm/tab exclusions and
+cleanup. Browser checks verified idle/hover visibility, scrolling without a
+pointer over the area, vertical dragging, horizontal scrolling, stable content
+width and Radix reveal/fade using isolated sample data.
+
 ## Themes and saved preferences
 
 `src/styles/workspace.css` defines geometry and uses the existing `--df-*` theme

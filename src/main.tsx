@@ -21,6 +21,7 @@ import {
 } from "./lib/childWindowLifecycle";
 import { DEFAULT_THEME_ID, themes } from "./lib/themes";
 import { installWebviewReloadGuard } from "./lib/webviewReloadGuard";
+import { installAutoHideScrollbars } from "./lib/autoHideScrollbars";
 
 // Apply cached theme synchronously before React renders to avoid flash
 try {
@@ -40,6 +41,8 @@ try {
 } catch {}
 
 installWebviewReloadGuard();
+const disposeAutoHideScrollbars = installAutoHideScrollbars();
+if (import.meta.hot) import.meta.hot.dispose(disposeAutoHideScrollbars);
 document.addEventListener("contextmenu", (e) => e.preventDefault());
 
 const params = new URLSearchParams(window.location.search);

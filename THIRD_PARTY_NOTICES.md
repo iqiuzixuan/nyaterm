@@ -1,7 +1,7 @@
 # Workbench UI sources
 
 NyaTerm's workbench control styles adapt portions of Visual Studio Code's
-`actionbar.css`, `button.css` and `inputBox.css` from tag **1.138.0**, commit
+`actionbar.css`, `button.css`, `inputBox.css` and `scrollbars.css` from tag **1.138.0**, commit
 `7debcd0e2acdea1c52de81bf9ee1620444407dda`.
 
 Copyright (c) 2015 - present Microsoft Corporation. Licensed under the MIT
