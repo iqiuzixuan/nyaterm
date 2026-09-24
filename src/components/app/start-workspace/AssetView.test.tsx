@@ -78,7 +78,7 @@ describe("start workspace asset view", () => {
     const assetSurface = document.querySelector("[data-asset-view]") as HTMLElement;
     expect(assetSurface.style.backgroundColor).toBe("transparent");
     expect(assetSurface.style.getPropertyValue("--nyaterm-asset-sticky-bg")).toBe(
-      "var(--df-bg-terminal-solid)",
+      "var(--workspace-content-solid-bg)",
     );
   });
 

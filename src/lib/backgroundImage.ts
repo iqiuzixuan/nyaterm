@@ -171,6 +171,9 @@ export function buildSurfaceCssVariables(
       "--df-bg-terminal": bgTerminal,
       "--df-bg-terminal-solid": colors.bgTerminal,
       "--df-terminal-surface-bg": "transparent",
+      "--workspace-shell-bg": bgPanel,
+      "--workspace-content-bg": "transparent",
+      "--workspace-content-solid-bg": colors.bgTerminal,
       "--df-bg-hover": bgHover,
       "--df-bg-input": bgInput,
       "--df-bg-section-header": bgSectionHeader,
@@ -180,7 +183,7 @@ export function buildSurfaceCssVariables(
       "--secondary": bgHover,
       "--muted": bgHover,
       "--accent": bgHover,
-      "--input": colors.border,
+      "--input": "var(--border)",
     };
   }
   const surfaceOpacity = isBackgroundImageEnabled(appearance)
@@ -203,6 +206,11 @@ export function buildSurfaceCssVariables(
     "--df-bg-terminal": bgTerminal,
     "--df-bg-terminal-solid": colors.bgTerminal,
     "--df-terminal-surface-bg": terminalSurfaceBg,
+    "--workspace-shell-bg": bgPanel,
+    "--workspace-content-bg": terminalSurfaceBg,
+    "--workspace-content-solid-bg": isBackgroundImageEnabled(appearance)
+      ? colors.bgTerminal
+      : "var(--df-terminal-bg, var(--df-bg-terminal-solid))",
     "--df-bg-hover": bgHover,
     "--df-bg-input": bgInput,
     "--df-bg-section-header": bgSectionHeader,
@@ -212,7 +220,7 @@ export function buildSurfaceCssVariables(
     "--secondary": bgHover,
     "--muted": bgHover,
     "--accent": bgHover,
-    "--input": colors.border,
+    "--input": "var(--border)",
   };
 }
 

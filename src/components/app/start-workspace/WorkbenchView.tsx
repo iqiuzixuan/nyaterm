@@ -54,7 +54,7 @@ export default function WorkbenchView({
     <div
       className="flex h-full items-center justify-center px-6"
       style={{
-        backgroundColor: backgroundEnabled ? "var(--df-bg-terminal)" : undefined,
+        backgroundColor: backgroundEnabled ? "var(--workspace-content-bg)" : undefined,
       }}
     >
       <div className="flex w-full max-w-[34rem] flex-col items-center">

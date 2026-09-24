@@ -47,14 +47,9 @@ export default function StartWorkspace({
     [mode, updateUi],
   );
 
-  const assetSurfaceBackground = "var(--df-bg-terminal)";
-
   return (
     <div
-      className="workspace-card relative h-full min-h-0 overflow-hidden"
-      style={{
-        backgroundColor: mode === "assets" ? assetSurfaceBackground : undefined,
-      }}
+      className="workspace-card workspace-content-card relative h-full min-h-0 overflow-hidden"
     >
       <div className="pointer-events-none absolute left-0 right-0 top-1 z-30 flex justify-start px-2">
         <div

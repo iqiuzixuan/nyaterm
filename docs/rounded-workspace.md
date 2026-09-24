@@ -80,6 +80,12 @@ connections, tab actions and application behavior are retained.
 
 ## Shared UI rules
 
+- Major surfaces use two theme-derived layers: sidebars, title bar and outer
+  gutters use `--workspace-shell-bg` (panel background), while terminal windows,
+  the workbench/assets view and bottom tools use `--workspace-content-bg`
+  (effective terminal surface). Content colors are scoped to cards so floating
+  sidebars keep their shell color. Wallpaper and native transparency retain
+  their existing surface opacity behavior; palettes are not hardcoded.
 - `--border` and `--input` resolve to the workspace's 45% theme border. Use these
   tokens for neutral outlines and dividers, including inline styles, child
   windows and custom overlays. Do not read the raw `--df-border` or add individual

@@ -1850,7 +1850,7 @@ export default function Header({
   return (
     <header
       className="workspace-titlebar h-8 flex items-center gap-2 px-2 select-none shrink-0"
-      style={{ backgroundColor: "var(--df-bg)" }}
+      style={{ backgroundColor: "var(--workspace-shell-bg)" }}
     >
       <div className={`flex items-center gap-2 shrink-0${isMacOS ? " pl-[84px]" : ""}`}>
         {!isMacOS && (

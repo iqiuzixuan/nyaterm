@@ -70,6 +70,12 @@ describe("terminal surface background variables", () => {
       "var(--df-terminal-bg, var(--df-bg-terminal))",
     );
     expect(terminalColors.background).toBe(themeColors.terminal.background);
+    expect(cssVars["--workspace-shell-bg"]).toBe(themeColors.bgPanel);
+    expect(cssVars["--workspace-content-bg"]).toBe(cssVars["--df-terminal-surface-bg"]);
+    expect(cssVars["--workspace-content-solid-bg"]).toBe(
+      "var(--df-terminal-bg, var(--df-bg-terminal-solid))",
+    );
+    expect(cssVars["--input"]).toBe("var(--border)");
     expect(terminalColors).not.toHaveProperty("foregroundIntense");
   });
 
@@ -108,6 +114,9 @@ describe("terminal surface background variables", () => {
     expect(cssVars["--df-bg-terminal"]).toBe("rgba(13, 17, 23, 0.5)");
     expect(cssVars["--df-bg-terminal-solid"]).toBe(themeColors.bgTerminal);
     expect(cssVars["--df-terminal-surface-bg"]).toBe("var(--df-bg-terminal)");
+    expect(cssVars["--workspace-shell-bg"]).toBe(cssVars["--df-bg-panel"]);
+    expect(cssVars["--workspace-content-bg"]).toBe(cssVars["--df-terminal-surface-bg"]);
+    expect(cssVars["--workspace-content-solid-bg"]).toBe(themeColors.bgTerminal);
     expect(terminalColors.background).toBe("rgba(0, 0, 0, 0)");
   });
 
@@ -137,6 +146,9 @@ describe("terminal surface background variables", () => {
     const terminalColors = buildTerminalThemeColors(themeColors.terminal, transparentWindow);
 
     expect(cssVars["--df-bg-terminal"]).toBe("rgba(13, 17, 23, 0.6)");
+    expect(cssVars["--workspace-shell-bg"]).toBe(cssVars["--df-bg-panel"]);
+    expect(cssVars["--workspace-content-bg"]).toBe("transparent");
+    expect(cssVars["--workspace-content-solid-bg"]).toBe(themeColors.bgTerminal);
     expect(cssVars["--df-bg-terminal-solid"]).toBe(themeColors.bgTerminal);
     expect(cssVars["--df-terminal-surface-bg"]).toBe("transparent");
     expect(terminalColors.background).toBe("rgba(0, 0, 0, 0)");

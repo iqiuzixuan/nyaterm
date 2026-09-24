@@ -313,7 +313,7 @@ function LeafWindow({
 
   return (
     <div
-      className="workspace-card nyaterm-wallpaper-transparent-surface nyaterm-terminal-surface flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
+      className="workspace-card workspace-content-card nyaterm-wallpaper-transparent-surface nyaterm-terminal-surface flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
       style={{
         borderColor: "var(--workspace-border)",
         backgroundColor: "var(--df-terminal-surface-bg)",

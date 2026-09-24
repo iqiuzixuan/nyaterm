@@ -125,8 +125,8 @@ export default function AssetView({
   const surfaceStyle = useMemo(
     () =>
       ({
-        backgroundColor: transparentBackground ? "transparent" : "var(--df-bg-terminal)",
-        "--nyaterm-asset-sticky-bg": "var(--df-bg-terminal-solid)",
+        backgroundColor: transparentBackground ? "transparent" : "var(--workspace-content-bg)",
+        "--nyaterm-asset-sticky-bg": "var(--workspace-content-solid-bg)",
       }) as CSSProperties,
     [transparentBackground],
   );

@@ -299,7 +299,7 @@ function HeaderCell({
       className={`relative border-b px-2 py-1 font-medium ${className}`}
       style={{
         borderColor: "var(--border)",
-        backgroundColor: "var(--nyaterm-asset-sticky-bg, var(--df-bg-terminal))",
+        backgroundColor: "var(--nyaterm-asset-sticky-bg, var(--workspace-content-bg))",
         width,
       }}
     >
@@ -358,7 +358,7 @@ function BodyCell({ children, className = "" }: { children: React.ReactNode; cla
       style={{
         borderColor: "var(--border)",
         backgroundColor: className.includes("asset-col-actions")
-          ? "var(--nyaterm-asset-sticky-bg, var(--df-bg-terminal))"
+          ? "var(--nyaterm-asset-sticky-bg, var(--workspace-content-bg))"
           : undefined,
       }}
     >

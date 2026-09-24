@@ -3,6 +3,9 @@
   --workspace-gap: 4px;
   --workspace-radius: 8px;
   --workspace-border: color-mix(in srgb, var(--df-border) 45%, transparent);
+  --workspace-shell-bg: var(--df-bg-panel);
+  --workspace-content-bg: var(--df-terminal-surface-bg);
+  --workspace-content-solid-bg: var(--df-terminal-bg, var(--df-bg-terminal-solid));
 }
 .workspace-layout {
   display: flex;
@@ -19,6 +22,14 @@
   border: 1px solid var(--workspace-border);
   border-radius: var(--workspace-radius);
   background: var(--df-bg-panel);
+}
+/* Scope content colors to cards, not the center container: floating sidebars
+ * are mounted there too and must keep the shell color. */
+.workspace-content-card {
+  --df-bg-panel: var(--workspace-content-bg);
+  --background: var(--workspace-content-bg);
+  --card: var(--workspace-content-bg);
+  background: var(--workspace-content-bg);
 }
 .workspace-center {
   position: relative;
@@ -124,7 +135,7 @@
   overflow: hidden;
 }
 .workspace-titlebar {
-  background: var(--df-bg);
+  background: var(--workspace-shell-bg);
 }
 .workspace-controls {
   display: flex;

@@ -245,7 +245,7 @@ export default function AppLayout({
       ...buildSurfaceCssVariables(theme.colors, effectiveAppearance),
       // When native window transparency is on, the shell background must be
       // transparent so the native backdrop is visible through the webview.
-      backgroundColor: windowTransparencyEnabled ? "transparent" : theme.colors.bg,
+      backgroundColor: windowTransparencyEnabled ? "transparent" : "var(--workspace-shell-bg)",
       color: "var(--df-text)",
     }),
     [effectiveAppearance, theme.colors, windowTransparencyEnabled],
@@ -524,7 +524,7 @@ export default function AppLayout({
             )}
             <section
               id="workspace-bottom"
-              className="workspace-bottom workspace-card"
+              className="workspace-bottom workspace-card workspace-content-card"
               data-collapsed={!bottomVisible}
               style={{
                 height:
