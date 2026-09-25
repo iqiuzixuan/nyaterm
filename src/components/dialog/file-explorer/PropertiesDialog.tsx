@@ -253,7 +253,7 @@ export default function PropertiesDialog({
       onOpenChange={(v) => !v && !isSaving && onClose()}
     >
       <DialogContent className="w-[min(460px,calc(100vw-2rem))] sm:max-w-[460px] p-0 gap-0">
-        <DialogHeader className="pl-5 pr-12 py-3 border-b">
+        <DialogHeader className="pl-4 pr-12 py-3 border-b">
           <DialogTitle className="text-sm flex items-center gap-2 min-w-0">
             {data.is_dir ? (
               <MdFolder
@@ -286,7 +286,7 @@ export default function PropertiesDialog({
               <span className="text-xs">{t("fileExplorer.loading")}</span>
             </div>
           ) : error ? (
-            <div className="absolute inset-0 flex items-center justify-center text-destructive text-xs px-5 text-center">
+            <div className="absolute inset-0 flex items-center justify-center text-destructive text-xs px-4 text-center">
               {error}
             </div>
           ) : properties ? (
@@ -589,7 +589,7 @@ export default function PropertiesDialog({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-5 py-3 border-t">
+        <DialogFooter className="px-4 py-3 border-t">
           <Button
             variant="outline"
             size="sm"

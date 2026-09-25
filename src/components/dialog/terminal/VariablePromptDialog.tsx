@@ -65,7 +65,7 @@ export default function VariablePromptDialog({
   return (
     <Dialog disablePointerDismissal open={open} onOpenChange={(v) => !v && onCancel()}>
       <DialogContent className="w-[min(400px,calc(100vw-2rem))] sm:max-w-[400px] p-0 gap-0">
-        <DialogHeader className="px-5 py-3 border-b">
+        <DialogHeader className="px-4 py-3 border-b">
           <DialogTitle className="text-sm">{t("quickCommands.fillVariables")}</DialogTitle>
           <DialogDescription className="sr-only">
             {t("quickCommands.fillVariables")}
@@ -121,7 +121,7 @@ export default function VariablePromptDialog({
           </div>
         </div>
 
-        <DialogFooter className="px-5 py-3 border-t">
+        <DialogFooter className="px-4 py-3 border-t">
           <Button variant="ghost" size="sm" className="text-xs" onClick={onCancel}>
             {t("dialog.cancel")}
           </Button>

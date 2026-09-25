@@ -56,7 +56,7 @@ export function InteractionTab() {
       <SettingSection
         title={t("settings.interactionClipboardMouse")}
         desc={t("settings.interactionClipboardMouseDesc")}
-        contentClassName="space-y-5"
+        contentClassName="space-y-3"
       >
         <SettingRow label={t("settings.copyOnSelect")} desc={t("settings.copyOnSelectDesc")}>
           <SettingSwitch
@@ -117,7 +117,7 @@ export function InteractionTab() {
       <SettingSection
         title={t("settings.interactionTerminalPage")}
         desc={t("settings.interactionTerminalPageDesc")}
-        contentClassName="space-y-5"
+        contentClassName="space-y-3"
       >
         <SettingRow
           label={t("settings.terminalZoomEnabled")}
@@ -133,7 +133,7 @@ export function InteractionTab() {
       <SettingSection
         title={t("settings.interactionCommandInput")}
         desc={t("settings.interactionCommandInputDesc")}
-        contentClassName="space-y-5"
+        contentClassName="space-y-3"
       >
         <SettingRow
           label={t("settings.commandSuggestions")}
@@ -239,7 +239,7 @@ export function InteractionTab() {
       <SettingSection
         title={t("settings.tabMouseActions")}
         desc={t("settings.tabMouseActionsDesc")}
-        contentClassName="space-y-5"
+        contentClassName="space-y-3"
       >
         <SettingSelect
           label={t("settings.tabDoubleClickAction")}
@@ -281,7 +281,7 @@ export function InteractionTab() {
       <SettingSection
         title={t("settings.interactionEncoding")}
         desc={t("settings.interactionEncodingDesc")}
-        contentClassName="space-y-5"
+        contentClassName="space-y-3"
       >
         <SettingSelect
           label={t("settings.defaultEncoding")}

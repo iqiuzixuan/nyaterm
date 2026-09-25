@@ -117,7 +117,7 @@ export default function AboutDialog({ open, onClose }: AboutDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="w-[min(440px,calc(100vw-2rem))] sm:max-w-[440px] flex flex-col items-center p-6 gap-4">
+      <DialogContent className="w-[min(440px,calc(100vw-2rem))] sm:max-w-[440px] flex flex-col items-center p-4 gap-4">
         <DialogHeader className="items-center">
           <NyaTermLogo className="w-24 h-24 object-contain" />
           <DialogTitle className="text-lg">{appName}</DialogTitle>

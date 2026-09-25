@@ -99,7 +99,7 @@ export default function NewItemDialog({ data, onClose, onSuccess }: NewItemDialo
   return (
     <Dialog disablePointerDismissal open onOpenChange={(v) => !v && !isSubmitting && onClose()}>
       <DialogContent className="w-[min(500px,calc(100vw-2rem))] sm:max-w-[500px] p-0 gap-0">
-        <DialogHeader className="pl-5 pr-12 py-3 border-b">
+        <DialogHeader className="pl-4 pr-12 py-3 border-b">
           <DialogTitle className="text-sm">{t(titleKey)}</DialogTitle>
           <DialogDescription className="sr-only">{t(titleKey)}</DialogDescription>
         </DialogHeader>
@@ -248,7 +248,7 @@ export default function NewItemDialog({ data, onClose, onSuccess }: NewItemDialo
           )}
         </div>
 
-        <DialogFooter className="px-5 py-3 border-t flex flex-col-reverse items-stretch justify-between sm:flex-row sm:items-center sm:justify-between">
+        <DialogFooter className="px-4 py-3 border-t flex flex-col-reverse items-stretch justify-between sm:flex-row sm:items-center sm:justify-between">
           <label className="flex min-w-0 items-center gap-1.5 cursor-pointer text-xs">
             <Checkbox
               checked={openAfterCreate}

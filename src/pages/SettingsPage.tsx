@@ -477,7 +477,7 @@ export default function SettingsPage() {
 
   return (
     <div
-      className="h-full min-h-0 flex flex-col overflow-hidden"
+      className="settings-page h-full min-h-0 flex flex-col overflow-hidden"
       style={{ fontFamily: committedSettings.appearance.ui_font_family }}
     >
       <ChildWindowHeader
@@ -496,19 +496,19 @@ export default function SettingsPage() {
         }}
       >
         <AppContext.Provider value={nestedAppContextValue}>
-          <div className="workspace-settings-layout min-h-0 flex-1 overflow-hidden bg-background">
-            <div className="workspace-settings-nav flex w-14 shrink-0 flex-col sm:w-48 lg:w-56">
+          <div className="workspace-settings-layout min-h-0 flex-1 overflow-hidden">
+            <div className="workspace-settings-nav flex w-12 shrink-0 flex-col sm:w-44 lg:w-48">
               <div
-                className="flex items-center justify-center gap-3 border-b border-border px-3 py-4 sm:justify-start sm:px-4 sm:py-5"
+                className="settings-nav-heading flex items-center justify-center gap-2 sm:justify-start"
                 data-tauri-drag-region
               >
-                <MdSettings className="shrink-0 text-2xl text-primary" />
-                <h1 className="hidden text-lg font-semibold sm:block lg:text-xl">
+                <MdSettings className="shrink-0 text-base text-muted-foreground" />
+                <h1 className="hidden text-sm font-medium sm:block">
                   {t("settings.title")}
                 </h1>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3 sm:px-3 sm:py-4">
-                <div className="flex flex-col gap-2">
+              <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
+                <div className="flex flex-col gap-0.5">
                   {categories.map((category) => {
                     const isExpanded = expandedGroups[category.id];
                     const hasMultiple = category.items.length > 1;
@@ -524,15 +524,16 @@ export default function SettingsPage() {
                           variant="ghost"
                           onClick={() => setActiveTab(tabId)}
                           title={category.label}
-                          className={`h-auto w-full justify-center gap-3 rounded-xl border px-2 py-2.5 text-sm font-semibold transition-colors sm:justify-start sm:px-3 ${
+                          aria-current={isActive ? "page" : undefined}
+                          className={`settings-nav-item w-full justify-center sm:justify-start ${
                             isActive
-                              ? "border-primary/20 bg-primary/12 text-foreground shadow-xs hover:bg-primary/16"
-                              : "border-transparent text-muted-foreground hover:border-border hover:bg-background hover:text-foreground"
+                              ? "settings-nav-selected"
+                              : "text-muted-foreground"
                           }`}
                         >
                           <DynamicIcon
                             name={tabItem.icon}
-                            className={`shrink-0 text-[1.125rem] ${isActive ? "text-primary" : ""}`}
+                            className={`shrink-0 text-base ${isActive ? "text-primary" : ""}`}
                           />
                           <span className="hidden truncate sm:inline">{category.label}</span>
                         </Button>
@@ -550,21 +551,22 @@ export default function SettingsPage() {
                           variant="ghost"
                           onClick={() => toggleGroup(category.id)}
                           title={category.label}
-                          className={`h-auto w-full justify-center sm:justify-between rounded-xl px-2 py-2.5 text-sm font-semibold transition-colors sm:px-3 ${
+                          aria-expanded={isExpanded}
+                          className={`settings-nav-item w-full justify-center sm:justify-between ${
                             isGroupActive && !isExpanded
-                              ? "border border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10"
-                              : "border border-transparent text-muted-foreground hover:border-border hover:bg-background hover:text-foreground"
+                              ? "settings-nav-selected"
+                              : "text-muted-foreground"
                           }`}
                         >
-                          <div className="flex items-center justify-center sm:justify-start gap-3">
+                          <div className="flex min-w-0 items-center justify-center sm:justify-start gap-2">
                             <DynamicIcon
                               name={category.icon}
-                              className={`shrink-0 text-[1.125rem] ${isGroupActive && !isExpanded ? "text-primary" : ""}`}
+                              className={`shrink-0 text-base ${isGroupActive && !isExpanded ? "text-primary" : ""}`}
                             />
                             <span className="hidden truncate sm:inline">{category.label}</span>
                           </div>
                           <MdKeyboardArrowRight
-                            className={`hidden sm:block shrink-0 text-[1.125rem] transition-transform duration-200 ${
+                            className={`hidden sm:block shrink-0 text-base transition-transform duration-200 ${
                               isExpanded ? "rotate-90" : ""
                             }`}
                           />
@@ -573,7 +575,7 @@ export default function SettingsPage() {
                         <div
                           className={`relative flex flex-col gap-1 overflow-hidden transition-all duration-200 ${
                             isExpanded ? "max-h-64 opacity-100 mt-1" : "max-h-0 opacity-0"
-                          } sm:ml-[1.3125rem] sm:pl-3 sm:border-l-2 sm:border-border`}
+                          } sm:ml-3 sm:pl-2 sm:border-l sm:border-border`}
                         >
                           {category.items.map((tabId) => {
                             const tabItem = tabs.find((t) => t.id === tabId);
@@ -585,10 +587,11 @@ export default function SettingsPage() {
                                 variant="ghost"
                                 onClick={() => setActiveTab(tabId)}
                                 title={tabItem.label}
-                                className={`h-auto w-full justify-center gap-3 rounded-lg border px-2 py-2 text-[0.85rem] font-medium transition-colors sm:justify-start sm:px-3 ${
+                                aria-current={isActive ? "page" : undefined}
+                                className={`settings-nav-item w-full justify-center sm:justify-start ${
                                   isActive
-                                    ? "border-primary/20 bg-primary/12 text-foreground shadow-xs hover:bg-primary/16"
-                                    : "border-transparent text-muted-foreground hover:border-border hover:bg-background/50 hover:text-foreground"
+                                    ? "settings-nav-selected"
+                                    : "text-muted-foreground"
                                 }`}
                               >
                                 <DynamicIcon
@@ -607,12 +610,12 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="workspace-settings-content flex flex-1 min-h-0 min-w-0 flex-col">
+            <div className="workspace-settings-content workspace-content-card flex flex-1 min-h-0 min-w-0 flex-col">
               <div
-                className="flex shrink-0 items-center justify-between border-b border-border bg-background/90 px-4 py-4 backdrop-blur sm:px-6 sm:py-5"
+                className="settings-content-heading flex shrink-0 items-center justify-between"
                 data-tauri-drag-region
               >
-                <h3 className="text-lg font-semibold sm:text-2xl">{activeTabConfig?.label}</h3>
+                <h2 className="text-sm font-medium">{activeTabConfig?.label}</h2>
               </div>
 
               <div
@@ -620,9 +623,9 @@ export default function SettingsPage() {
                 onScroll={(e) => {
                   scrollStates.current[activeTab] = e.currentTarget.scrollTop;
                 }}
-                className="flex-1 overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
+                className="settings-scroll-content min-h-0 flex-1 overflow-y-auto p-3"
               >
-                <div className="mx-auto w-full max-w-5xl space-y-5 text-base sm:space-y-6">
+                <div className="mx-auto w-full max-w-4xl space-y-4 text-[13px]">
                   {activeTab === "syncBackup" ? (
                     <SyncBackupTab onNavigateSecurity={() => setActiveTab("security")} />
                   ) : ActiveComponent ? (
@@ -632,7 +635,7 @@ export default function SettingsPage() {
               </div>
 
               <ActionFooter
-                className="border-border px-4 sm:px-6"
+                className="settings-action-footer"
                 leading={
                   saveBlockState ? (
                     <div className="flex flex-wrap items-center gap-2 text-sm text-amber-700 dark:text-amber-300">

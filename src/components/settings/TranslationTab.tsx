@@ -101,7 +101,7 @@ export function TranslationTab() {
       <SettingSection
         title={t("settings.translationProviders")}
         desc={t("settings.translationProvidersDesc")}
-        contentClassName="space-y-4"
+        contentClassName="space-y-3"
       >
         <ProviderCard title={t("translation.google")} status={<ProviderStatus configured free />} />
 

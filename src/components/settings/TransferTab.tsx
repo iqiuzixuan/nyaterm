@@ -91,7 +91,7 @@ export function TransferTab() {
 
   return (
     <div className="space-y-4">
-      <SettingSection contentClassName="space-y-5">
+      <SettingSection contentClassName="space-y-3">
         <PathPickerInput
           label={t("settings.downloadPath")}
           desc={t("settings.downloadPathDesc")}
@@ -161,7 +161,7 @@ export function TransferTab() {
         )}
       </SettingSection>
 
-      <SettingSection contentClassName="space-y-5">
+      <SettingSection contentClassName="space-y-3">
         <SettingFieldGrid>
           <SettingNumberInput
             label={t("settings.downloadConcurrentTasks")}

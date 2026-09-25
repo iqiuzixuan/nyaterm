@@ -4,6 +4,8 @@
 @import "./styles/workbench-controls.css";
 @import "./styles/scrollbars.css";
 @import "./styles/chat.css";
+@import "./styles/settings.css";
+@import "./styles/dialogs.css";
 
 @font-face {
   font-family: "JetBrainsMono Nerd Font Mono";

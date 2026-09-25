@@ -17,7 +17,7 @@ export function ProxyTab() {
 
   return (
     <div className="space-y-4">
-      <SettingSection contentClassName="space-y-5">
+      <SettingSection contentClassName="space-y-3">
         <SettingRow label={t("settings.enableProxy")} desc={t("settings.enableProxyDesc")}>
           <SettingSwitch
             checked={appSettings.proxy.enabled}

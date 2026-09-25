@@ -1,0 +1,131 @@
+/* Presentation only: focus trapping, dismissal and confirmation handlers stay in Radix. */
+[data-slot="dialog-overlay"],
+[data-slot="alert-dialog-overlay"] {
+  background: color-mix(in srgb, var(--df-shadow) 70%, transparent);
+}
+[data-slot="dialog-content"],
+[data-slot="alert-dialog-content"] {
+  background: var(--df-bg-panel-solid, var(--df-bg-panel));
+  color: var(--df-text);
+  border-color: var(--border);
+  border-radius: var(--workspace-radius);
+  box-shadow: 0 8px 24px var(--df-shadow);
+  font-size: 13px;
+  line-height: 20px;
+  animation-duration: 150ms;
+}
+[data-slot="dialog-title"],
+[data-slot="alert-dialog-title"] {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+[data-slot="dialog-description"],
+[data-slot="alert-dialog-description"] {
+  font-size: 12px;
+  line-height: 20px;
+}
+[data-slot="alert-dialog-header"] {
+  gap: 6px;
+  place-items: start;
+  text-align: left;
+}
+[data-slot="alert-dialog-media"] {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 4px;
+}
+[data-slot="alert-dialog-media"] > svg {
+  width: 16px;
+  height: 16px;
+}
+[data-slot="dialog-content"] > [data-slot="dialog-close"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  top: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: var(--workbench-control-radius);
+  color: var(--df-text-muted);
+  opacity: 1;
+  box-shadow: none;
+}
+[data-slot="dialog-content"] > [data-slot="dialog-close"]:hover {
+  background: var(--df-bg-hover);
+  color: var(--df-text);
+}
+[data-slot="dialog-content"] > [data-slot="dialog-close"]:focus-visible {
+  outline: 1px solid var(--df-focus-ring);
+  outline-offset: 1px;
+}
+[data-slot="dialog-content"][data-has-close-button="true"]:not(.p-0)
+  > [data-slot="dialog-header"]:not(.sr-only) {
+  padding-right: 28px;
+}
+[data-slot="dialog-footer"],
+[data-slot="alert-dialog-footer"],
+[data-slot="action-footer-buttons"] {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+[data-slot="action-footer"] {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--df-bg-panel-solid, var(--df-bg-panel));
+}
+:is([data-slot="dialog-footer"], [data-slot="alert-dialog-footer"], [data-slot="action-footer-buttons"])
+  button {
+  min-height: 28px;
+  height: auto;
+  min-width: 64px;
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: var(--workbench-control-radius);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  white-space: normal;
+}
+:is([data-slot="dialog-footer"], [data-slot="alert-dialog-footer"], [data-slot="action-footer-buttons"])
+  button:focus-visible {
+  outline: 1px solid var(--df-focus-ring);
+  outline-offset: 2px;
+}
+:is([data-slot="dialog-footer"], [data-slot="alert-dialog-footer"], [data-slot="action-footer-buttons"])
+  [data-variant="outline"] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+:is([data-slot="dialog-footer"], [data-slot="alert-dialog-footer"], [data-slot="action-footer-buttons"])
+  [data-variant="outline"]:hover:not(:disabled) {
+  background: var(--df-bg-hover);
+}
+.toaster [data-sonner-toast][data-styled="true"] {
+  padding: 12px;
+  gap: 8px;
+  border-radius: var(--workspace-radius);
+  border-color: var(--border);
+  box-shadow: 0 4px 12px var(--df-shadow);
+  font-size: 12px;
+  line-height: 18px;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="dialog-content"],
+  [data-slot="alert-dialog-content"],
+  [data-slot="dialog-overlay"],
+  [data-slot="alert-dialog-overlay"] {
+    animation: none;
+    transition: none;
+  }
+}

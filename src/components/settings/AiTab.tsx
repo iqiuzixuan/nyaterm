@@ -556,7 +556,7 @@ export function AiAgentsTab() {
             {t("ai.detect")}
           </Button>
         }
-        contentClassName="space-y-4"
+        contentClassName="space-y-3"
       >
         <div className="rounded-md border border-border bg-background/75 p-4">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -781,7 +781,7 @@ export function AiAgentsTab() {
         </div>
       </SettingSection>
 
-      <SettingSection title={t("ai.externalMcp")} contentClassName="space-y-4">
+      <SettingSection title={t("ai.externalMcp")} contentClassName="space-y-3">
         <SettingRow label={t("ai.externalMcpEnabled")} desc={t("ai.externalMcpDesc")}>
           <div className="flex items-center gap-2">
             <Badge variant={mcpStatus?.running ? "default" : "outline"}>
@@ -1290,7 +1290,7 @@ export function AiModelsTab() {
             {t("common.add")}
           </Button>
         }
-        contentClassName="space-y-4"
+        contentClassName="space-y-3"
       >
         {ai.provider_credentials.map((credential) => {
           const builtin = isBuiltinProvider(credential.id);
@@ -1447,7 +1447,7 @@ function ActionListEditor({
           {t("common.add")}
         </Button>
       }
-      contentClassName="space-y-4"
+      contentClassName="space-y-3"
     >
       {actions.map((action) => (
         <div key={action.id} className="rounded-md border border-border bg-background/75 p-4">

@@ -19,7 +19,7 @@ export default function DockerLogsDialog({ logs, onOpenChange }: DockerLogsDialo
   return (
     <Dialog open={Boolean(logs)} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(720px,calc(100vw-2rem))] sm:max-w-[720px] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="border-b px-5 py-3 pr-12">
+        <DialogHeader className="border-b px-4 py-3 pr-12">
           <DialogTitle className="flex min-w-0 items-center gap-2 text-sm">
             <Terminal className="h-4 w-4 shrink-0" />
             <span className="truncate" title={logs?.title}>

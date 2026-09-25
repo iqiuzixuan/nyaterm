@@ -189,7 +189,7 @@ export function TerminalTab() {
 
   return (
     <div className="space-y-4">
-      <SettingSection contentClassName="space-y-5">
+      <SettingSection contentClassName="space-y-3">
         <SettingNumberInput
           label={t("settings.scrollbackLines")}
           desc={t("settings.scrollbackLinesDesc")}
@@ -482,7 +482,7 @@ export function TerminalTab() {
       <SettingSection
         title={t("settings.recordingSettings")}
         desc={t("settings.recordingSettingsDesc")}
-        contentClassName="space-y-5"
+        contentClassName="space-y-3"
       >
         <SettingRow
           label={t("settings.recordingAutoStart")}
@@ -624,7 +624,7 @@ export function TerminalTab() {
         </SettingRow>
       </SettingSection>
 
-      <SettingSection contentClassName="space-y-4">
+      <SettingSection contentClassName="space-y-3">
         <SettingRow label={t("settings.actionLinks")} desc={t("settings.actionLinksDesc")}>
           <SettingSwitch
             checked={actionLinksEnabled}
@@ -700,7 +700,7 @@ export function TerminalTab() {
         </div>
       </SettingSection>
 
-      <SettingSection contentClassName="space-y-4">
+      <SettingSection contentClassName="space-y-3">
         <SettingRow
           label={t("settings.keywordHighlightingExperimental")}
           desc={t("settings.keywordHighlightingExperimentalDesc")}

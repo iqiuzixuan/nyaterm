@@ -221,14 +221,14 @@ export function KeyboardShortcutsTab() {
             autoCorrect="off"
             spellCheck={false}
             autoComplete="off"
-            className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
+            className="h-7 w-full rounded-[4px] border border-border bg-transparent pl-8 pr-2 text-xs outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
           />
         </div>
         {hasAnyCustom && (
           <button
             type="button"
             onClick={handleResetAll}
-            className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex h-7 items-center gap-1.5 rounded-[4px] border border-transparent bg-transparent px-2 text-xs font-normal text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <MdRefresh className="text-sm" />
             {t("settings.keybindingsResetAll")}

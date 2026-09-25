@@ -27,9 +27,9 @@ type SettingSectionProps = {
 
 function SettingMeta({ label, desc }: SettingMetaProps) {
   return (
-    <div className="min-w-0">
-      <Label className="text-sm font-medium leading-5">{label}</Label>
-      {desc && <p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p>}
+    <div className="settings-field-meta min-w-0">
+      <Label className="text-[13px] font-medium leading-[18px]">{label}</Label>
+      {desc && <p className="mt-1 text-xs leading-[18px] text-muted-foreground">{desc}</p>}
     </div>
   );
 }
@@ -42,7 +42,7 @@ function SettingFieldShell({
   controlClassName,
 }: SettingFieldShellProps) {
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("settings-field space-y-1.5", className)}>
       <SettingMeta label={label} desc={desc} />
       <div className={cn("min-w-0 max-w-xl", controlClassName)}>{children}</div>
     </div>
@@ -59,22 +59,22 @@ export function SettingSection({
 }: SettingSectionProps) {
   return (
     <section
-      className={cn("min-w-0 rounded-lg border border-border bg-card/60", className)}
+      className={cn("settings-section min-w-0 rounded-lg border border-border", className)}
     >
       {(title || desc || action) && (
-        <div className="flex flex-col gap-2 border-b border-border px-3 py-3">
+        <div className="settings-section-heading flex flex-col gap-2 px-3 pt-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             {(title || desc) && (
               <div className="min-w-0">
-                {title && <h3 className="text-sm font-semibold leading-5">{title}</h3>}
-                {desc && <p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p>}
+                {title && <h3 className="text-[13px] font-medium leading-[18px]">{title}</h3>}
+                {desc && <p className="mt-1 text-xs leading-[18px] text-muted-foreground">{desc}</p>}
               </div>
             )}
             {action && <div className="flex shrink-0 items-center">{action}</div>}
           </div>
         </div>
       )}
-      <div className={cn("min-w-0 space-y-3 px-3 py-3", contentClassName)}>
+      <div className={cn("settings-section-body min-w-0 space-y-3 p-3", contentClassName)}>
         {children}
       </div>
     </section>

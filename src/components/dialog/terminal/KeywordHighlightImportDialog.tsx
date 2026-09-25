@@ -80,7 +80,7 @@ export function KeywordHighlightImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={(value) => !value && !importing && onClose()}>
-      <DialogContent className="w-[min(380px,calc(100vw-2rem))] sm:max-w-[380px] p-6">
+      <DialogContent className="w-[min(380px,calc(100vw-2rem))] sm:max-w-[380px] p-4">
         <DialogHeader>
           <DialogTitle className="text-sm">{t("settings.keywordHighlightImportTitle")}</DialogTitle>
           <DialogDescription className="text-xs">

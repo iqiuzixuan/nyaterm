@@ -66,12 +66,12 @@ export function PrivateKeyViewDialog({
   return (
     <Dialog open={entry !== null} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(720px,calc(100vw-2rem))] max-w-none gap-0 overflow-hidden p-0">
-        <DialogHeader className="border-b px-5 py-3 pr-12">
+        <DialogHeader className="border-b px-4 py-3 pr-12">
           <DialogTitle className="text-sm">{t("settings.privateKeyDialogTitle")}</DialogTitle>
           <DialogDescription className="truncate">{entry?.name}</DialogDescription>
         </DialogHeader>
         <div className="min-h-0">
-          <div className="flex h-9 items-center justify-between gap-2 border-b px-5">
+          <div className="flex h-9 items-center justify-between gap-2 border-b px-4">
             <Label className="text-[0.6875rem] text-muted-foreground">
               {t("settings.privateKey")}
             </Label>

@@ -80,6 +80,15 @@ connections, tab actions and application behavior are retained.
 
 ## Shared UI rules
 
+- Settings and dialogs use `src/styles/settings.css` and `src/styles/dialogs.css`.
+  Settings navigation has 28px borderless rows with 16px icons; content uses 12px
+  insets and 28px form controls. Section labels are 13px and descriptions 12px.
+  Dialogs and alerts share 8px corners, the neutral border, a theme-derived shadow,
+  16px default padding, 14px titles and 12px descriptions. Footers wrap 28px actions
+  with 6px gaps; neutral actions are borderless. Close buttons retain a 22px target
+  and all keyboard focus indicators stay visible. Confirm/cancel ordering,
+  destructive variants, auto-focus, dismissal rules and save logic are unchanged.
+  Toast surfaces and severity colors come from the active NyaTerm theme.
 - Major surfaces use two theme-derived layers: sidebars, title bar and outer
   gutters use `--workspace-shell-bg` (panel background), while terminal windows,
   the workbench/assets view and bottom tools use `--workspace-content-bg`

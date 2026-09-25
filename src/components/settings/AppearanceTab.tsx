@@ -266,7 +266,7 @@ function BackgroundImageSection({
     <SettingSection
       title={t("settings.backgroundImage")}
       desc={t("settings.backgroundImageDesc")}
-      contentClassName="space-y-5"
+      contentClassName="space-y-3"
     >
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="flex min-h-9 min-w-0 flex-1 items-center rounded-md border border-border bg-background/60 px-3 py-2 text-xs">
@@ -458,7 +458,7 @@ const FontSelectControl = memo(function FontSelectControl({
   return (
     <Select value={selectValue} onOpenChange={handleOpenChange} onValueChange={handleValueChange}>
       <SelectTrigger
-        className="h-9 min-w-0 w-full flex-1 px-3 text-sm shadow-xs focus:ring-1 focus:ring-ring focus:outline-none"
+        className="h-7 min-w-0 w-full flex-1 px-2 text-xs focus:ring-1 focus:ring-ring focus:outline-none"
         style={{ fontFamily: previewFontFamily(item.font, previewFallback) }}
       >
         <SelectValue />
@@ -934,7 +934,7 @@ export function AppearanceTab() {
 
   return (
     <div className="space-y-4">
-      <SettingSection contentClassName="space-y-5">
+      <SettingSection contentClassName="space-y-3">
         <SettingSelect
           label={t("settings.theme")}
           desc={t("settings.themeDesc")}
@@ -1005,7 +1005,7 @@ export function AppearanceTab() {
         <SettingSection
           title={t("settings.windowTransparency")}
           desc={t("settings.windowTransparencyDesc")}
-          contentClassName="space-y-5"
+          contentClassName="space-y-3"
         >
           <PercentSlider
             label={t("settings.windowTransparencyOpacity")}
@@ -1062,7 +1062,7 @@ export function AppearanceTab() {
         onChange={updateTerminalFontFamily}
       />
 
-      <SettingSection contentClassName="space-y-5">
+      <SettingSection contentClassName="space-y-3">
         <SettingFieldGrid>
           <SettingNumberInput
             label={t("settings.fontSize")}

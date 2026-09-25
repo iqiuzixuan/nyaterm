@@ -90,7 +90,7 @@ export default function ChildWindowHeader({
   return (
     <header
       className="workspace-titlebar h-8 flex items-center shrink-0 select-none"
-      style={{ backgroundColor: "var(--df-bg)", borderColor: "var(--border)" }}
+      style={{ backgroundColor: "var(--workspace-shell-bg)", borderColor: "var(--border)" }}
     >
       {hideHeaderContent ? (
         <div className="h-full min-w-0 flex-1" data-tauri-drag-region />

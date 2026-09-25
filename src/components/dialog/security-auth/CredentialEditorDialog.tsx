@@ -56,7 +56,7 @@ export function CredentialEditorDialog({
   return (
     <Dialog disablePointerDismissal open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
       <DialogContent className="w-[min(640px,calc(100vw-2rem))] max-w-none gap-0 overflow-hidden p-0">
-        <DialogHeader className="border-b px-5 py-3 pr-12">
+        <DialogHeader className="border-b px-4 py-3 pr-12">
           <DialogTitle className="text-sm">
             {isEditing
               ? t("credentialManager.editorEditTitle")
@@ -64,7 +64,7 @@ export function CredentialEditorDialog({
           </DialogTitle>
           <DialogDescription>{t("credentialManager.editorDescription")}</DialogDescription>
         </DialogHeader>
-        <div className="terminal-scroll max-h-[calc(100vh-12rem)] overflow-y-auto px-5 py-4">
+        <div className="terminal-scroll max-h-[calc(100vh-12rem)] overflow-y-auto px-4 py-4">
           <div className="space-y-3">
             <div className="flex min-w-0 items-start justify-between gap-4 border-b pb-3">
               <div className="min-w-0 space-y-1">
@@ -213,7 +213,7 @@ export function CredentialEditorDialog({
             </div>
           </div>
         </div>
-        <DialogFooter className="border-t px-5 py-3">
+        <DialogFooter className="border-t px-4 py-3">
           <Button variant="outline" size="sm" className="h-7 px-3 text-xs" onClick={onCancel}>
             {t("common.cancel")}
           </Button>

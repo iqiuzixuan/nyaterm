@@ -197,13 +197,13 @@ export function KeyEditorDialog({
   return (
     <Dialog disablePointerDismissal open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
       <DialogContent className="w-[min(720px,calc(100vw-2rem))] max-w-none gap-0 overflow-hidden p-0">
-        <DialogHeader className="border-b px-5 py-3 pr-12">
+        <DialogHeader className="border-b px-4 py-3 pr-12">
           <DialogTitle className="text-sm">
             {isEditing ? t("settings.keyEditorEditTitle") : t("settings.keyEditorAddTitle")}
           </DialogTitle>
           <DialogDescription>{t("settings.keyEditorDescription")}</DialogDescription>
         </DialogHeader>
-        <div className="terminal-scroll max-h-[calc(100vh-12rem)] overflow-y-auto px-5 py-4">
+        <div className="terminal-scroll max-h-[calc(100vh-12rem)] overflow-y-auto px-4 py-4">
           <div className="space-y-2.5">
             <Input
               placeholder={t("settings.keyNamePlaceholder")}
@@ -287,7 +287,7 @@ export function KeyEditorDialog({
             </div>
           </div>
         </div>
-        <DialogFooter className="border-t px-5 py-3">
+        <DialogFooter className="border-t px-4 py-3">
           <Button variant="outline" size="sm" className="h-7 px-3 text-xs" onClick={onCancel}>
             {t("common.cancel")}
           </Button>

@@ -104,7 +104,7 @@ export default function DockerContainerDetailsDialog({
         className="w-[min(620px,calc(100vw-2rem))] sm:max-w-[620px] p-0 gap-0 overflow-hidden"
         showCloseButton={false}
       >
-        <DialogHeader className="border-b bg-muted/10 px-5 py-4">
+        <DialogHeader className="border-b bg-muted/10 px-4 py-4">
           <div className="flex min-h-8 min-w-0 items-center gap-3">
             <DialogTitle className="flex min-w-0 flex-1 items-center gap-2 text-sm">
               <span className="min-w-0 truncate" title={container?.name}>

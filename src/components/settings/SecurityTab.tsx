@@ -61,7 +61,7 @@ export function SecurityTab() {
 
   return (
     <div className="space-y-4">
-      <SettingSection title={t("settings.masterPasswordSection")} contentClassName="space-y-5">
+      <SettingSection title={t("settings.masterPasswordSection")} contentClassName="space-y-3">
         <SettingRow
           label={t("settings.masterPasswordSwitch")}
           desc={t("settings.masterPasswordSwitchDesc")}
@@ -113,7 +113,7 @@ export function SecurityTab() {
         />
       </SettingSection>
 
-      <SettingSection title={t("settings.sessionSecurity")} contentClassName="space-y-5">
+      <SettingSection title={t("settings.sessionSecurity")} contentClassName="space-y-3">
         <SettingRow
           label={t("settings.enableStartupLock")}
           desc={t("settings.enableStartupLockDesc")}

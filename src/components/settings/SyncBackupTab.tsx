@@ -489,7 +489,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
       <SettingSection
         title={t("settings.syncProviderConfig")}
         desc={t("settings.syncProviderConfigDesc")}
-        contentClassName="space-y-5"
+        contentClassName="space-y-3"
       >
         <SettingRow label={t("settings.enableCloudSync")} desc={t("settings.enableCloudSyncDesc")}>
           {hasDraftMasterPassword ? (
@@ -964,7 +964,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
       <SettingSection
         title={t("settings.autoSyncStrategy")}
         desc={t("settings.autoSyncStrategyDesc")}
-        contentClassName="space-y-5"
+        contentClassName="space-y-3"
       >
         <SettingRow
           label={t("settings.autoCheckOnStartup")}
@@ -1007,7 +1007,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
         />
       </SettingSection>
 
-      <SettingSection title={t("settings.manualSyncActions")} contentClassName="space-y-5">
+      <SettingSection title={t("settings.manualSyncActions")} contentClassName="space-y-3">
         {actionBlockMessage ? (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-muted-foreground">
             {actionBlockMessage}
@@ -1075,7 +1075,7 @@ export function SyncBackupTab({ onNavigateSecurity }: SyncBackupTabProps) {
       <SettingSection
         title={t("settings.syncConflictSection")}
         desc={t("settings.syncConflictSectionDesc")}
-        contentClassName="space-y-4"
+        contentClassName="space-y-3"
       >
         {status.conflict ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-4">

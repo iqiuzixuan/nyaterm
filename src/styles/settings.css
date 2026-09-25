@@ -1,0 +1,76 @@
+/* Settings use the same shell/content layers and compact controls as the workspace. */
+.settings-page {
+  background: var(--workspace-shell-bg);
+  color: var(--df-text);
+  font-size: 13px;
+  line-height: 20px;
+}
+.settings-page .workspace-settings-content {
+  background: var(--workspace-content-bg);
+}
+.settings-nav-heading,
+.settings-content-heading {
+  min-height: 40px;
+  padding: 8px 12px;
+}
+.settings-content-heading {
+  border-bottom: 1px solid var(--border);
+}
+.settings-page .settings-nav-item {
+  height: 28px;
+  min-width: 0;
+  gap: 8px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--workbench-control-radius);
+  background: transparent;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+.settings-page .settings-nav-item:hover,
+.settings-page .settings-nav-selected {
+  background: var(--df-bg-hover);
+  color: var(--df-text);
+}
+.settings-page .settings-nav-item:focus-visible {
+  outline: 1px solid var(--df-focus-ring);
+  outline-offset: -1px;
+}
+.settings-page .settings-nav-item svg {
+  width: 16px;
+  height: 16px;
+}
+.settings-section {
+  background: transparent;
+  border-color: var(--border);
+}
+.settings-page [data-slot="label"] {
+  font-size: 13px;
+  line-height: 18px;
+}
+.settings-page [data-slot="input"],
+.settings-page [data-slot="select-trigger"],
+.settings-page [data-slot="button"][data-size="default"],
+.settings-page [data-slot="button"][data-size="icon"] {
+  height: 28px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.settings-page [data-slot="button"][data-size="icon"] {
+  width: 28px;
+}
+.settings-page [data-slot="textarea"] {
+  font-size: 12px;
+  line-height: 20px;
+}
+.settings-page .settings-action-footer {
+  background: var(--workspace-content-bg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-page button,
+  .settings-page svg {
+    transition: none;
+  }
+}

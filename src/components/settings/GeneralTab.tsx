@@ -26,7 +26,7 @@ export function GeneralTab() {
 
   return (
     <div className="space-y-4">
-      <SettingSection contentClassName="space-y-5">
+      <SettingSection contentClassName="space-y-3">
         <SettingSelect
           label={t("settings.language")}
           desc={t("settings.languageDesc")}
@@ -68,7 +68,7 @@ export function GeneralTab() {
         </SettingSelect>
       </SettingSection>
 
-      <SettingSection contentClassName="space-y-4">
+      <SettingSection contentClassName="space-y-3">
         <SettingRow label={t("settings.startupRestore")} desc={t("settings.startupRestoreDesc")}>
           <SettingSwitch
             checked={appSettings.general.startup_restore}
@@ -118,7 +118,7 @@ export function GeneralTab() {
       <SettingSection
         title={t("settings.diagnostics")}
         desc={t("settings.diagnosticsDesc")}
-        contentClassName="space-y-4"
+        contentClassName="space-y-3"
       >
         <SettingFieldGrid>
           <SettingSelect
