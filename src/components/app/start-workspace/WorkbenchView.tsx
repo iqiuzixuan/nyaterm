@@ -58,15 +58,17 @@ export default function WorkbenchView({
       }}
     >
       <div className="flex w-full max-w-[34rem] flex-col items-center">
-        <NyaTermLogo
-          aria-hidden="true"
-          className="mb-8 h-24 w-24 opacity-30 grayscale"
-          style={{
-            color: "var(--df-text-dimmed)",
-            ["--grad-from" as string]: "currentColor",
-            ["--grad-to" as string]: "currentColor",
-          }}
-        />
+        {!backgroundEnabled && (
+          <NyaTermLogo
+            aria-hidden="true"
+            className="mb-8 h-24 w-24 opacity-30 grayscale"
+            style={{
+              color: "var(--df-text-dimmed)",
+              ["--grad-from" as string]: "currentColor",
+              ["--grad-to" as string]: "currentColor",
+            }}
+          />
+        )}
 
         <div className="flex w-full max-w-[22rem] flex-col gap-1 text-sm">
           {emptyWorkspaceActions.map((item) => (
